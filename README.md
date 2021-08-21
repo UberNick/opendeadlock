@@ -4,11 +4,31 @@ OpenDeadlock is a fan project inspired by the classic game Deadlock: Planetary C
 
 This project is built on the cross-platform Flutter framework.
 
-## Resources
+## Links and Resources
 
-Brainstorm board:
+OpenDeadlock Task board:
+
+* https://trello.com/b/80qauJyq/tasks
+
+OpenDeadlock Brainstorm board:
 
 * https://trello.com/b/fS0sagJ2/enhancements-brainstorming
+
+Gallius IV Discussion Board:
+
+* http://forum.galliusiv.com/viewforum.php?f=7
+
+Fan Wiki:
+
+* https://deadlock.fandom.com/wiki/Deadlock:_Gallius_IV
+
+Legacy OpenDeadlock Decoder Project:
+
+* https://sourceforge.net/p/opendeadlock/decode/ci/default/tree/
+
+Original game:
+
+* https://www.gog.com/game/deadlock_planetary_conquest
 
 ## Building and running
 
@@ -26,7 +46,23 @@ The Flutter framework and its dependencies are required to compile this project.
 
 * https://flutter.dev/docs/get-started/install
 
-Note that Flutter has additional dependendies based on the system being used and type of output being used.
+The easiest way to do this is to clone the project then run flutter doctor
+
+`git clone git@github.com:flutter/flutter.git`
+
+Windows console:
+
+`cd flutter\bin`
+
+`flutter doctor`
+
+Mac/Linux terminal:
+
+`cd flutter/bin`
+
+`./flutter doctor`
+
+Note that Flutter has additional dependencies based on the system being used and type of output being used. Flutter doctor should take care of most dependencies and warn about anything that's missing.
 
 #### Visual Studio
 
@@ -45,3 +81,13 @@ Enter the directory and run the app
 `cd opendeadlock`
 
 `flutter run`
+
+## Supported Platforms
+
+* Windows
+* MacOS
+* Web
+* iOS
+* Android
+
+Linux desktop support can also be added
