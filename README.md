@@ -105,3 +105,24 @@ You can contribute in the following ways:
 * DevOps
 
 See the [Task board](https://trello.com/b/80qauJyq/tasks) and [Brainstorm board](https://trello.com/b/fS0sagJ2/enhancements-brainstorming) for details on ongoing work and ideas. 
+
+## Project Roadmap
+
+* Create Platform Scaffolding :heavy_check_mark:
+* Build Basic Interface
+* Integrate Development Tools
+* Build Map Display
+* Create Construction UI
+* Build Game Engine (Turn Behavior)
+* Incorporate Artwork
+* Create Population Rules
+* Create Resource Rules
+* Create Production Rules
+* Create Movement Rules
+* Create Race Rules
+* Incorporate Sound and Music
+* Introduce Opponents
+* Build Basic AIs
+* Build Race AIs
+* Incporate Video and Cutscenes
+* Build Peronality Traits
