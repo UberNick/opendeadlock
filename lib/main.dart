@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'main_menu.dart';
 
-
 void main() {
   runApp(OpenDeadlock());
 }
@@ -14,8 +13,9 @@ class OpenDeadlock extends StatelessWidget {
       title: 'OpenDeadlock',
       theme: ThemeData(
         primarySwatch: Colors.grey,
+        scaffoldBackgroundColor: Colors.black,
       ),
-      home: MyHomePage(title: ''),
+      home: MainMenu(title: 'OpenDeadlock'),
     );
   }
 }

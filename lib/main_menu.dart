@@ -1,44 +1,51 @@
 import 'package:flutter/material.dart';
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
+class MainMenu extends StatefulWidget {
+  MainMenu({Key? key, required this.title}) : super(key: key);
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _MainMenuState createState() => _MainMenuState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
+class _MainMenuState extends State<MainMenu> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
+       body: Center(
+         child: Column(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+             Card(
+               clipBehavior: Clip.antiAlias,
+               color: Colors.grey,
+               child:
+               Padding(
+                   padding: const EdgeInsets.all(16.0),
+                   child: Row(
+                       children: [
+                         Column(
+                             children: [
+                               Image.asset('assets/images/galliusiv.png'),
+                             ]
+                         ),
+                         Column(
+                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                           children: [
+                             Text("Quick Start"),
+                             Text("Tutorial"),
+                             Text("New Game"),
+                             Text("Load Game"),
+                             Text("Developer Menu"),
+                           ]
+                         ),
+                       ]
+                   )
+               ),
+             )
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

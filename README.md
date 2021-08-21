@@ -1,6 +1,6 @@
 # OpenDeadlock
 
-OpenDeadlock is a fan project inspired by the classic game Deadlock: Planetary Conquest.
+OpenDeadlock is a fan project inspired by the classic turn-based strategy game.
 
 This project is built on the cross-platform Flutter framework.
 
@@ -89,6 +89,8 @@ Enter the directory and run the app
 * Web
 * iOS
 * Android
+
+Linux desktop can also be made available. If interested, please let us know in the [forums]((http://forum.galliusiv.com/viewforum.php?f=7)
 
 ## Contributing
 
