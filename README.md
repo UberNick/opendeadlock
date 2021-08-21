@@ -90,11 +90,11 @@ Enter the directory and run the app
 * iOS
 * Android
 
-Linux desktop can also be made available. If interested, please let us know in the [forums]((http://forum.galliusiv.com/viewforum.php?f=7)
+Linux desktop can also be made available. If interested, please let us know in the [forums](http://forum.galliusiv.com/viewforum.php?f=7)
 
 ## Contributing
 
-OpenDeadlock is a community project, and contributions are welcome by all. Please post to the [Gallius IV forums](http://forum.galliusiv.com/viewforum.php?f=7) if you can contribute.
+OpenDeadlock is a community project, and contributions are welcome by all. Feel free to submit Pull Requests, update Trello tickets, or post to the [Gallius IV forums](http://forum.galliusiv.com/viewforum.php?f=7) if you can contribute in other ways.
 
 You can contribute in the following ways:
 
