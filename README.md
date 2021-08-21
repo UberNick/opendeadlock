@@ -90,4 +90,16 @@ Enter the directory and run the app
 * iOS
 * Android
 
-Linux desktop support can also be added
+## Contributing
+
+OpenDeadlock is a community project, and contributions are welcome by all. Please post to the [Gallius IV forums](http://forum.galliusiv.com/viewforum.php?f=7) if you can contribute.
+
+You can contribute in the following ways:
+
+* Research / Ideas 
+* Testing
+* Developing
+* Artwork
+* DevOps
+
+See the [Task board](https://trello.com/b/80qauJyq/tasks) and [Brainstorm board](https://trello.com/b/fS0sagJ2/enhancements-brainstorming) for details on ongoing work and ideas. 
