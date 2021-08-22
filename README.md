@@ -23,6 +23,10 @@ This project is built on the cross-platform Flutter framework.
 * Incorporate Sound and Music
 * Introduce Opponents
 * Build Basic AIs
+* Build Battle Interface
+* Create Battle and Endgame Rules
+* Create Multiplayer Interface
+* Add Multiplayer Connectivity
 * Build Race AIs
 * Incorporate Video and Cutscenes
 * Build Personality Traits
