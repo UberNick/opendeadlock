@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'main_menu.dart';
+import 'menu/main_menu.dart';
 
 void main() {
   runApp(OpenDeadlock());
