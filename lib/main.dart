@@ -15,7 +15,7 @@ class OpenDeadlock extends StatelessWidget {
         primarySwatch: Colors.grey,
         scaffoldBackgroundColor: Colors.black,
       ),
-      home: MainMenu(title: 'OpenDeadlock'),
+      home: MainMenu(title: "OpenDeadlock"),
     );
   }
 }
