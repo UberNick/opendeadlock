@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33723.286
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dehdx", "dehdx.vcxproj", "{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3D48CA82-E248-462C-8E9B-78B4D53CA332}"
+	ProjectSection(SolutionItems) = preProject
+		hdx.hpp = hdx.hpp
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Debug|x64.ActiveCfg = Debug|x64
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Debug|x64.Build.0 = Debug|x64
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Debug|x86.ActiveCfg = Debug|Win32
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Debug|x86.Build.0 = Debug|Win32
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Release|x64.ActiveCfg = Release|x64
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Release|x64.Build.0 = Release|x64
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Release|x86.ActiveCfg = Release|Win32
+		{700E6C5F-E8F0-4CBB-BEF5-55A6AAF3C270}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DDDEC754-6259-4A54-B3FA-F95F33881CD5}
+	EndGlobalSection
+EndGlobal

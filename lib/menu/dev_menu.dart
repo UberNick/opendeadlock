@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'package:file_selector/file_selector.dart';
 
-class DevMenu extends StatelessWidget {
+class DevMenu extends StatefulWidget {
   DevMenu({Key? key, required this.title}) : super(key: key);
   final String title;
   String? directory;

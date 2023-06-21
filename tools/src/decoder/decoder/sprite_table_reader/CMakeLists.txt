@@ -1,0 +1,1 @@
+add_library(sprite_table_reader sprite_table_reader.h sprite_table_reader.cpp)

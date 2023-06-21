@@ -1,0 +1,1 @@
+add_library(xpm_writer xpm_writer.h xpm_writer.cpp)

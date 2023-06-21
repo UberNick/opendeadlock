@@ -1,0 +1,1 @@
+add_library(palette_reader palette_reader.h palette_reader.cpp)
