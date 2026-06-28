@@ -2601,6 +2601,83 @@ void main() {
     expect(find.text('Invite code copied for Tarth Legion'), findsOneWidget);
   });
 
+  testWidgets('sync menu copies invites for multiple remote players',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(480, 900);
+    tester.view.devicePixelRatio = 1;
+    final clipboardWrites = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final arguments = call.arguments as Map<dynamic, dynamic>;
+          clipboardWrites.add(arguments['text'] as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+    final sample = OpenDeadlockGame.sample(sessionId: 'multi-menu-invite');
+    const traders = Faction(
+      id: 'traders',
+      name: 'Trade Compact',
+      colorValue: 0xFF2CB67D,
+      raceId: 'uva_mosk',
+      isComputer: false,
+      controlMode: Faction.controlRemote,
+      resources:
+          ResourceStockpile(food: 12, industry: 5, research: 0, credits: 9),
+    );
+    final asyncGame = sample.copyWith(
+      factions: <Faction>[
+        sample.factionById('humans')!,
+        sample.factionById('rebels')!.copyWith(
+              controlMode: Faction.controlRemote,
+            ),
+        traders,
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: asyncGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Sync'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Copy Invite'), findsNothing);
+    expect(find.text('Save Invite'), findsNothing);
+    expect(find.text('Copy Invite: Tarth Legion'), findsOneWidget);
+    expect(find.text('Save Invite: Tarth Legion'), findsOneWidget);
+    expect(find.text('Copy Invite: Trade Compact'), findsOneWidget);
+    expect(find.text('Save Invite: Trade Compact'), findsOneWidget);
+
+    await tester.tap(find.text('Copy Invite: Trade Compact'));
+    await tester.pumpAndSettle();
+
+    final invite = GameCodec.decodeGameInvite(clipboardWrites.single);
+
+    expect(tester.takeException(), isNull);
+    expect(invite.sessionId, 'multi-menu-invite');
+    expect(invite.hostFactionId, 'humans');
+    expect(invite.invitedFactionId, 'traders');
+    expect(find.text('Invite code copied for Trade Compact'), findsOneWidget);
+  });
+
   testWidgets('game screen can apply an order package from typed sync code',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

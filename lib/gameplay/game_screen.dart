@@ -2135,6 +2135,16 @@ enum _CommandBarAction {
   toggleHotseat,
 }
 
+class _CommandBarMenuSelection {
+  const _CommandBarMenuSelection(
+    this.action, {
+    this.factionId,
+  });
+
+  final _CommandBarAction action;
+  final String? factionId;
+}
+
 class _CommandBar extends StatelessWidget {
   const _CommandBar({
     Key? key,
@@ -2327,92 +2337,80 @@ class _CommandBar extends StatelessWidget {
   }
 
   Widget _syncMenu(BuildContext context, bool hasComputerOpponents) {
-    final singleRemoteFaction = _singleRemoteFaction();
-    return PopupMenuButton<_CommandBarAction>(
+    final remoteInviteFactions = _remoteInviteFactions();
+    return PopupMenuButton<_CommandBarMenuSelection>(
       tooltip: 'Sync',
       color: const Color(0xFF202B34),
       icon: const Icon(Icons.sync_alt, color: Colors.white),
-      onSelected: (action) => _handleMenuAction(context, action),
-      itemBuilder: (context) => <PopupMenuEntry<_CommandBarAction>>[
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.saveLocal,
+      onSelected: (selection) => _handleMenuAction(context, selection),
+      itemBuilder: (context) => <PopupMenuEntry<_CommandBarMenuSelection>>[
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.saveLocal),
           child: _SyncMenuItem(icon: Icons.save, label: 'Save Local'),
         ),
-        PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.loadLocal,
+        PopupMenuItem<_CommandBarMenuSelection>(
+          value: const _CommandBarMenuSelection(_CommandBarAction.loadLocal),
           enabled: latestSaveSlot != null,
           child:
               const _SyncMenuItem(icon: Icons.folder_open, label: 'Load Local'),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.copySnapshot,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.copySnapshot),
           child:
               _SyncMenuItem(icon: Icons.content_copy, label: 'Copy Snapshot'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.exportSnapshotFile,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.exportSnapshotFile),
           child:
               _SyncMenuItem(icon: Icons.save_alt, label: 'Save Snapshot File'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.loadSnapshot,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.loadSnapshot),
           child: _SyncMenuItem(icon: Icons.upload_file, label: 'Load Snapshot'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.importSnapshotFile,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.importSnapshotFile),
           child: _SyncMenuItem(
               icon: Icons.drive_folder_upload, label: 'Import Snapshot File'),
         ),
-        if (singleRemoteFaction != null) ...[
+        if (remoteInviteFactions.isNotEmpty) ...[
           const PopupMenuDivider(),
-          PopupMenuItem<_CommandBarAction>(
-            value: _CommandBarAction.copyInvite,
-            child: _SyncMenuItem(
-              icon: Icons.person_add_alt_1,
-              label: 'Copy Invite',
-            ),
-          ),
-          PopupMenuItem<_CommandBarAction>(
-            value: _CommandBarAction.exportInviteFile,
-            child: _SyncMenuItem(
-              icon: Icons.save_alt,
-              label: 'Save Invite',
-            ),
-          ),
+          ..._inviteMenuEntries(remoteInviteFactions),
         ],
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.loadInvite,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.loadInvite),
           child:
               _SyncMenuItem(icon: Icons.person_add_alt_1, label: 'Load Invite'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.importInviteFile,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.importInviteFile),
           child: _SyncMenuItem(
               icon: Icons.drive_folder_upload, label: 'Import Invite File'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.copyOrders,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.copyOrders),
           child: _SyncMenuItem(icon: Icons.ios_share, label: 'Copy Orders'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.exportOrdersFile,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.exportOrdersFile),
           child:
               _SyncMenuItem(icon: Icons.save_alt, label: 'Export Orders File'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.applyOrders,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.applyOrders),
           child: _SyncMenuItem(
               icon: Icons.playlist_add_check, label: 'Apply Orders'),
         ),
-        const PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.importOrdersFile,
+        const PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(_CommandBarAction.importOrdersFile),
           child: _SyncMenuItem(
               icon: Icons.drive_folder_upload, label: 'Import Orders File'),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<_CommandBarAction>(
-          value: _CommandBarAction.toggleHotseat,
+        PopupMenuItem<_CommandBarMenuSelection>(
+          value:
+              const _CommandBarMenuSelection(_CommandBarAction.toggleHotseat),
           enabled: !game.isGameOver,
           child: _SyncMenuItem(
             icon: hasComputerOpponents ? Icons.groups : Icons.smart_toy,
@@ -2424,7 +2422,45 @@ class _CommandBar extends StatelessWidget {
     );
   }
 
-  void _handleMenuAction(BuildContext context, _CommandBarAction action) {
+  List<PopupMenuEntry<_CommandBarMenuSelection>> _inviteMenuEntries(
+    List<Faction> remoteFactions,
+  ) {
+    final singleInvite = remoteFactions.length == 1;
+    return remoteFactions.expand((faction) {
+      final copyLabel =
+          singleInvite ? 'Copy Invite' : 'Copy Invite: ${faction.name}';
+      final saveLabel =
+          singleInvite ? 'Save Invite' : 'Save Invite: ${faction.name}';
+      return <PopupMenuEntry<_CommandBarMenuSelection>>[
+        PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(
+            _CommandBarAction.copyInvite,
+            factionId: faction.id,
+          ),
+          child: _SyncMenuItem(
+            icon: Icons.person_add_alt_1,
+            label: copyLabel,
+          ),
+        ),
+        PopupMenuItem<_CommandBarMenuSelection>(
+          value: _CommandBarMenuSelection(
+            _CommandBarAction.exportInviteFile,
+            factionId: faction.id,
+          ),
+          child: _SyncMenuItem(
+            icon: Icons.save_alt,
+            label: saveLabel,
+          ),
+        ),
+      ];
+    }).toList();
+  }
+
+  void _handleMenuAction(
+    BuildContext context,
+    _CommandBarMenuSelection selection,
+  ) {
+    final action = selection.action;
     if (action == _CommandBarAction.saveLocal) {
       onSaveGame();
       return;
@@ -2457,16 +2493,16 @@ class _CommandBar extends StatelessWidget {
       return;
     }
     if (action == _CommandBarAction.copyInvite) {
-      final singleRemoteFaction = _singleRemoteFaction();
-      if (singleRemoteFaction != null) {
-        onCopyInvite(singleRemoteFaction.id);
+      final factionId = selection.factionId;
+      if (factionId != null) {
+        onCopyInvite(factionId);
       }
       return;
     }
     if (action == _CommandBarAction.exportInviteFile) {
-      final singleRemoteFaction = _singleRemoteFaction();
-      if (singleRemoteFaction != null) {
-        onExportInvite(singleRemoteFaction.id);
+      final factionId = selection.factionId;
+      if (factionId != null) {
+        onExportInvite(factionId);
       }
       return;
     }
@@ -2499,13 +2535,11 @@ class _CommandBar extends StatelessWidget {
     }
   }
 
-  Faction? _singleRemoteFaction() {
+  List<Faction> _remoteInviteFactions() {
     if (!game.activeFactionCanIssueLocalOrders) {
-      return null;
+      return const <Faction>[];
     }
-    final remoteFactions =
-        game.factions.where((faction) => faction.isRemote).toList();
-    return remoteFactions.length == 1 ? remoteFactions.single : null;
+    return game.factions.where((faction) => faction.isRemote).toList();
   }
 
   Widget _endTurnButton() {
