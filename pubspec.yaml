@@ -4,17 +4,23 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=2.12.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  file_selector_macos: ^0.0.4+1
-  file_selector: ^0.8.2+1
-  file_selector_windows: ^0.0.2+1
+  cupertino_icons: ^1.0.9
+  file_selector_macos: ^0.9.5
+  file_selector: ^1.1.0
+  file_selector_windows: ^0.9.3+5
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
   assets:
      - assets/images/
+     - docs/reference/legacy-screenshots/nick-2026-06-27/
