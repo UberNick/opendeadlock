@@ -1313,25 +1313,23 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _copyInviteForFaction(String factionId) async {
     try {
-      final invitedFaction = game.factionById(factionId);
-      if (invitedFaction == null) {
-        throw ArgumentError('Unknown faction: $factionId.');
+      final preparedInvite = _createInviteForFaction(factionId);
+      final confirmed = await _showInvitePreviewDialog(
+        preparedInvite.invite,
+        title: 'Review Invite',
+        confirmLabel: 'Copy Invite',
+        confirmIcon: Icons.content_copy,
+      );
+      if (confirmed != true || !mounted) {
+        return;
       }
-      final hostFaction = game.factions.firstWhere(
-        (faction) => faction.isLocal,
-        orElse: () => game.activeFaction,
-      );
-      final invite = GameCodec.encodeGameInvite(
-        game,
-        hostFactionId: hostFaction.id,
-        invitedFactionId: factionId,
-      );
       await Clipboard.setData(
-        ClipboardData(text: GameCodec.encodeShareCode(invite)),
+        ClipboardData(text: GameCodec.encodeShareCode(preparedInvite.encoded)),
       );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Invite code copied for ${invitedFaction.name}')),
+            content: Text(
+                'Invite code copied for ${preparedInvite.invite.invitedFactionName}')),
       );
     } on Object catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1342,21 +1340,17 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _exportInviteForFaction(String factionId) async {
     try {
-      final invitedFaction = game.factionById(factionId);
-      if (invitedFaction == null) {
-        throw ArgumentError('Unknown faction: $factionId.');
+      final preparedInvite = _createInviteForFaction(factionId);
+      final confirmed = await _showInvitePreviewDialog(
+        preparedInvite.invite,
+        title: 'Review Invite',
+        confirmLabel: 'Save Invite',
+        confirmIcon: Icons.save_alt,
+      );
+      if (confirmed != true || !mounted) {
+        return;
       }
-      final hostFaction = game.factions.firstWhere(
-        (faction) => faction.isLocal,
-        orElse: () => game.activeFaction,
-      );
-      final invite = GameCodec.encodeGameInvite(
-        game,
-        hostFactionId: hostFaction.id,
-        invitedFactionId: factionId,
-      );
-      final decodedInvite = GameCodec.decodeGameInvite(invite);
-      final fileName = _inviteFileName(decodedInvite);
+      final fileName = _inviteFileName(preparedInvite.invite);
       final location = await getSaveLocation(
         acceptedTypeGroups: _inviteFileTypes,
         suggestedName: fileName,
@@ -1367,14 +1361,16 @@ class _GameScreenState extends State<GameScreen> {
       }
       await widget.textFileWriter(
         path: location.path,
-        content: GameCodec.encodeShareCode(invite),
+        content: GameCodec.encodeShareCode(preparedInvite.encoded),
         fileName: fileName,
       );
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invite file saved for ${invitedFaction.name}')),
+        SnackBar(
+            content: Text(
+                'Invite file saved for ${preparedInvite.invite.invitedFactionName}')),
       );
     } on Object catch (error) {
       if (!mounted) {
@@ -1384,6 +1380,43 @@ class _GameScreenState extends State<GameScreen> {
         SnackBar(content: Text('Could not export invite file: $error')),
       );
     }
+  }
+
+  _PreparedInvite _createInviteForFaction(String factionId) {
+    final invitedFaction = game.factionById(factionId);
+    if (invitedFaction == null) {
+      throw ArgumentError('Unknown faction: $factionId.');
+    }
+    final hostFaction = game.factions.firstWhere(
+      (faction) => faction.isLocal,
+      orElse: () => game.activeFaction,
+    );
+    final encoded = GameCodec.encodeGameInvite(
+      game,
+      hostFactionId: hostFaction.id,
+      invitedFactionId: factionId,
+    );
+    return _PreparedInvite(
+      encoded: encoded,
+      invite: GameCodec.decodeGameInvite(encoded),
+    );
+  }
+
+  Future<bool?> _showInvitePreviewDialog(
+    GameInvite invite, {
+    required String title,
+    required String confirmLabel,
+    required IconData confirmIcon,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => _InvitePreviewDialog(
+        title: title,
+        confirmLabel: confirmLabel,
+        confirmIcon: confirmIcon,
+        invite: invite,
+      ),
+    );
   }
 
   String _inviteFileName(GameInvite invite) {
@@ -1956,6 +1989,87 @@ class _OrderPackagePreviewDialog extends StatelessWidget {
               ? Icons.playlist_add_check
               : Icons.check_circle_outline),
           label: Text(preview.hasNewCommands ? 'Apply Orders' : 'Close'),
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFCCD6A6),
+            foregroundColor: const Color(0xFF111418),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreparedInvite {
+  const _PreparedInvite({
+    required this.encoded,
+    required this.invite,
+  });
+
+  final String encoded;
+  final GameInvite invite;
+}
+
+class _InvitePreviewDialog extends StatelessWidget {
+  const _InvitePreviewDialog({
+    Key? key,
+    required this.title,
+    required this.confirmLabel,
+    required this.confirmIcon,
+    required this.invite,
+  }) : super(key: key);
+
+  final String title;
+  final String confirmLabel;
+  final IconData confirmIcon;
+  final GameInvite invite;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF202B34),
+      title: Text(
+        title,
+        style: const TextStyle(color: Color(0xFFF4F7FA)),
+      ),
+      content: SizedBox(
+        width: 430,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Invite ${invite.invitedFactionName} to session ${_shortSessionId(invite.sessionId)}',
+              style: const TextStyle(
+                color: Color(0xFFF4F7FA),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _DetailRow(label: 'Host', value: invite.hostFactionName),
+            _DetailRow(label: 'Guest', value: invite.invitedFactionName),
+            _DetailRow(label: 'Session', value: invite.sessionId),
+            _DetailRow(
+              label: 'Commands',
+              value: '${invite.commandCount} in snapshot',
+            ),
+            _DetailRow(label: 'State', value: invite.stateFingerprint),
+            const SizedBox(height: 8),
+            const Text(
+              'The guest will load a local perspective where this faction is playable and the host is remote.',
+              style: TextStyle(color: Color(0xFFE9EEF2)),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton.icon(
+          icon: Icon(confirmIcon),
+          label: Text(confirmLabel),
           onPressed: () => Navigator.pop(context, true),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCCD6A6),

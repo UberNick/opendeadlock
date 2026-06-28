@@ -2725,6 +2725,28 @@ void main() {
     await tester.tap(find.text('Copy Invite').last);
     await tester.pumpAndSettle();
 
+    expect(find.text('Review Invite'), findsOneWidget);
+    expect(find.text('Invite Tarth Legion to session menu-invite'),
+        findsOneWidget);
+    expect(find.text('Host'), findsOneWidget);
+    expect(find.text('Human Assembly'), findsWidgets);
+    expect(find.text('Guest'), findsOneWidget);
+    expect(find.text('Tarth Legion'), findsWidgets);
+    expect(clipboardWrites, isEmpty);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Review Invite'), findsNothing);
+    expect(clipboardWrites, isEmpty);
+
+    await tester.tap(find.byTooltip('Sync'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy Invite').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Invite'));
+    await tester.pumpAndSettle();
+
     final invite = GameCodec.decodeGameInvite(clipboardWrites.single);
 
     expect(tester.takeException(), isNull);
@@ -2800,6 +2822,17 @@ void main() {
     expect(find.text('Save Invite: Trade Compact'), findsOneWidget);
 
     await tester.tap(find.text('Copy Invite: Trade Compact'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Review Invite'), findsOneWidget);
+    expect(
+      find.textContaining('Invite Trade Compact to session'),
+      findsOneWidget,
+    );
+    expect(find.text('Human Assembly'), findsWidgets);
+    expect(find.text('Trade Compact'), findsWidgets);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Invite'));
     await tester.pumpAndSettle();
 
     final invite = GameCodec.decodeGameInvite(clipboardWrites.single);
@@ -3590,6 +3623,14 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, 'Save Invite'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Review Invite'), findsOneWidget);
+    expect(find.text('Invite Tarth Legion to session invite-file'),
+        findsOneWidget);
+    expect(exportedContent, isNull);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Save Invite'));
     await tester.pumpAndSettle();
 
     final invite = GameCodec.decodeGameInvite(exportedContent!);
