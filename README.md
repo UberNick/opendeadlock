@@ -12,6 +12,35 @@ mobile.
 
 These commands bring up a local web version that is easy to share and inspect.
 
+### Review the Current PR Locally
+
+If you are reviewing the playable prototype pull request, this is the shortest
+path from a fresh checkout to a browser URL:
+
+```sh
+git clone https://github.com/UberNick/opendeadlock.git
+cd opendeadlock
+gh pr checkout <pr-number>
+flutter pub get
+flutter run -d chrome
+```
+
+Flutter opens Chrome automatically and also prints the local development URL in
+the terminal.
+
+For a stable URL that you can reopen or share on the same machine, run:
+
+```sh
+flutter build web
+python3 -m http.server 8080 -d build/web
+```
+
+Then open `http://127.0.0.1:8080/`.
+
+If port `8080` is already in use, change the command to another port such as
+`python3 -m http.server 8081 -d build/web` and open
+`http://127.0.0.1:8081/`.
+
 ### Requirements
 
 * Flutter SDK: https://docs.flutter.dev/get-started/install
