@@ -2610,10 +2610,22 @@ void main() {
     expect(find.text('New Haven: focus Industry'), findsOneWidget);
     expect(find.text('Turn 1 | Human Assembly'), findsOneWidget);
     expect(find.text('New Haven: build Factory'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Copy Orders'), findsOneWidget);
+    expect(
+      find.widgetWithText(OutlinedButton, 'Export Orders File'),
+      findsOneWidget,
+    );
 
-    await _tapSyncMenuItem(tester, 'Copy Orders');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Copy Orders'));
+    await tester.pumpAndSettle();
 
-    expect(find.text('Copy Orders'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Copy Orders'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.text('1 new order from Human Assembly'),
       findsOneWidget,
@@ -2628,7 +2640,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(clipboardWrites, isEmpty);
-    expect(find.text('Copy Orders'), findsNothing);
+    expect(find.byType(AlertDialog), findsNothing);
 
     await _tapSyncMenuItem(tester, 'Copy Orders');
     await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Code'));
@@ -2737,10 +2749,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('1 pending'), findsOneWidget);
+    expect(
+      find.widgetWithText(OutlinedButton, 'Export Orders File'),
+      findsOneWidget,
+    );
 
-    await _tapSyncMenuItem(tester, 'Export Orders File');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Export Orders File'));
+    await tester.pumpAndSettle();
 
-    expect(find.text('Export Orders File'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Export Orders File'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('1 new order from Human Assembly'), findsOneWidget);
     expect(find.text('New Haven: focus Industry'), findsWidgets);
 

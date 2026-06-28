@@ -418,6 +418,8 @@ class _GameScreenState extends State<GameScreen> {
                     },
                     onCopyInvite: _copyInviteForFaction,
                     onExportInvite: _exportInviteForFaction,
+                    onCopyOrders: _copyOrdersToClipboard,
+                    onExportOrdersFile: _exportOrdersToFile,
                     canUndoLastOrder: _canUndoLastOrder,
                     onUndoLastOrder: _undoLastOrder,
                   );
@@ -3875,6 +3877,8 @@ class _SelectionPanel extends StatelessWidget {
     required this.onSabotage,
     required this.onCopyInvite,
     required this.onExportInvite,
+    required this.onCopyOrders,
+    required this.onExportOrdersFile,
     required this.canUndoLastOrder,
     required this.onUndoLastOrder,
   }) : super(key: key);
@@ -3912,6 +3916,8 @@ class _SelectionPanel extends StatelessWidget {
   final void Function(String targetFactionId) onSabotage;
   final Future<void> Function(String factionId) onCopyInvite;
   final Future<void> Function(String factionId) onExportInvite;
+  final Future<void> Function() onCopyOrders;
+  final Future<void> Function() onExportOrdersFile;
   final bool canUndoLastOrder;
   final VoidCallback onUndoLastOrder;
 
@@ -4090,6 +4096,8 @@ class _SelectionPanel extends StatelessWidget {
           _PendingOrdersDetail(
             game: game,
             fromCommandIndex: orderExportBaseCommandCount,
+            onCopyOrders: onCopyOrders,
+            onExportOrdersFile: onExportOrdersFile,
             canUndoLastOrder: canUndoLastOrder,
             onUndoLastOrder: onUndoLastOrder,
           ),
@@ -6180,12 +6188,16 @@ class _PendingOrdersDetail extends StatelessWidget {
     Key? key,
     required this.game,
     required this.fromCommandIndex,
+    required this.onCopyOrders,
+    required this.onExportOrdersFile,
     required this.canUndoLastOrder,
     required this.onUndoLastOrder,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
   final int fromCommandIndex;
+  final Future<void> Function() onCopyOrders;
+  final Future<void> Function() onExportOrdersFile;
   final bool canUndoLastOrder;
   final VoidCallback onUndoLastOrder;
 
@@ -6235,6 +6247,35 @@ class _PendingOrdersDetail extends StatelessWidget {
             value: startIndex == 0 ? 'Game start' : 'Command $startIndex',
           ),
           if (pendingRecords.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.ios_share, size: 18),
+                  label: const Text('Copy Orders'),
+                  onPressed: () {
+                    onCopyOrders();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFE9EEF2),
+                    side: const BorderSide(color: Color(0xFF55616C)),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.save_alt, size: 18),
+                  label: const Text('Export Orders File'),
+                  onPressed: () {
+                    onExportOrdersFile();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFE9EEF2),
+                    side: const BorderSide(color: Color(0xFF55616C)),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
