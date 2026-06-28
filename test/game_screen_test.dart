@@ -136,6 +136,83 @@ void main() {
     expect(find.text('1 unit idle | Fund 8 research'), findsOneWidget);
   });
 
+  testWidgets('end turn asks for review when checklist has open items',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'end-review'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'End Turn'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Review before ending turn'), findsOneWidget);
+    expect(find.text('1 unit can still move'), findsOneWidget);
+    expect(find.text('Fund 8 research'), findsOneWidget);
+
+    await tester.tap(find.text('Review More'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Review before ending turn'), findsNothing);
+    expect(find.text('Turn 1'), findsWidgets);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'End Turn'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'End Turn Anyway'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Review before ending turn'), findsNothing);
+    expect(find.text('Turn 2'), findsWidgets);
+  });
+
+  testWidgets('end turn advances directly when checklist is clear',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final sample = OpenDeadlockGame.sample(sessionId: 'end-review-clear');
+    final clearTurn = sample.copyWith(
+      factions: sample.factions.map((faction) {
+        if (faction.id != sample.activeFactionId) {
+          return faction;
+        }
+        return faction.copyWith(
+          resources: faction.resources.copyWith(credits: 0),
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != sample.activeFactionId) {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: clearTurn,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'End Turn'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Review before ending turn'), findsNothing);
+    expect(find.text('Turn 2'), findsWidgets);
+  });
+
   testWidgets('mobile sync cue reports remote and AI turns', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(390, 844);

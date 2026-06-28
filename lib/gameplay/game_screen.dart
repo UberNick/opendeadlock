@@ -183,14 +183,7 @@ class _GameScreenState extends State<GameScreen> {
               onToggleHotseat: _toggleHotseatMode,
               canUndoLastOrder: _canUndoLastOrder,
               onUndoLastOrder: _undoLastOrder,
-              onEndTurn: () {
-                _replaceGame(
-                  game.applyCommand(
-                    EndTurnCommand(factionId: game.activeFactionId),
-                  ),
-                  undoable: true,
-                );
-              },
+              onEndTurn: _requestEndTurn,
               onRunComputerTurn: () {
                 _replaceGame(
                   game.applyCommand(
@@ -561,6 +554,34 @@ class _GameScreenState extends State<GameScreen> {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Undid $undoneSummary')),
+    );
+  }
+
+  Future<void> _requestEndTurn() async {
+    if (!game.activeFactionCanIssueLocalOrders) {
+      return;
+    }
+
+    final review = _turnReviewSummaryFor(game, orderExportBaseCommandCount);
+    if (review.needsConfirmation) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => _EndTurnReviewDialog(review: review),
+      );
+      if (confirmed != true || !mounted) {
+        return;
+      }
+    }
+
+    _endTurn();
+  }
+
+  void _endTurn() {
+    _replaceGame(
+      game.applyCommand(
+        EndTurnCommand(factionId: game.activeFactionId),
+      ),
+      undoable: true,
     );
   }
 
@@ -4380,25 +4401,7 @@ class _TurnChecklistDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pendingOrderCount =
-        _pendingOrderCountFor(game, orderExportBaseCommandCount);
-    final movableUnits = game.units
-        .where((unit) =>
-            unit.ownerId == game.activeFactionId && unit.movesRemaining > 0)
-        .length;
-    final colonyWarningCount = activeColonies
-        .where((colony) => _hasColonyWarning(game.colonyProductionFor(colony)))
-        .length;
-    final completingBuildCount = activeColonies
-        .where((colony) =>
-            game.colonyProductionFor(colony).willCompleteConstruction)
-        .length;
-    final stalledBuildCount = activeColonies.where((colony) {
-      final projection = game.colonyProductionFor(colony);
-      return projection.constructionWork <= 0 &&
-          !projection.willCompleteConstruction;
-    }).length;
-    final fundableResearch = _fundableResearchFor(game.activeFaction);
+    final review = _turnReviewSummaryFor(game, orderExportBaseCommandCount);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -4423,7 +4426,7 @@ class _TurnChecklistDetail extends StatelessWidget {
                 ),
               ),
               Text(
-                _stateLabel(pendingOrderCount),
+                _stateLabel(review.pendingOrderCount),
                 style: const TextStyle(
                   color: Color(0xFF9FB0BE),
                   fontSize: 12,
@@ -4436,38 +4439,41 @@ class _TurnChecklistDetail extends StatelessWidget {
           _DetailRow(
             label: 'Action',
             value: _actionLabel(
-              pendingOrderCount,
-              movableUnits,
-              colonyWarningCount,
+              review.pendingOrderCount,
+              review.movableUnits,
+              review.colonyWarningCount,
             ),
           ),
           _DetailRow(
             label: 'Unsent',
-            value: pendingOrderCount == 0
+            value: review.pendingOrderCount == 0
                 ? 'No unsent orders'
-                : _countLabel(pendingOrderCount, 'order', 'orders',
+                : _countLabel(review.pendingOrderCount, 'order', 'orders',
                     suffix: 'ready to send'),
           ),
           _DetailRow(
             label: 'Units',
-            value: movableUnits == 0
+            value: review.movableUnits == 0
                 ? 'No units can move'
-                : _countLabel(movableUnits, 'unit', 'units',
+                : _countLabel(review.movableUnits, 'unit', 'units',
                     suffix: 'can still move'),
           ),
           _DetailRow(
             label: 'Colonies',
-            value: colonyWarningCount == 0
+            value: review.colonyWarningCount == 0
                 ? _countLabel(
                     activeColonies.length, 'stable colony', 'stable colonies')
                 : _countLabel(
-                    colonyWarningCount, 'colony warning', 'colony warnings'),
+                    review.colonyWarningCount,
+                    'colony warning',
+                    'colony warnings',
+                  ),
           ),
           _DetailRow(
             label: 'Builds',
-            value: completingBuildCount == 0
+            value: review.completingBuildCount == 0
                 ? 'No builds complete next turn'
-                : _countLabel(completingBuildCount, 'build', 'builds',
+                : _countLabel(review.completingBuildCount, 'build', 'builds',
                     suffix: 'complete next turn'),
           ),
           _DetailRow(
@@ -4477,22 +4483,15 @@ class _TurnChecklistDetail extends StatelessWidget {
           _DetailRow(
             label: 'Review',
             value: _reviewLabel(
-              movableUnits: movableUnits,
-              colonyWarningCount: colonyWarningCount,
-              stalledBuildCount: stalledBuildCount,
-              fundableResearch: fundableResearch,
+              movableUnits: review.movableUnits,
+              colonyWarningCount: review.colonyWarningCount,
+              stalledBuildCount: review.stalledBuildCount,
+              fundableResearch: review.fundableResearch,
             ),
           ),
         ],
       ),
     );
-  }
-
-  bool _hasColonyWarning(ColonyProduction projection) {
-    return projection.isStarving ||
-        projection.isInUnrest ||
-        projection.isRioting ||
-        projection.hasMaintenanceShortfall;
   }
 
   String _stateLabel(int pendingOrderCount) {
@@ -4586,46 +4585,79 @@ class _TurnChecklistDetail extends StatelessWidget {
       return 'No active project';
     }
     final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
-    final stored = _clamp(faction.resources.research, 0, cost);
+    final stored = _clampInt(faction.resources.research, 0, cost);
     final remaining = cost - stored;
     if (remaining <= 0) {
       return '${faction.researchProject} ready';
     }
     return '${faction.researchProject} $stored/$cost, $remaining left';
   }
+}
 
-  int _fundableResearchFor(Faction faction) {
-    if (!OpenDeadlockGame.researchOptions.contains(faction.researchProject)) {
-      return 0;
-    }
-    final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
-    final remaining = cost - faction.resources.research;
-    if (remaining <= 0) {
-      return 0;
-    }
-    final affordable = faction.resources.credits ~/
-        OpenDeadlockGame.researchCreditCostPerPoint;
-    return affordable < remaining ? affordable : remaining;
-  }
+class _EndTurnReviewDialog extends StatelessWidget {
+  const _EndTurnReviewDialog({
+    Key? key,
+    required this.review,
+  }) : super(key: key);
 
-  int _clamp(int value, int minimum, int maximum) {
-    if (value < minimum) {
-      return minimum;
-    }
-    if (value > maximum) {
-      return maximum;
-    }
-    return value;
-  }
+  final _TurnReviewSummary review;
 
-  String _countLabel(
-    int count,
-    String singular,
-    String plural, {
-    String? suffix,
-  }) {
-    final label = '$count ${count == 1 ? singular : plural}';
-    return suffix == null ? label : '$label $suffix';
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF202B34),
+      title: const Text(
+        'Review before ending turn',
+        style: TextStyle(color: Color(0xFFF4F7FA)),
+      ),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'These items may still need attention:',
+              style: TextStyle(color: Color(0xFFE9EEF2)),
+            ),
+            const SizedBox(height: 12),
+            ...review.warningLabels.map(
+              (label) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.warning_amber,
+                      color: Color(0xFFF2C38B),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: const TextStyle(color: Color(0xFFE9EEF2)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Review More'),
+        ),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.skip_next),
+          label: const Text('End Turn Anyway'),
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
+    );
   }
 }
 
@@ -7636,6 +7668,146 @@ String _shortSessionId(String sessionId) {
     return sessionId;
   }
   return '${sessionId.substring(0, 8)}...${sessionId.substring(sessionId.length - 5)}';
+}
+
+class _TurnReviewSummary {
+  const _TurnReviewSummary({
+    required this.pendingOrderCount,
+    required this.movableUnits,
+    required this.colonyWarningCount,
+    required this.completingBuildCount,
+    required this.stalledBuildCount,
+    required this.fundableResearch,
+  });
+
+  final int pendingOrderCount;
+  final int movableUnits;
+  final int colonyWarningCount;
+  final int completingBuildCount;
+  final int stalledBuildCount;
+  final int fundableResearch;
+
+  bool get needsConfirmation {
+    return pendingOrderCount > 0 ||
+        movableUnits > 0 ||
+        colonyWarningCount > 0 ||
+        stalledBuildCount > 0 ||
+        fundableResearch > 0;
+  }
+
+  List<String> get warningLabels {
+    final labels = <String>[];
+    if (pendingOrderCount > 0) {
+      labels.add(_countLabel(
+        pendingOrderCount,
+        'unsent order',
+        'unsent orders',
+        suffix: 'ready to send',
+      ));
+    }
+    if (movableUnits > 0) {
+      labels.add(_countLabel(
+        movableUnits,
+        'unit can still move',
+        'units can still move',
+      ));
+    }
+    if (colonyWarningCount > 0) {
+      labels.add(_countLabel(
+        colonyWarningCount,
+        'colony warning',
+        'colony warnings',
+      ));
+    }
+    if (stalledBuildCount > 0) {
+      labels.add(_countLabel(
+        stalledBuildCount,
+        'stalled build',
+        'stalled builds',
+      ));
+    }
+    if (fundableResearch > 0) {
+      labels.add('Fund $fundableResearch research');
+    }
+    return labels;
+  }
+}
+
+_TurnReviewSummary _turnReviewSummaryFor(
+  OpenDeadlockGame game,
+  int orderExportBaseCommandCount,
+) {
+  final activeColonies = game.colonies
+      .where((colony) => colony.ownerId == game.activeFactionId)
+      .toList(growable: false);
+  final pendingOrderCount =
+      _pendingOrderCountFor(game, orderExportBaseCommandCount);
+  final movableUnits = game.units
+      .where((unit) =>
+          unit.ownerId == game.activeFactionId && unit.movesRemaining > 0)
+      .length;
+  final colonyWarningCount = activeColonies
+      .where((colony) => _hasColonyWarning(game.colonyProductionFor(colony)))
+      .length;
+  final completingBuildCount = activeColonies
+      .where(
+          (colony) => game.colonyProductionFor(colony).willCompleteConstruction)
+      .length;
+  final stalledBuildCount = activeColonies.where((colony) {
+    final projection = game.colonyProductionFor(colony);
+    return projection.constructionWork <= 0 &&
+        !projection.willCompleteConstruction;
+  }).length;
+
+  return _TurnReviewSummary(
+    pendingOrderCount: pendingOrderCount,
+    movableUnits: movableUnits,
+    colonyWarningCount: colonyWarningCount,
+    completingBuildCount: completingBuildCount,
+    stalledBuildCount: stalledBuildCount,
+    fundableResearch: _fundableResearchFor(game.activeFaction),
+  );
+}
+
+bool _hasColonyWarning(ColonyProduction projection) {
+  return projection.isStarving ||
+      projection.isInUnrest ||
+      projection.isRioting ||
+      projection.hasMaintenanceShortfall;
+}
+
+int _fundableResearchFor(Faction faction) {
+  if (!OpenDeadlockGame.researchOptions.contains(faction.researchProject)) {
+    return 0;
+  }
+  final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
+  final remaining = cost - faction.resources.research;
+  if (remaining <= 0) {
+    return 0;
+  }
+  final affordable =
+      faction.resources.credits ~/ OpenDeadlockGame.researchCreditCostPerPoint;
+  return affordable < remaining ? affordable : remaining;
+}
+
+int _clampInt(int value, int minimum, int maximum) {
+  if (value < minimum) {
+    return minimum;
+  }
+  if (value > maximum) {
+    return maximum;
+  }
+  return value;
+}
+
+String _countLabel(
+  int count,
+  String singular,
+  String plural, {
+  String? suffix,
+}) {
+  final label = '$count ${count == 1 ? singular : plural}';
+  return suffix == null ? label : '$label $suffix';
 }
 
 int _pendingOrderCountFor(OpenDeadlockGame game, int fromCommandIndex) {
