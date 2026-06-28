@@ -3230,6 +3230,7 @@ class _MapTileButton extends StatelessWidget {
             ? 1.0
             : 2.0;
     final textureAsset = isKnown ? _terrainTextureAssetFor(tile.terrain) : null;
+    final displayedUnit = isKnown ? unit : null;
 
     final tileButton = InkWell(
       onTap: onTap,
@@ -3368,7 +3369,7 @@ class _MapTileButton extends StatelessWidget {
                   size: 24,
                 ),
               ),
-            if (isKnown && unit == null)
+            if (isKnown && displayedUnit == null)
               Align(
                 alignment: Alignment.bottomRight,
                 child: Tooltip(
@@ -3394,26 +3395,33 @@ class _MapTileButton extends StatelessWidget {
                   ),
                 ),
               ),
-            if (isKnown && unit != null)
+            if (displayedUnit != null)
               Align(
                 alignment: hasColony ? Alignment.bottomRight : Alignment.center,
-                child: Container(
-                  width: isSelectedUnit ? 28 : 24,
-                  height: isSelectedUnit ? 28 : 24,
-                  decoration: BoxDecoration(
-                    color: unitColor ?? const Color(0xFFE9EEF2),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelectedUnit
-                          ? const Color(0xFFF6E05E)
-                          : Colors.white,
-                      width: isSelectedUnit ? 3 : 1,
+                child: Tooltip(
+                  message: _unitMarkerTooltip(displayedUnit),
+                  child: Container(
+                    key: ValueKey<String>('unit-marker-${displayedUnit.id}'),
+                    width: isSelectedUnit ? 28 : 24,
+                    height: isSelectedUnit ? 28 : 24,
+                    decoration: BoxDecoration(
+                      color: unitColor ?? const Color(0xFFE9EEF2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelectedUnit
+                            ? const Color(0xFFF6E05E)
+                            : Colors.white,
+                        width: isSelectedUnit ? 3 : 1,
+                      ),
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.explore,
-                    size: 15,
-                    color: Color(0xFF111418),
+                    child: Icon(
+                      _iconForUnitType(displayedUnit.type),
+                      key: ValueKey<String>(
+                        'unit-icon-${displayedUnit.type}-${tile.x}-${tile.y}',
+                      ),
+                      size: isSelectedUnit ? 16 : 14,
+                      color: const Color(0xFF111418),
+                    ),
                   ),
                 ),
               ),
@@ -3574,6 +3582,29 @@ class _MapTileButton extends StatelessWidget {
       return 'assets/images/terrain/ruins.png';
     }
     return null;
+  }
+
+  IconData _iconForUnitType(String unitType) {
+    if (unitType == 'infantry') {
+      return Icons.security;
+    }
+    if (unitType == 'armor') {
+      return Icons.local_shipping;
+    }
+    return Icons.explore;
+  }
+
+  String _unitMarkerTooltip(Unit unit) {
+    return '${unit.name} | ${_unitTypeLabel(unit.type)} | '
+        '${unit.health}/${OpenDeadlockGame.maxHealthFor(unit.type)} health | '
+        '${unit.movesRemaining}/${OpenDeadlockGame.maxMovesFor(unit.type)} moves';
+  }
+
+  String _unitTypeLabel(String value) {
+    if (value.isEmpty) {
+      return value;
+    }
+    return value.substring(0, 1).toUpperCase() + value.substring(1);
   }
 }
 

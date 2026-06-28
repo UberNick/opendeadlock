@@ -19,6 +19,19 @@ Review snapshot:
 * Review branch: `hashkanna:kanna/playable-prototype`
 * Local review URL: `http://127.0.0.1:8080/`
 
+Fast path:
+
+```sh
+git clone https://github.com/UberNick/opendeadlock.git
+cd opendeadlock
+gh pr checkout 2
+flutter pub get
+flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
+```
+
+Then open `http://127.0.0.1:8080/`. The longer sections below include
+requirements, a no-GitHub-CLI checkout path, and troubleshooting notes.
+
 ### Requirements
 
 * Flutter SDK: https://docs.flutter.dev/get-started/install

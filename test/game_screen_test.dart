@@ -315,6 +315,80 @@ void main() {
     expect(find.text('Survey Team'), findsOneWidget);
   });
 
+  testWidgets('map unit markers distinguish unit types', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final sample = OpenDeadlockGame.sample(sessionId: 'unit-markers');
+    final markerGame = sample.copyWith(
+      units: <Unit>[
+        sample.unitById('human-scout'),
+        const Unit(
+          id: 'human-infantry',
+          name: 'Human Infantry',
+          ownerId: 'humans',
+          type: 'infantry',
+          x: 4,
+          y: 1,
+          movesRemaining: 1,
+          health: 6,
+        ),
+        const Unit(
+          id: 'human-armor',
+          name: 'Human Armor',
+          ownerId: 'humans',
+          type: 'armor',
+          x: 5,
+          y: 1,
+          movesRemaining: 1,
+          health: 10,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: markerGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey<String>('unit-marker-human-scout')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-marker-human-infantry')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-marker-human-armor')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-icon-scout-3-1')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-icon-infantry-4-1')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-icon-armor-5-1')),
+        findsOneWidget);
+    expect(
+      find.byTooltip('Human Armor | Armor | 10/10 health | 1/1 moves'),
+      findsOneWidget,
+    );
+
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey<String>('terrain-5-1'))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Human Armor'), findsOneWidget);
+    expect(find.text('Armor'), findsWidgets);
+  });
+
   testWidgets('map can switch resource heat overlays', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 720);
