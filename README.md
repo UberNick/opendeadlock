@@ -34,12 +34,18 @@ cd opendeadlock
 flutter pub get
 ```
 
-If you are reviewing a pull request branch before it has been merged, check out
-the branch shown in GitHub before running the app:
+If you are reviewing a pull request before it has been merged, check out the PR
+first. With GitHub CLI:
 
 ```sh
-git fetch origin <branch-name>
-git switch <branch-name>
+gh pr checkout <pr-number>
+```
+
+Without GitHub CLI, fetch the pull request ref from the original repository:
+
+```sh
+git fetch origin pull/<pr-number>/head:review-pr-<pr-number>
+git switch review-pr-<pr-number>
 ```
 
 Start the Flutter web runner:
