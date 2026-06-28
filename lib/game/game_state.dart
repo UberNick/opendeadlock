@@ -4766,13 +4766,13 @@ class OpenDeadlockGame {
       }
       final planningColony = planningGame.colonyById(colony.id);
       final tile = planningGame.tileAt(planningColony.x, planningColony.y);
+      final projection = planningGame.colonyProductionFor(planningColony);
       final preferredConstruction = _preferredConstructionFor(
         planningColony,
         tile,
         faction,
-        hasMaintenanceShortfall: planningGame
-            .colonyProductionFor(planningColony)
-            .hasMaintenanceShortfall,
+        hasFoodShortfall: projection.foodBalance < 0,
+        hasMaintenanceShortfall: projection.hasMaintenanceShortfall,
         isThreatened: planningGame._isColonyThreatened(planningColony),
         isSabotageExposed:
             planningGame._isColonySabotageExposed(planningColony),
@@ -6088,6 +6088,7 @@ class OpenDeadlockGame {
     Colony colony,
     PlanetTile tile,
     Faction? faction, {
+    bool hasFoodShortfall = false,
     bool hasMaintenanceShortfall = false,
     bool isThreatened = false,
     bool isSabotageExposed = false,
@@ -6109,6 +6110,9 @@ class OpenDeadlockGame {
         'Infantry Company',
         'Armor Company',
       ]);
+    }
+    if (hasFoodShortfall) {
+      candidates.add('Farm Dome');
     }
     if (colony.population >= populationCapacityFor(colony)) {
       final residentialConstruction = _nextResidentialConstructionFor(colony);

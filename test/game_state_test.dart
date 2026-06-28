@@ -4944,6 +4944,67 @@ void main() {
     expect(focusCommand.focus, OpenDeadlockGame.colonyFocusGrowth);
   });
 
+  test('computer colonies build food infrastructure during shortages', () {
+    final sample = OpenDeadlockGame.sample();
+    final starving = sample.copyWith(
+      activeFactionId: 'rebels',
+      diplomacy: const <DiplomacyRelation>[
+        DiplomacyRelation(
+          factionAId: 'humans',
+          factionBId: 'rebels',
+          status: OpenDeadlockGame.diplomacyStatusPeace,
+        ),
+      ],
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'rebels') {
+          return faction;
+        }
+        return faction.copyWith(
+          raceId: 'human',
+          aiPersonality: Faction.aiPersonalityResearcher,
+          traitIds: const <String>['scholars'],
+        );
+      }).toList(),
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'redoubt') {
+          return colony;
+        }
+        return Colony(
+          id: colony.id,
+          name: colony.name,
+          ownerId: colony.ownerId,
+          x: 4,
+          y: 0,
+          population: 5,
+          morale: colony.morale,
+          construction: 'Factory',
+          storedIndustry: 0,
+          completedBuildings: const <String>[],
+          focus: colony.focus,
+          assignedSectors: colony.assignedSectors,
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != 'rebels') {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+    final projection = starving.colonyProductionFor(
+      starving.colonyById('redoubt'),
+    );
+    final commands = starving.planComputerCommandsFor('rebels');
+    final constructionCommand =
+        commands.whereType<SetColonyConstructionCommand>().single;
+
+    expect(starving.tileAt(4, 0).terrain, 'ruins');
+    expect(projection.foodBalance, lessThan(0));
+    expect(constructionCommand.factionId, 'rebels');
+    expect(constructionCommand.colonyId, 'redoubt');
+    expect(constructionCommand.construction, 'Farm Dome');
+  });
+
   test('computer factions choose revenue focus for upkeep shortfalls', () {
     final sample = OpenDeadlockGame.sample();
     final strained = sample.copyWith(
