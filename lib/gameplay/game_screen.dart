@@ -4024,6 +4024,7 @@ class _SelectionPanel extends StatelessWidget {
     final canIssueLocalOrders = game.activeFactionCanIssueLocalOrders;
     final newsGroups = _newsGroupsFor(game);
     final tacticalReports = _tacticalReports(game);
+    final latestBattleReport = _latestBattleReport(game);
     final assignedColony =
         isExplored ? game.assignedColonyForSector(tile.x, tile.y) : null;
     final activeColonies = game.colonies
@@ -4075,6 +4076,10 @@ class _SelectionPanel extends StatelessWidget {
               value:
                   '${tile.yields.food} food / ${tile.yields.industry} industry / ${tile.yields.research} research',
             ),
+          ],
+          if (latestBattleReport != null) ...[
+            const SizedBox(height: 12),
+            _LatestBattleDetail(report: latestBattleReport),
           ],
           if (isExplored && unit != null) ...[
             const SizedBox(height: 12),
@@ -4263,6 +4268,15 @@ class _SelectionPanel extends StatelessWidget {
       }
     }
     return tacticalReports.take(4).toList(growable: false);
+  }
+
+  TurnReport? _latestBattleReport(OpenDeadlockGame source) {
+    for (final report in source.reports) {
+      if (report.isBattle) {
+        return report;
+      }
+    }
+    return null;
   }
 }
 
@@ -7618,6 +7632,105 @@ class _NewsReportLine extends StatelessWidget {
   }
 }
 
+class _LatestBattleDetail extends StatelessWidget {
+  const _LatestBattleDetail({
+    Key? key,
+    required this.report,
+  }) : super(key: key);
+
+  final TurnReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = report.details;
+    final kind = details['kind'];
+
+    return Container(
+      key: const ValueKey<String>('latest-battle-summary'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF27231F),
+        border: Border.all(color: const Color(0xFF7A6345)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                kind == 'colony' ? Icons.location_city : Icons.gps_fixed,
+                color: const Color(0xFFF0DEC2),
+                size: 19,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Latest Battle',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (_hasBattleSector(details))
+                Text(
+                  _battleSectorLabel(details),
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            report.title,
+            style: const TextStyle(
+              color: Color(0xFFFFF5D6),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (kind == 'unit') ...[
+            _DetailRow(label: 'Damage', value: _battleUnitDamageLabel(details)),
+            _DetailRow(label: 'Health', value: _battleUnitHealthLabel(details)),
+            _DetailRow(
+              label: 'Outcome',
+              value: _battleUnitOutcomeLabel(details),
+            ),
+          ] else if (kind == 'colony') ...[
+            _DetailRow(
+              label: 'Assault',
+              value: _battleColonyAssaultLabel(details),
+            ),
+            if (_battleHasColonyDamageDetails(details))
+              _DetailRow(
+                label: 'Damage',
+                value: _battleColonyDamageLabel(details),
+              ),
+            _DetailRow(
+              label: 'Colony',
+              value: _battleColonyStatusLabel(details),
+            ),
+            _DetailRow(
+              label: 'Outcome',
+              value: _battleColonyOutcomeLabel(details),
+            ),
+          ] else
+            _DetailRow(label: 'Report', value: report.message),
+          const SizedBox(height: 4),
+          Text(
+            report.message,
+            style: const TextStyle(color: Color(0xFFB9C5CE), fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TacticalLogDetail extends StatelessWidget {
   const _TacticalLogDetail({
     Key? key,
@@ -7737,15 +7850,30 @@ class _BattleLogEntry extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           if (kind == 'unit') ...[
-            _DetailRow(label: 'Damage', value: _unitDamageLabel(details)),
-            _DetailRow(label: 'Health', value: _unitHealthLabel(details)),
-            _DetailRow(label: 'Outcome', value: _unitOutcomeLabel(details)),
+            _DetailRow(label: 'Damage', value: _battleUnitDamageLabel(details)),
+            _DetailRow(label: 'Health', value: _battleUnitHealthLabel(details)),
+            _DetailRow(
+              label: 'Outcome',
+              value: _battleUnitOutcomeLabel(details),
+            ),
           ] else if (kind == 'colony') ...[
-            _DetailRow(label: 'Assault', value: _colonyAssaultLabel(details)),
-            if (_hasColonyDamageDetails(details))
-              _DetailRow(label: 'Damage', value: _colonyDamageLabel(details)),
-            _DetailRow(label: 'Colony', value: _colonyStatusLabel(details)),
-            _DetailRow(label: 'Outcome', value: _colonyOutcomeLabel(details)),
+            _DetailRow(
+              label: 'Assault',
+              value: _battleColonyAssaultLabel(details),
+            ),
+            if (_battleHasColonyDamageDetails(details))
+              _DetailRow(
+                label: 'Damage',
+                value: _battleColonyDamageLabel(details),
+              ),
+            _DetailRow(
+              label: 'Colony',
+              value: _battleColonyStatusLabel(details),
+            ),
+            _DetailRow(
+              label: 'Outcome',
+              value: _battleColonyOutcomeLabel(details),
+            ),
           ] else if (kind == 'sabotage') ...[
             _DetailRow(label: 'Target', value: _sabotageTargetLabel(details)),
             _DetailRow(label: 'Damage', value: _sabotageDamageLabel(details)),
@@ -7764,91 +7892,6 @@ class _BattleLogEntry extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _unitDamageLabel(Map<String, String> details) {
-    final attackerName = _detailOrFallback(details, 'attackerName', 'Attacker');
-    final defenderName = _detailOrFallback(details, 'defenderName', 'Defender');
-    return '$attackerName ${_detailOrFallback(details, 'attackDamage', '0')} / '
-        '$defenderName ${_detailOrFallback(details, 'counterDamage', '0')}';
-  }
-
-  String _unitHealthLabel(Map<String, String> details) {
-    final attackerName = _detailOrFallback(details, 'attackerName', 'Attacker');
-    final defenderName = _detailOrFallback(details, 'defenderName', 'Defender');
-    return '$attackerName ${_detailOrFallback(details, 'attackerHealth', '0')} / '
-        '$defenderName ${_detailOrFallback(details, 'defenderHealth', '0')}';
-  }
-
-  String _unitOutcomeLabel(Map<String, String> details) {
-    final attackerName = _detailOrFallback(details, 'attackerName', 'Attacker');
-    final defenderName = _detailOrFallback(details, 'defenderName', 'Defender');
-    final attackerStatus =
-        details['attackerSurvived'] == 'true' ? 'survived' : 'destroyed';
-    final defenderStatus =
-        details['defenderSurvived'] == 'true' ? 'survived' : 'destroyed';
-    return '$attackerName $attackerStatus / $defenderName $defenderStatus';
-  }
-
-  String _colonyAssaultLabel(Map<String, String> details) {
-    return '${_detailOrFallback(details, 'attackPower', '0')} attack vs '
-        '${_detailOrFallback(details, 'defensePower', '0')} defense';
-  }
-
-  bool _hasColonyDamageDetails(Map<String, String> details) {
-    return _hasDetailInt(details, 'populationDelta') ||
-        _hasDetailInt(details, 'moraleDelta') ||
-        (_hasDetailInt(details, 'previousPopulation') &&
-            _hasDetailInt(details, 'population')) ||
-        (_hasDetailInt(details, 'previousMorale') &&
-            _hasDetailInt(details, 'morale'));
-  }
-
-  String _colonyDamageLabel(Map<String, String> details) {
-    final populationDelta = _colonyDeltaFor(
-      details,
-      deltaKey: 'populationDelta',
-      previousKey: 'previousPopulation',
-      currentKey: 'population',
-    );
-    final moraleDelta = _colonyDeltaFor(
-      details,
-      deltaKey: 'moraleDelta',
-      previousKey: 'previousMorale',
-      currentKey: 'morale',
-    );
-    return '${_signedInt(populationDelta)} pop / '
-        '${_signedInt(moraleDelta)} morale';
-  }
-
-  int _colonyDeltaFor(
-    Map<String, String> details, {
-    required String deltaKey,
-    required String previousKey,
-    required String currentKey,
-  }) {
-    final explicitDelta = int.tryParse(details[deltaKey] ?? '');
-    if (explicitDelta != null) {
-      return explicitDelta;
-    }
-    return _readDetailInt(details, currentKey) -
-        _readDetailInt(details, previousKey);
-  }
-
-  String _colonyStatusLabel(Map<String, String> details) {
-    return '${_detailOrFallback(details, 'population', '0')} pop / '
-        '${_detailOrFallback(details, 'morale', '0')} morale';
-  }
-
-  String _colonyOutcomeLabel(Map<String, String> details) {
-    final attackerName = _detailOrFallback(details, 'attackerName', 'Attacker');
-    final colonyName = _detailOrFallback(details, 'colonyName', 'Colony');
-    final captured = details['colonyCaptured'] == 'true';
-    final attackerStatus =
-        details['attackerSurvived'] == 'true' ? 'survived' : 'destroyed';
-    return captured
-        ? '$attackerName captured $colonyName'
-        : '$colonyName held / $attackerName $attackerStatus';
   }
 
   String _sabotageTargetLabel(Map<String, String> details) {
@@ -7872,10 +7915,146 @@ class _BattleLogEntry extends StatelessWidget {
     final value = details[key];
     return value == null || value.isEmpty ? fallback : value;
   }
+}
 
-  bool _hasDetailInt(Map<String, String> details, String key) {
-    return int.tryParse(details[key] ?? '') != null;
+bool _hasBattleSector(Map<String, String> details) {
+  return int.tryParse(details['x'] ?? '') != null &&
+      int.tryParse(details['y'] ?? '') != null;
+}
+
+String _battleSectorLabel(Map<String, String> details) {
+  return 'Sector ${_readDetailInt(details, 'x') + 1}, '
+      '${_readDetailInt(details, 'y') + 1}';
+}
+
+String _battleUnitDamageLabel(Map<String, String> details) {
+  final attackerName = _battleDetailOrFallback(
+    details,
+    'attackerName',
+    'Attacker',
+  );
+  final defenderName = _battleDetailOrFallback(
+    details,
+    'defenderName',
+    'Defender',
+  );
+  return '$attackerName ${_battleDetailOrFallback(details, 'attackDamage', '0')} / '
+      '$defenderName ${_battleDetailOrFallback(details, 'counterDamage', '0')}';
+}
+
+String _battleUnitHealthLabel(Map<String, String> details) {
+  final attackerName = _battleDetailOrFallback(
+    details,
+    'attackerName',
+    'Attacker',
+  );
+  final defenderName = _battleDetailOrFallback(
+    details,
+    'defenderName',
+    'Defender',
+  );
+  return '$attackerName ${_battleDetailOrFallback(details, 'attackerHealth', '0')} / '
+      '$defenderName ${_battleDetailOrFallback(details, 'defenderHealth', '0')}';
+}
+
+String _battleUnitOutcomeLabel(Map<String, String> details) {
+  final attackerName = _battleDetailOrFallback(
+    details,
+    'attackerName',
+    'Attacker',
+  );
+  final defenderName = _battleDetailOrFallback(
+    details,
+    'defenderName',
+    'Defender',
+  );
+  final attackerStatus =
+      details['attackerSurvived'] == 'true' ? 'survived' : 'destroyed';
+  final defenderStatus =
+      details['defenderSurvived'] == 'true' ? 'survived' : 'destroyed';
+  return '$attackerName $attackerStatus / $defenderName $defenderStatus';
+}
+
+String _battleColonyAssaultLabel(Map<String, String> details) {
+  return '${_battleDetailOrFallback(details, 'attackPower', '0')} attack vs '
+      '${_battleDetailOrFallback(details, 'defensePower', '0')} defense';
+}
+
+bool _battleHasColonyDamageDetails(Map<String, String> details) {
+  return _battleHasDetailInt(details, 'populationDelta') ||
+      _battleHasDetailInt(details, 'moraleDelta') ||
+      (_battleHasDetailInt(details, 'previousPopulation') &&
+          _battleHasDetailInt(details, 'population')) ||
+      (_battleHasDetailInt(details, 'previousMorale') &&
+          _battleHasDetailInt(details, 'morale'));
+}
+
+String _battleColonyDamageLabel(Map<String, String> details) {
+  final populationDelta = _battleColonyDeltaFor(
+    details,
+    deltaKey: 'populationDelta',
+    previousKey: 'previousPopulation',
+    currentKey: 'population',
+  );
+  final moraleDelta = _battleColonyDeltaFor(
+    details,
+    deltaKey: 'moraleDelta',
+    previousKey: 'previousMorale',
+    currentKey: 'morale',
+  );
+  return '${_signedInt(populationDelta)} pop / '
+      '${_signedInt(moraleDelta)} morale';
+}
+
+int _battleColonyDeltaFor(
+  Map<String, String> details, {
+  required String deltaKey,
+  required String previousKey,
+  required String currentKey,
+}) {
+  final explicitDelta = int.tryParse(details[deltaKey] ?? '');
+  if (explicitDelta != null) {
+    return explicitDelta;
   }
+  return _readDetailInt(details, currentKey) -
+      _readDetailInt(details, previousKey);
+}
+
+String _battleColonyStatusLabel(Map<String, String> details) {
+  return '${_battleDetailOrFallback(details, 'population', '0')} pop / '
+      '${_battleDetailOrFallback(details, 'morale', '0')} morale';
+}
+
+String _battleColonyOutcomeLabel(Map<String, String> details) {
+  final attackerName = _battleDetailOrFallback(
+    details,
+    'attackerName',
+    'Attacker',
+  );
+  final colonyName = _battleDetailOrFallback(
+    details,
+    'colonyName',
+    'Colony',
+  );
+  final captured = details['colonyCaptured'] == 'true';
+  final attackerStatus =
+      details['attackerSurvived'] == 'true' ? 'survived' : 'destroyed';
+  return captured
+      ? '$attackerName captured $colonyName'
+      : '$colonyName held / $attackerName $attackerStatus';
+}
+
+String _battleDetailOrFallback(
+  Map<String, String> details,
+  String key,
+  String fallback,
+) {
+  final value = details[key];
+  return value == null || value.isEmpty ? fallback : value;
+}
+
+bool _battleHasDetailInt(Map<String, String> details, String key) {
+  return int.tryParse(details[key] ?? '') != null;
 }
 
 class _UnexploredSector extends StatelessWidget {

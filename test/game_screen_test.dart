@@ -1909,6 +1909,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey<String>('latest-battle-summary')),
+        findsOneWidget);
+    expect(find.text('Latest Battle'), findsOneWidget);
+    expect(find.text('Sector 7, 4'), findsOneWidget);
+    expect(find.text('Redoubt changed hands'), findsWidgets);
+    expect(find.text('5 attack vs 4 defense'), findsWidgets);
+    expect(find.text('-1 pop / -35 morale'), findsWidgets);
+    expect(find.text('1 pop / 45 morale'), findsWidgets);
+    expect(find.text('Survey Team captured Redoubt'), findsWidgets);
+
     for (var scroll = 0;
         scroll < 12 && find.text('Tactical Log').evaluate().isEmpty;
         scroll += 1) {
@@ -1920,10 +1931,10 @@ void main() {
     expect(find.text('Tactical Log'), findsOneWidget);
     expect(find.text('2 recent'), findsOneWidget);
     expect(find.text('Redoubt changed hands'), findsWidgets);
-    expect(find.text('5 attack vs 4 defense'), findsOneWidget);
-    expect(find.text('-1 pop / -35 morale'), findsOneWidget);
-    expect(find.text('1 pop / 45 morale'), findsOneWidget);
-    expect(find.text('Survey Team captured Redoubt'), findsOneWidget);
+    expect(find.text('5 attack vs 4 defense'), findsWidgets);
+    expect(find.text('-1 pop / -35 morale'), findsWidgets);
+    expect(find.text('1 pop / 45 morale'), findsWidgets);
+    expect(find.text('Survey Team captured Redoubt'), findsWidgets);
     expect(find.text('Pact Recon attacked Survey Team'), findsWidgets);
     expect(find.text('Pact Recon 2 / Survey Team 1'), findsOneWidget);
     expect(find.text('Pact Recon 3 / Survey Team 4'), findsOneWidget);
@@ -1936,7 +1947,7 @@ void main() {
   testWidgets('game screen groups recent reports into a news summary',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    tester.view.physicalSize = const Size(960, 1300);
+    tester.view.physicalSize = const Size(960, 2200);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -1988,13 +1999,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.text('News Summary'),
-      find.byType(ListView),
-      const Offset(0, -420),
-      maxIteration: 12,
-    );
-    await tester.pumpAndSettle();
+    for (var scroll = 0;
+        scroll < 12 && find.text('News Summary').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(ListView).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
 
     expect(tester.takeException(), isNull);
     expect(find.text('News Summary'), findsOneWidget);
