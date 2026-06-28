@@ -133,6 +133,7 @@ void main() {
     expect(find.text('1 stable colony'), findsOneWidget);
     expect(find.text('No builds complete next turn'), findsOneWidget);
     expect(find.text('Hydroponics 0/10, 10 left'), findsOneWidget);
+    expect(find.text('1 unit idle | Fund 8 research'), findsOneWidget);
   });
 
   testWidgets('mobile sync cue reports remote and AI turns', (tester) async {

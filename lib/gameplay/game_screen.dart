@@ -4393,6 +4393,12 @@ class _TurnChecklistDetail extends StatelessWidget {
         .where((colony) =>
             game.colonyProductionFor(colony).willCompleteConstruction)
         .length;
+    final stalledBuildCount = activeColonies.where((colony) {
+      final projection = game.colonyProductionFor(colony);
+      return projection.constructionWork <= 0 &&
+          !projection.willCompleteConstruction;
+    }).length;
+    final fundableResearch = _fundableResearchFor(game.activeFaction);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -4468,6 +4474,15 @@ class _TurnChecklistDetail extends StatelessWidget {
             label: 'Research',
             value: _researchProgressLabel(game.activeFaction),
           ),
+          _DetailRow(
+            label: 'Review',
+            value: _reviewLabel(
+              movableUnits: movableUnits,
+              colonyWarningCount: colonyWarningCount,
+              stalledBuildCount: stalledBuildCount,
+              fundableResearch: fundableResearch,
+            ),
+          ),
         ],
       ),
     );
@@ -4525,6 +4540,47 @@ class _TurnChecklistDetail extends StatelessWidget {
     return 'End turn when ready';
   }
 
+  String _reviewLabel({
+    required int movableUnits,
+    required int colonyWarningCount,
+    required int stalledBuildCount,
+    required int fundableResearch,
+  }) {
+    if (game.isGameOver) {
+      return 'Victory complete';
+    }
+    if (game.activeFaction.isRemote) {
+      return 'Await synced order package';
+    }
+    if (game.activeFaction.isComputer) {
+      return 'Automated turn ready';
+    }
+
+    final items = <String>[];
+    if (movableUnits > 0) {
+      items.add(_countLabel(movableUnits, 'unit idle', 'units idle'));
+    }
+    if (colonyWarningCount > 0) {
+      items.add(_countLabel(
+        colonyWarningCount,
+        'colony warning',
+        'colony warnings',
+      ));
+    }
+    if (stalledBuildCount > 0) {
+      items.add(_countLabel(
+        stalledBuildCount,
+        'stalled build',
+        'stalled builds',
+      ));
+    }
+    if (fundableResearch > 0) {
+      items.add('Fund $fundableResearch research');
+    }
+
+    return items.isEmpty ? 'No blockers found' : items.join(' | ');
+  }
+
   String _researchProgressLabel(Faction faction) {
     if (!OpenDeadlockGame.researchOptions.contains(faction.researchProject)) {
       return 'No active project';
@@ -4536,6 +4592,20 @@ class _TurnChecklistDetail extends StatelessWidget {
       return '${faction.researchProject} ready';
     }
     return '${faction.researchProject} $stored/$cost, $remaining left';
+  }
+
+  int _fundableResearchFor(Faction faction) {
+    if (!OpenDeadlockGame.researchOptions.contains(faction.researchProject)) {
+      return 0;
+    }
+    final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
+    final remaining = cost - faction.resources.research;
+    if (remaining <= 0) {
+      return 0;
+    }
+    final affordable = faction.resources.credits ~/
+        OpenDeadlockGame.researchCreditCostPerPoint;
+    return affordable < remaining ? affordable : remaining;
   }
 
   int _clamp(int value, int minimum, int maximum) {
