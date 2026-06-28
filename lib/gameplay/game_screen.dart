@@ -3032,6 +3032,7 @@ class _PlanetMap extends StatelessWidget {
           assignedColony == null ? null : assignedColony.ownerId,
         );
         final actionHint = _actionHintFor(tile, selectedUnit, isKnown);
+        final actionTooltip = _actionTooltipFor(tile, selectedUnit, actionHint);
 
         return _MapTileButton(
           tile: tile,
@@ -3048,6 +3049,7 @@ class _PlanetMap extends StatelessWidget {
           isSelected: isSelected,
           isSelectedUnit: unit != null && unit.id == selectedUnitId,
           actionHint: actionHint,
+          actionTooltip: actionTooltip,
           onTap: () => onSelected(tile.x, tile.y),
         );
       },
@@ -3115,6 +3117,36 @@ class _PlanetMap extends StatelessWidget {
     return _TileActionHint.move;
   }
 
+  String? _actionTooltipFor(
+    PlanetTile tile,
+    Unit? selectedUnit,
+    _TileActionHint actionHint,
+  ) {
+    if (selectedUnit == null || actionHint == _TileActionHint.none) {
+      return null;
+    }
+    if (actionHint == _TileActionHint.move) {
+      return 'Move to sector ${tile.x + 1}, ${tile.y + 1} '
+          '(${OpenDeadlockGame.movementCostForTerrain(tile.terrain)} move)';
+    }
+    if (actionHint == _TileActionHint.attack) {
+      final defender = game.visibleUnitAt(game.activeFactionId, tile.x, tile.y);
+      if (defender == null || defender.ownerId == selectedUnit.ownerId) {
+        return null;
+      }
+      final preview = game.previewUnitCombat(selectedUnit, defender);
+      return 'Attack ${defender.name}: '
+          '${_unitCombatPreviewValueFor(selectedUnit, defender, preview)}';
+    }
+    final targetColony = game.colonyAt(tile.x, tile.y);
+    if (targetColony == null || targetColony.ownerId == selectedUnit.ownerId) {
+      return null;
+    }
+    final preview = game.previewColonyAssault(selectedUnit, targetColony);
+    return 'Assault ${targetColony.name}: '
+        '${_colonyAssaultPreviewValueFor(selectedUnit, preview)}';
+  }
+
   int _manhattanDistance(int ax, int ay, int bx, int by) {
     return _absolute(ax - bx) + _absolute(ay - by);
   }
@@ -3142,6 +3174,7 @@ class _MapTileButton extends StatelessWidget {
     required this.isSelected,
     required this.isSelectedUnit,
     required this.actionHint,
+    required this.actionTooltip,
     required this.onTap,
   }) : super(key: key);
 
@@ -3158,6 +3191,7 @@ class _MapTileButton extends StatelessWidget {
   final bool isSelected;
   final bool isSelectedUnit;
   final _TileActionHint actionHint;
+  final String? actionTooltip;
   final VoidCallback onTap;
 
   @override
@@ -3172,206 +3206,211 @@ class _MapTileButton extends StatelessWidget {
             ? 1.0
             : 2.0;
 
+    final tileButton = InkWell(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        decoration: BoxDecoration(
+          border: Border.all(color: borderColor, width: borderWidth),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                key: ValueKey<String>('terrain-${tile.x}-${tile.y}'),
+                painter: _TerrainTilePainter(
+                  terrain: tile.terrain,
+                  yields: tile.yields,
+                  isExplored: isExplored,
+                  isVisible: isVisible,
+                  ownerColor: ownerColor,
+                  overlayMode: overlayMode,
+                  isSelected: isSelected,
+                ),
+              ),
+            ),
+            if (isKnown && overlayMode != _MapOverlayMode.terrain)
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  key: ValueKey<String>(
+                    'resource-overlay-${_mapOverlayNameFor(overlayMode)}-${tile.x}-${tile.y}',
+                  ),
+                  width: 27,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.34),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _mapOverlayColorFor(overlayMode)
+                          .withValues(alpha: 0.82),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${_resourceValueForOverlay(tile.yields, overlayMode)}',
+                      style: const TextStyle(
+                        color: Color(0xFFEFF4F8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (isExplored && ownerColor != null)
+              Align(
+                alignment: Alignment.topRight,
+                child: Container(
+                  width: 13,
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: ownerColor,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(5),
+                      topRight: Radius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            if (isExplored && isAssignedSector)
+              Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  key: ValueKey<String>('work-sector-${tile.x}-${tile.y}'),
+                  width: 18,
+                  height: 18,
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: assignedColor ?? const Color(0xFFE9EEF2),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: const Color(0xFF111418),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.grid_view,
+                    size: 11,
+                    color: Color(0xFF111418),
+                  ),
+                ),
+              ),
+            if (actionHint != _TileActionHint.none)
+              Align(
+                alignment: Alignment.topLeft,
+                child: Container(
+                  key: ValueKey<String>(
+                    'action-hint-${_nameForActionHint(actionHint)}-${tile.x}-${tile.y}',
+                  ),
+                  width: 19,
+                  height: 19,
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: _colorForActionHint(actionHint),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF111418),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    _iconForActionHint(actionHint),
+                    size: 12,
+                    color: const Color(0xFF111418),
+                  ),
+                ),
+              ),
+            if (isExplored && hasColony)
+              Center(
+                child: Icon(
+                  Icons.location_city,
+                  color: Colors.white.withValues(alpha: 0.92),
+                  size: 24,
+                ),
+              ),
+            if (isKnown && unit == null)
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Tooltip(
+                  message: _terrainLabel(tile.terrain),
+                  child: Container(
+                    key: ValueKey<String>('terrain-badge-${tile.x}-${tile.y}'),
+                    width: 20,
+                    height: 20,
+                    margin: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.32),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      _iconForTerrain(tile.terrain),
+                      size: 13,
+                      color: _iconColorForTerrain(tile.terrain),
+                    ),
+                  ),
+                ),
+              ),
+            if (isKnown && unit != null)
+              Align(
+                alignment: hasColony ? Alignment.bottomRight : Alignment.center,
+                child: Container(
+                  width: isSelectedUnit ? 28 : 24,
+                  height: isSelectedUnit ? 28 : 24,
+                  decoration: BoxDecoration(
+                    color: unitColor ?? const Color(0xFFE9EEF2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelectedUnit
+                          ? const Color(0xFFF6E05E)
+                          : Colors.white,
+                      width: isSelectedUnit ? 3 : 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.explore,
+                    size: 15,
+                    color: Color(0xFF111418),
+                  ),
+                ),
+              ),
+            if (isKnown)
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 5, bottom: 4),
+                  child: Text(
+                    '${tile.yields.food}/${tile.yields.industry}/${tile.yields.research}',
+                    style: const TextStyle(
+                      color: Color(0xFFEFF4F8),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.all(2),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            decoration: BoxDecoration(
-              border: Border.all(color: borderColor, width: borderWidth),
-              borderRadius: BorderRadius.circular(5),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    key: ValueKey<String>('terrain-${tile.x}-${tile.y}'),
-                    painter: _TerrainTilePainter(
-                      terrain: tile.terrain,
-                      yields: tile.yields,
-                      isExplored: isExplored,
-                      isVisible: isVisible,
-                      ownerColor: ownerColor,
-                      overlayMode: overlayMode,
-                      isSelected: isSelected,
-                    ),
-                  ),
-                ),
-                if (isKnown && overlayMode != _MapOverlayMode.terrain)
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      key: ValueKey<String>(
-                        'resource-overlay-${_mapOverlayNameFor(overlayMode)}-${tile.x}-${tile.y}',
-                      ),
-                      width: 27,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.34),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: _mapOverlayColorFor(overlayMode)
-                              .withValues(alpha: 0.82),
-                          width: 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${_resourceValueForOverlay(tile.yields, overlayMode)}',
-                          style: const TextStyle(
-                            color: Color(0xFFEFF4F8),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (isExplored && ownerColor != null)
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Container(
-                      width: 13,
-                      height: 13,
-                      decoration: BoxDecoration(
-                        color: ownerColor,
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(5),
-                          topRight: Radius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (isExplored && isAssignedSector)
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: Container(
-                      key: ValueKey<String>('work-sector-${tile.x}-${tile.y}'),
-                      width: 18,
-                      height: 18,
-                      margin: const EdgeInsets.only(top: 4),
-                      decoration: BoxDecoration(
-                        color: assignedColor ?? const Color(0xFFE9EEF2),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: const Color(0xFF111418),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.grid_view,
-                        size: 11,
-                        color: Color(0xFF111418),
-                      ),
-                    ),
-                  ),
-                if (actionHint != _TileActionHint.none)
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: Container(
-                      key: ValueKey<String>(
-                        'action-hint-${_nameForActionHint(actionHint)}-${tile.x}-${tile.y}',
-                      ),
-                      width: 19,
-                      height: 19,
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: _colorForActionHint(actionHint),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF111418),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        _iconForActionHint(actionHint),
-                        size: 12,
-                        color: const Color(0xFF111418),
-                      ),
-                    ),
-                  ),
-                if (isExplored && hasColony)
-                  Center(
-                    child: Icon(
-                      Icons.location_city,
-                      color: Colors.white.withValues(alpha: 0.92),
-                      size: 24,
-                    ),
-                  ),
-                if (isKnown && unit == null)
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Tooltip(
-                      message: _terrainLabel(tile.terrain),
-                      child: Container(
-                        key: ValueKey<String>(
-                            'terrain-badge-${tile.x}-${tile.y}'),
-                        width: 20,
-                        height: 20,
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.32),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            width: 1,
-                          ),
-                        ),
-                        child: Icon(
-                          _iconForTerrain(tile.terrain),
-                          size: 13,
-                          color: _iconColorForTerrain(tile.terrain),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (isKnown && unit != null)
-                  Align(
-                    alignment:
-                        hasColony ? Alignment.bottomRight : Alignment.center,
-                    child: Container(
-                      width: isSelectedUnit ? 28 : 24,
-                      height: isSelectedUnit ? 28 : 24,
-                      decoration: BoxDecoration(
-                        color: unitColor ?? const Color(0xFFE9EEF2),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelectedUnit
-                              ? const Color(0xFFF6E05E)
-                              : Colors.white,
-                          width: isSelectedUnit ? 3 : 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.explore,
-                        size: 15,
-                        color: Color(0xFF111418),
-                      ),
-                    ),
-                  ),
-                if (isKnown)
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 5, bottom: 4),
-                      child: Text(
-                        '${tile.yields.food}/${tile.yields.industry}/${tile.yields.research}',
-                        style: const TextStyle(
-                          color: Color(0xFFEFF4F8),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        child: actionTooltip == null
+            ? tileButton
+            : Tooltip(
+                message: actionTooltip!,
+                child: tileButton,
+              ),
       ),
     );
   }
@@ -7589,59 +7628,11 @@ class _UnitDetail extends StatelessWidget {
     Unit defender,
     UnitCombatPreview preview,
   ) {
-    return 'Deal ${preview.attackDamage}, counter ${preview.counterDamage}, '
-        'you ${preview.attackerHealth}/${OpenDeadlockGame.maxHealthFor(unit.type)}, '
-        'target ${preview.defenderHealth}/${OpenDeadlockGame.maxHealthFor(defender.type)}, '
-        '${_unitCombatOutcomeLabel(preview)}, ${_riskLabelFor(
-      attackerSurvives: preview.attackerSurvives,
-      attackerHealth: preview.attackerHealth,
-      maxHealth: OpenDeadlockGame.maxHealthFor(unit.type),
-      counterDamage: preview.counterDamage,
-    )} risk';
+    return _unitCombatPreviewValueFor(unit, defender, preview);
   }
 
   String _colonyAssaultPreviewValue(ColonyAssaultPreview preview) {
-    return '${preview.attackPower} vs ${preview.defensePower}, '
-        '${preview.colonyCaptured ? 'capture' : 'repelled'}, '
-        'you ${preview.attackerHealth}/${OpenDeadlockGame.maxHealthFor(unit.type)}, '
-        '${preview.population} pop / ${preview.morale} morale, '
-        '${_riskLabelFor(
-      attackerSurvives: preview.attackerSurvives,
-      attackerHealth: preview.attackerHealth,
-      maxHealth: OpenDeadlockGame.maxHealthFor(unit.type),
-      counterDamage: preview.counterDamage,
-    )} risk';
-  }
-
-  String _unitCombatOutcomeLabel(UnitCombatPreview preview) {
-    if (preview.attackerSurvives && !preview.defenderSurvives) {
-      return 'target destroyed';
-    }
-    if (!preview.attackerSurvives && preview.defenderSurvives) {
-      return 'unit lost';
-    }
-    if (!preview.attackerSurvives && !preview.defenderSurvives) {
-      return 'mutual destruction';
-    }
-    return 'both survive';
-  }
-
-  String _riskLabelFor({
-    required bool attackerSurvives,
-    required int attackerHealth,
-    required int maxHealth,
-    required int counterDamage,
-  }) {
-    if (!attackerSurvives) {
-      return 'lethal';
-    }
-    if (attackerHealth <= 1 || attackerHealth * 3 <= maxHealth) {
-      return 'critical';
-    }
-    if (counterDamage > 0) {
-      return 'damaged';
-    }
-    return 'low';
+    return _colonyAssaultPreviewValueFor(unit, preview);
   }
 
   String _titleCase(String value) {
@@ -7650,6 +7641,69 @@ class _UnitDetail extends StatelessWidget {
     }
     return value.substring(0, 1).toUpperCase() + value.substring(1);
   }
+}
+
+String _unitCombatPreviewValueFor(
+  Unit attacker,
+  Unit defender,
+  UnitCombatPreview preview,
+) {
+  return 'Deal ${preview.attackDamage}, counter ${preview.counterDamage}, '
+      'you ${preview.attackerHealth}/${OpenDeadlockGame.maxHealthFor(attacker.type)}, '
+      'target ${preview.defenderHealth}/${OpenDeadlockGame.maxHealthFor(defender.type)}, '
+      '${_unitCombatOutcomeLabel(preview)}, ${_riskLabelFor(
+    attackerSurvives: preview.attackerSurvives,
+    attackerHealth: preview.attackerHealth,
+    maxHealth: OpenDeadlockGame.maxHealthFor(attacker.type),
+    counterDamage: preview.counterDamage,
+  )} risk';
+}
+
+String _colonyAssaultPreviewValueFor(
+  Unit attacker,
+  ColonyAssaultPreview preview,
+) {
+  return '${preview.attackPower} vs ${preview.defensePower}, '
+      '${preview.colonyCaptured ? 'capture' : 'repelled'}, '
+      'you ${preview.attackerHealth}/${OpenDeadlockGame.maxHealthFor(attacker.type)}, '
+      '${preview.population} pop / ${preview.morale} morale, '
+      '${_riskLabelFor(
+    attackerSurvives: preview.attackerSurvives,
+    attackerHealth: preview.attackerHealth,
+    maxHealth: OpenDeadlockGame.maxHealthFor(attacker.type),
+    counterDamage: preview.counterDamage,
+  )} risk';
+}
+
+String _unitCombatOutcomeLabel(UnitCombatPreview preview) {
+  if (preview.attackerSurvives && !preview.defenderSurvives) {
+    return 'target destroyed';
+  }
+  if (!preview.attackerSurvives && preview.defenderSurvives) {
+    return 'unit lost';
+  }
+  if (!preview.attackerSurvives && !preview.defenderSurvives) {
+    return 'mutual destruction';
+  }
+  return 'both survive';
+}
+
+String _riskLabelFor({
+  required bool attackerSurvives,
+  required int attackerHealth,
+  required int maxHealth,
+  required int counterDamage,
+}) {
+  if (!attackerSurvives) {
+    return 'lethal';
+  }
+  if (attackerHealth <= 1 || attackerHealth * 3 <= maxHealth) {
+    return 'critical';
+  }
+  if (counterDamage > 0) {
+    return 'damaged';
+  }
+  return 'low';
 }
 
 class _CombatPreviewRow {

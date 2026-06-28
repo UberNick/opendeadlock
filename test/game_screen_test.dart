@@ -1570,6 +1570,16 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey<String>('action-hint-assault-3-2')),
         findsOneWidget);
+    expect(
+      find.byTooltip(
+          'Attack Pact Recon: Deal 2, counter 3, you 2/5, target 3/5, both survive, damaged risk'),
+      findsOneWidget,
+    );
+    expect(
+      find.byTooltip(
+          'Assault Redoubt: 5 vs 5, repelled, you 1/5, 3 pop / 26 morale, critical risk'),
+      findsOneWidget,
+    );
     expect(find.text('Combat Preview'), findsOneWidget);
     expect(find.text('Attack Pact Recon'), findsOneWidget);
     expect(
