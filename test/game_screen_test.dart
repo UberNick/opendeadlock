@@ -2166,10 +2166,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Load Invite'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Load Invite');
 
     expect(find.text('Load Invite'), findsOneWidget);
 
@@ -2202,15 +2199,71 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Import Invite File'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Import Invite File');
 
     expect(tester.takeException(), isNull);
     expect(find.text('Invite file loaded: joined as Tarth Legion'),
         findsOneWidget);
     expect(find.text('Waiting for sync'), findsWidgets);
+  });
+
+  testWidgets('sync menu copies a single remote player invite', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    final clipboardWrites = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final arguments = call.arguments as Map<dynamic, dynamic>;
+          clipboardWrites.add(arguments['text'] as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+    final asyncGame =
+        OpenDeadlockGame.sample(sessionId: 'menu-invite').applyCommand(
+      const SetFactionControlCommand(
+        factionId: 'rebels',
+        controlMode: Faction.controlRemote,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: asyncGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Sync'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Copy Invite'), findsOneWidget);
+    expect(find.text('Save Invite'), findsOneWidget);
+
+    await tester.tap(find.text('Copy Invite').last);
+    await tester.pumpAndSettle();
+
+    final invite = GameCodec.decodeGameInvite(clipboardWrites.single);
+
+    expect(tester.takeException(), isNull);
+    expect(invite.sessionId, 'menu-invite');
+    expect(invite.hostFactionId, 'humans');
+    expect(invite.invitedFactionId, 'rebels');
+    expect(find.text('Invite code copied for Tarth Legion'), findsOneWidget);
   });
 
   testWidgets('game screen can apply an order package from typed sync code',
@@ -2238,10 +2291,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Apply Orders'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Apply Orders');
 
     expect(find.text('Apply Orders'), findsOneWidget);
 
@@ -2276,10 +2326,7 @@ void main() {
     );
     expect(find.textContaining('1 cmd'), findsWidgets);
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Apply Orders'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Apply Orders');
     await tester.enterText(find.byType(TextField), orderCode);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Apply'));
     await tester.pumpAndSettle();
@@ -2347,10 +2394,7 @@ void main() {
 
     expect(find.text('Waiting for sync'), findsWidgets);
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Apply Orders'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Apply Orders');
     await tester.enterText(find.byType(TextField), orderCode);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Apply'));
     await tester.pumpAndSettle();
@@ -2416,10 +2460,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Apply Orders'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Apply Orders');
     await tester.enterText(find.byType(TextField), orderCode);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Apply'));
     await tester.pumpAndSettle();
@@ -2552,10 +2593,7 @@ void main() {
     expect(find.text('Turn 1 | Human Assembly'), findsOneWidget);
     expect(find.text('New Haven: build Factory'), findsNothing);
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Copy Orders'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Copy Orders');
 
     expect(find.text('Copy Orders'), findsOneWidget);
     expect(
@@ -2574,10 +2612,7 @@ void main() {
     expect(clipboardWrites, isEmpty);
     expect(find.text('Copy Orders'), findsNothing);
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Copy Orders'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Copy Orders');
     await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Code'));
     await tester.pumpAndSettle();
 
@@ -2601,10 +2636,7 @@ void main() {
     expect(find.text('0 pending'), findsOneWidget);
     expect(find.text('No orders since the sync baseline.'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Copy Orders'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Copy Orders');
 
     expect(find.text('No new orders since last sync'), findsOneWidget);
     expect(
@@ -2688,10 +2720,7 @@ void main() {
 
     expect(find.text('1 pending'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Export Orders File'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Export Orders File');
 
     expect(find.text('Export Orders File'), findsOneWidget);
     expect(find.text('1 new order from Human Assembly'), findsOneWidget);
@@ -2747,10 +2776,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Import Orders File'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Import Orders File');
     await _pumpUntilFound(tester, find.text('Review Orders'));
 
     expect(find.text('Review Orders'), findsOneWidget);
@@ -2816,10 +2842,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Save Snapshot File'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Save Snapshot File');
 
     final restored = GameCodec.decodeGame(exportedContent!);
 
@@ -2862,10 +2885,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Import Snapshot File'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Import Snapshot File');
 
     expect(tester.takeException(), isNull);
     expect(find.text('Snapshot file loaded'), findsOneWidget);
@@ -2956,10 +2976,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Save Local'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Save Local');
 
     expect(find.text('Save Game'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Named Test Slot');
@@ -2972,10 +2989,7 @@ void main() {
     expect(savedSlots.single.slotId.startsWith(GameSaveStore.manualSlotPrefix),
         isTrue);
 
-    await tester.tap(find.byTooltip('Sync'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Load Local'));
-    await tester.pumpAndSettle();
+    await _tapSyncMenuItem(tester, 'Load Local');
 
     expect(find.text('Load Game'), findsOneWidget);
     expect(find.text('Named Test Slot'), findsOneWidget);
@@ -2996,6 +3010,13 @@ Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {
     }
     await tester.pump(const Duration(milliseconds: 10));
   }
+}
+
+Future<void> _tapSyncMenuItem(WidgetTester tester, String label) async {
+  await tester.tap(find.byTooltip('Sync'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
 }
 
 OpenDeadlockGame _defeatedWorldOverviewGame() {

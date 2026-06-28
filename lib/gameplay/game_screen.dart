@@ -172,6 +172,8 @@ class _GameScreenState extends State<GameScreen> {
               onImportSnapshotFile: _importSnapshotFromFile,
               onLoadInvite: _loadInviteFromClipboard,
               onImportInviteFile: _importInviteFromFile,
+              onCopyInvite: _copyInviteForFaction,
+              onExportInvite: _exportInviteForFaction,
               onCopyOrders: _copyOrdersToClipboard,
               onExportOrdersFile: _exportOrdersToFile,
               onApplyOrders: _applyOrdersFromClipboard,
@@ -2116,6 +2118,8 @@ enum _CommandBarAction {
   exportSnapshotFile,
   loadSnapshot,
   importSnapshotFile,
+  copyInvite,
+  exportInviteFile,
   loadInvite,
   importInviteFile,
   copyOrders,
@@ -2139,6 +2143,8 @@ class _CommandBar extends StatelessWidget {
     required this.onImportSnapshotFile,
     required this.onLoadInvite,
     required this.onImportInviteFile,
+    required this.onCopyInvite,
+    required this.onExportInvite,
     required this.onCopyOrders,
     required this.onExportOrdersFile,
     required this.onApplyOrders,
@@ -2161,6 +2167,8 @@ class _CommandBar extends StatelessWidget {
   final Future<void> Function() onImportSnapshotFile;
   final Future<void> Function() onLoadInvite;
   final Future<void> Function() onImportInviteFile;
+  final Future<void> Function(String factionId) onCopyInvite;
+  final Future<void> Function(String factionId) onExportInvite;
   final Future<void> Function() onCopyOrders;
   final Future<void> Function() onExportOrdersFile;
   final Future<void> Function() onApplyOrders;
@@ -2295,6 +2303,7 @@ class _CommandBar extends StatelessWidget {
   }
 
   Widget _syncMenu(BuildContext context, bool hasComputerOpponents) {
+    final singleRemoteFaction = _singleRemoteFaction();
     return PopupMenuButton<_CommandBarAction>(
       tooltip: 'Sync',
       color: const Color(0xFF202B34),
@@ -2331,6 +2340,23 @@ class _CommandBar extends StatelessWidget {
           child: _SyncMenuItem(
               icon: Icons.drive_folder_upload, label: 'Import Snapshot File'),
         ),
+        if (singleRemoteFaction != null) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<_CommandBarAction>(
+            value: _CommandBarAction.copyInvite,
+            child: _SyncMenuItem(
+              icon: Icons.person_add_alt_1,
+              label: 'Copy Invite',
+            ),
+          ),
+          PopupMenuItem<_CommandBarAction>(
+            value: _CommandBarAction.exportInviteFile,
+            child: _SyncMenuItem(
+              icon: Icons.save_alt,
+              label: 'Save Invite',
+            ),
+          ),
+        ],
         const PopupMenuItem<_CommandBarAction>(
           value: _CommandBarAction.loadInvite,
           child:
@@ -2406,6 +2432,20 @@ class _CommandBar extends StatelessWidget {
       onImportSnapshotFile();
       return;
     }
+    if (action == _CommandBarAction.copyInvite) {
+      final singleRemoteFaction = _singleRemoteFaction();
+      if (singleRemoteFaction != null) {
+        onCopyInvite(singleRemoteFaction.id);
+      }
+      return;
+    }
+    if (action == _CommandBarAction.exportInviteFile) {
+      final singleRemoteFaction = _singleRemoteFaction();
+      if (singleRemoteFaction != null) {
+        onExportInvite(singleRemoteFaction.id);
+      }
+      return;
+    }
     if (action == _CommandBarAction.loadInvite) {
       onLoadInvite();
       return;
@@ -2433,6 +2473,15 @@ class _CommandBar extends StatelessWidget {
     if (action == _CommandBarAction.toggleHotseat) {
       onToggleHotseat();
     }
+  }
+
+  Faction? _singleRemoteFaction() {
+    if (!game.activeFactionCanIssueLocalOrders) {
+      return null;
+    }
+    final remoteFactions =
+        game.factions.where((faction) => faction.isRemote).toList();
+    return remoteFactions.length == 1 ? remoteFactions.single : null;
   }
 
   Widget _endTurnButton() {
