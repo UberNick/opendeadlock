@@ -1462,6 +1462,61 @@ void main() {
     );
   });
 
+  testWidgets('game screen shows configured victory paths', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final game = OpenDeadlockGame.sample(
+      sessionId: 'victory-paths-ui',
+    ).copyWith(
+      victoryCondition: OpenDeadlockGame.victoryConditionScience,
+      scoreTurnLimit: 20,
+    );
+    final activeScore = game.factionScoreFor(game.activeFactionId);
+    final activeSummary = game.worldSummaryFor(game.activeFactionId);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (var scroll = 0; scroll < 14; scroll += 1) {
+      if (find.text('Victory Paths').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Victory Paths'), findsOneWidget);
+    expect(find.text('Condition'), findsWidgets);
+    expect(find.text('Science'), findsWidgets);
+    expect(find.text('Conquest Path'), findsOneWidget);
+    expect(find.text('Science Path'), findsOneWidget);
+    expect(find.text('Disabled'), findsOneWidget);
+    expect(find.text('Score Limit'), findsOneWidget);
+    expect(find.text('Turn 20'), findsOneWidget);
+    expect(find.text(activeScore.factionName), findsWidgets);
+    expect(
+      find.text(
+        'Science ${activeSummary.scienceVictoryProgressLabel} / ${activeSummary.scienceVictorySharePercent}% | Score ${activeScore.total} pts | Deadline active',
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('game screen marks defeated factions in world rankings',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

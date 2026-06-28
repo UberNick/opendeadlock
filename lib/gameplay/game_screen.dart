@@ -4264,6 +4264,8 @@ class _SelectionPanel extends StatelessWidget {
             activeColonies: activeColonies,
             orderExportBaseCommandCount: orderExportBaseCommandCount,
           ),
+          const SizedBox(height: 18),
+          _VictoryPathsDetail(game: game),
         ],
       ),
     );
@@ -5448,6 +5450,169 @@ class _PostGameFactionRow extends StatelessWidget {
 
   String _resourceLine(ResourceStockpile stockpile) {
     return '${stockpile.food} food / ${stockpile.industry} ind / ${stockpile.research} res / ${stockpile.credits} cred';
+  }
+}
+
+class _VictoryPathsDetail extends StatelessWidget {
+  const _VictoryPathsDetail({
+    Key? key,
+    required this.game,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final summariesByFactionId = <String, FactionWorldSummary>{
+      for (final summary in game.worldSummaries()) summary.factionId: summary,
+    };
+    final scores = game.factionScores();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.emoji_events, color: Color(0xFFE9EEF2), size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Victory Paths',
+                style: TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Condition',
+            value: OpenDeadlockGame.victoryConditionLabelFor(
+              game.victoryCondition,
+            ),
+          ),
+          _DetailRow(
+            label: 'Conquest Path',
+            value: _isConquestEnabled ? 'Enabled' : 'Disabled',
+          ),
+          _DetailRow(
+            label: 'Science Path',
+            value: _isScienceEnabled ? 'Enabled' : 'Disabled',
+          ),
+          _DetailRow(
+            label: 'Score Limit',
+            value: game.scoreTurnLimit <= 0
+                ? 'Off'
+                : 'Turn ${game.scoreTurnLimit}',
+          ),
+          const SizedBox(height: 8),
+          for (final score in scores)
+            _VictoryPathRow(
+              score: score,
+              summary: summariesByFactionId[score.factionId]!,
+              showConquest: _isConquestEnabled,
+              showScience: _isScienceEnabled,
+              showScoreDeadline: game.scoreTurnLimit > 0,
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool get _isConquestEnabled {
+    return game.victoryCondition == OpenDeadlockGame.victoryConditionAny ||
+        game.victoryCondition == OpenDeadlockGame.victoryConditionConquest;
+  }
+
+  bool get _isScienceEnabled {
+    return game.victoryCondition == OpenDeadlockGame.victoryConditionAny ||
+        game.victoryCondition == OpenDeadlockGame.victoryConditionScience;
+  }
+}
+
+class _VictoryPathRow extends StatelessWidget {
+  const _VictoryPathRow({
+    Key? key,
+    required this.score,
+    required this.summary,
+    required this.showConquest,
+    required this.showScience,
+    required this.showScoreDeadline,
+  }) : super(key: key);
+
+  final FactionScore score;
+  final FactionWorldSummary summary;
+  final bool showConquest;
+  final bool showScience;
+  final bool showScoreDeadline;
+
+  @override
+  Widget build(BuildContext context) {
+    final segments = <String>[];
+    if (summary.isDefeated) {
+      segments.add('Defeated');
+    }
+    if (showConquest) {
+      segments.add(
+        'Conquest ${summary.victoryProgressLabel} / ${summary.victorySharePercent}%',
+      );
+    }
+    if (showScience) {
+      segments.add(
+        'Science ${summary.scienceVictoryProgressLabel} / ${summary.scienceVictorySharePercent}%',
+      );
+    }
+    segments.add('Score ${score.total} pts');
+    if (showScoreDeadline) {
+      segments.add('Deadline active');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.only(top: 5),
+            decoration: BoxDecoration(
+              color: Color(score.colorValue),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  score.factionName,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFE9EEF2),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  segments.join(' | '),
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
