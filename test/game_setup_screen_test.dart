@@ -30,6 +30,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('All factions begin at war.'), findsOneWidget);
+    expect(find.text('Conquest or science can win the game.'), findsOneWidget);
     expect(find.text('2 starting colonies'), findsOneWidget);
     expect(
       find.text('Flexible colonists with strong budget reserves.'),
@@ -45,7 +46,6 @@ void main() {
       findsOneWidget,
     );
 
-    final addFactionSwitches = find.byType(SwitchListTile);
     await tester.enterText(
       find.byKey(const ValueKey<String>('world-seed-field')),
       '7',
@@ -60,7 +60,23 @@ void main() {
       find.text('All factions begin at peace and may trade.'),
       findsOneWidget,
     );
-    await tester.tap(addFactionSwitches.first);
+    await _selectDropdownOption(
+      tester,
+      currentLabel: 'Any Victory',
+      optionLabel: 'Science',
+    );
+    expect(
+      find.text('Only completing every core research project ends the game.'),
+      findsOneWidget,
+    );
+    await tester.dragUntilVisible(
+      find.byType(SwitchListTile),
+      find.byType(ListView),
+      const Offset(0, -420),
+      maxIteration: 12,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SwitchListTile).first);
     await tester.pumpAndSettle();
     expect(find.text('3 starting colonies'), findsOneWidget);
     final uncheckedFactionSwitch = find.byWidgetPredicate((widget) {
@@ -73,7 +89,7 @@ void main() {
       maxIteration: 12,
     );
     await tester.pumpAndSettle();
-    await tester.tap(uncheckedFactionSwitch);
+    await tester.tap(uncheckedFactionSwitch.first);
     await tester.pumpAndSettle();
     await tester.dragUntilVisible(
       find.text('4 starting colonies'),
@@ -113,6 +129,8 @@ void main() {
     expect(gameScreen.initialGame.factionById('maug')!.isComputer, isTrue);
     expect(gameScreen.initialGame.colonies.length, 4);
     expect(gameScreen.initialGame.units.length, 4);
+    expect(gameScreen.initialGame.victoryCondition,
+        OpenDeadlockGame.victoryConditionScience);
     expect(gameScreen.initialGame.factionById('maug'), isNotNull);
     expect(gameScreen.initialGame.diplomacy.length, 6);
     expect(
@@ -152,6 +170,13 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.dragUntilVisible(
+      find.byType(SwitchListTile),
+      find.byType(ListView),
+      const Offset(0, -420),
+      maxIteration: 12,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(SwitchListTile).first);
     await tester.pumpAndSettle();
 

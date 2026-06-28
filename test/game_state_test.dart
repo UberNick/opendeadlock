@@ -28,6 +28,7 @@ void main() {
     expect(game.factionById('rebels')!.difficulty, Faction.difficultyNormal);
     expect(game.areAtWar('humans', 'rebels'), isTrue);
     expect(game.sessionId, 'sample-skirmish');
+    expect(game.victoryCondition, OpenDeadlockGame.victoryConditionAny);
   });
 
   test('endTurn advances production and stores a report', () {
@@ -94,6 +95,7 @@ void main() {
     expect(restored.diplomacy.length, game.diplomacy.length);
     expect(restored.diplomacyStatusBetween('humans', 'rebels'),
         game.diplomacyStatusBetween('humans', 'rebels'));
+    expect(restored.victoryCondition, game.victoryCondition);
     expect(restored.commandHistory.length, game.commandHistory.length);
     expect(restored.reports.first.title, game.reports.first.title);
   });
@@ -243,6 +245,7 @@ void main() {
 
     expect(restored.mapSize, GameSetup.mapSizeFrontier);
     expect(restored.planetType, GameSetup.planetTypeAncient);
+    expect(restored.victoryCondition, OpenDeadlockGame.victoryConditionAny);
     expect(GameSetup.traitLabelFor('agrarian'), 'Agrarian');
     expect(GameSetup.raceLabelFor('relu'), "Re'Lu");
     expect(
@@ -273,6 +276,7 @@ void main() {
     );
     expect(game.width, 12);
     expect(game.height, 8);
+    expect(game.victoryCondition, OpenDeadlockGame.victoryConditionAny);
     expect(game.sessionId, 'setup-frontier-ancient-humans-rebels-traders-maug');
     expect(game.tileAt(0, 0).terrain, 'ruins');
     expect(game.tileAt(0, 0).yields.research, 4);
@@ -396,6 +400,71 @@ void main() {
     expect(allianceGame.areAllied('humans', 'rebels'), isTrue);
   });
 
+  test('game setup can choose victory conditions', () {
+    const scienceSetup = GameSetup(
+      mapSize: GameSetup.mapSizeStandard,
+      planetType: GameSetup.planetTypeTerran,
+      victoryCondition: OpenDeadlockGame.victoryConditionScience,
+      factions: <GameSetupFaction>[
+        GameSetupFaction(
+          id: 'humans',
+          name: 'Human',
+          colorValue: 0xFF2F80ED,
+          raceId: 'human',
+          controlMode: Faction.controlLocal,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['scholars'],
+        ),
+        GameSetupFaction(
+          id: 'rebels',
+          name: 'Tarth',
+          colorValue: 0xFFB83232,
+          raceId: 'tarth',
+          controlMode: Faction.controlComputer,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['militarists'],
+        ),
+      ],
+    );
+    final restoredScience = GameSetup.fromJson(scienceSetup.toJson());
+    final scienceGame = restoredScience.buildGame();
+
+    expect(
+      restoredScience.victoryCondition,
+      OpenDeadlockGame.victoryConditionScience,
+    );
+    expect(
+      GameSetup.victoryConditionLabelFor(restoredScience.victoryCondition),
+      'Science',
+    );
+    expect(
+      GameSetup.victoryConditionDescriptionFor(
+        restoredScience.victoryCondition,
+      ),
+      'Only completing every core research project ends the game.',
+    );
+    expect(
+        scienceGame.victoryCondition, OpenDeadlockGame.victoryConditionScience);
+    expect(
+        scienceGame.sessionId, 'setup-standard-terran-science-humans-rebels');
+    expect(scienceGame.reports.first.message,
+        contains('Victory condition: Science.'));
+
+    final conquestGame = GameSetup(
+      mapSize: scienceSetup.mapSize,
+      planetType: scienceSetup.planetType,
+      victoryCondition: OpenDeadlockGame.victoryConditionConquest,
+      factions: scienceSetup.factions,
+    ).buildGame();
+
+    expect(
+      conquestGame.sessionId,
+      'setup-standard-terran-conquest-humans-rebels',
+    );
+    expect(GameSetup.victoryConditionLabelFor(conquestGame.victoryCondition),
+        'Conquest');
+  });
+
   test('game setup rejects invalid generated games', () {
     expect(
       () => const GameSetup(
@@ -427,6 +496,34 @@ void main() {
         mapSize: GameSetup.mapSizeStandard,
         planetType: GameSetup.planetTypeTerran,
         startingDiplomacy: 'vendetta',
+        factions: <GameSetupFaction>[
+          GameSetupFaction(
+            id: 'humans',
+            name: 'The Chosen',
+            colorValue: 0xFF2F80ED,
+            raceId: 'human',
+            controlMode: Faction.controlLocal,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>[],
+          ),
+          GameSetupFaction(
+            id: 'rebels',
+            name: 'Crimson Pact',
+            colorValue: 0xFFB83232,
+            raceId: 'tarth',
+            controlMode: Faction.controlComputer,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>['industrialists'],
+          ),
+        ],
+      ).buildGame(),
+      throwsArgumentError,
+    );
+    expect(
+      () => const GameSetup(
+        mapSize: GameSetup.mapSizeStandard,
+        planetType: GameSetup.planetTypeTerran,
+        victoryCondition: 'score',
         factions: <GameSetupFaction>[
           GameSetupFaction(
             id: 'humans',
@@ -1851,6 +1948,41 @@ void main() {
       winner.reports.where((report) => report.title == 'Human Assembly wins'),
       hasLength(1),
     );
+  });
+
+  test('victory conditions can restrict the winning route', () {
+    final sample = OpenDeadlockGame.sample();
+    final scienceComplete = sample.copyWith(
+      victoryCondition: OpenDeadlockGame.victoryConditionConquest,
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'humans') {
+          return faction;
+        }
+        return faction.copyWith(
+          completedResearch: OpenDeadlockGame.coreResearchOptions,
+          researchProject: 'Future Studies',
+        );
+      }).toList(),
+    );
+    final conquered = sample.copyWith(
+      victoryCondition: OpenDeadlockGame.victoryConditionScience,
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'redoubt') {
+          return colony;
+        }
+        return colony.copyWith(ownerId: 'humans');
+      }).toList(),
+    );
+
+    expect(scienceComplete.scienceVictoryFactionId, 'humans');
+    expect(scienceComplete.winningVictoryType, isNull);
+    expect(scienceComplete.winningFactionId, isNull);
+    expect(scienceComplete.isGameOver, isFalse);
+
+    expect(conquered.conquestVictoryFactionId, 'humans');
+    expect(conquered.winningVictoryType, isNull);
+    expect(conquered.winningFactionId, isNull);
+    expect(conquered.isGameOver, isFalse);
   });
 
   test('faction traits add production bonuses', () {

@@ -60,6 +60,7 @@ class GameSetup {
     required this.factions,
     this.worldSeed = 0,
     this.startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar,
+    this.victoryCondition = OpenDeadlockGame.victoryConditionAny,
   });
 
   static const String mapSizeSkirmish = 'skirmish';
@@ -85,6 +86,7 @@ class GameSetup {
   final String planetType;
   final int worldSeed;
   final String startingDiplomacy;
+  final String victoryCondition;
   final List<GameSetupFaction> factions;
 
   static GameSetup standard() {
@@ -92,6 +94,7 @@ class GameSetup {
       mapSize: mapSizeStandard,
       planetType: planetTypeTerran,
       startingDiplomacy: OpenDeadlockGame.diplomacyStatusWar,
+      victoryCondition: OpenDeadlockGame.victoryConditionAny,
       factions: <GameSetupFaction>[
         GameSetupFaction(
           id: 'humans',
@@ -215,6 +218,23 @@ class GameSetup {
     throw ArgumentError('Unknown diplomacy status: $status.');
   }
 
+  static String victoryConditionLabelFor(String victoryCondition) {
+    return OpenDeadlockGame.victoryConditionLabelFor(victoryCondition);
+  }
+
+  static String victoryConditionDescriptionFor(String victoryCondition) {
+    if (victoryCondition == OpenDeadlockGame.victoryConditionAny) {
+      return 'Conquest or science can win the game.';
+    }
+    if (victoryCondition == OpenDeadlockGame.victoryConditionConquest) {
+      return 'Only controlling every colony ends the game.';
+    }
+    if (victoryCondition == OpenDeadlockGame.victoryConditionScience) {
+      return 'Only completing every core research project ends the game.';
+    }
+    throw ArgumentError('Unknown victory condition: $victoryCondition.');
+  }
+
   static List<String> traitOptions() {
     return OpenDeadlockGame.factionTraitCatalog.keys.toList(growable: false);
   }
@@ -301,6 +321,7 @@ class GameSetup {
       'planetType': planetType,
       'worldSeed': worldSeed,
       'startingDiplomacy': startingDiplomacy,
+      'victoryCondition': victoryCondition,
       'factions': factions.map((faction) => faction.toJson()).toList(),
     };
   }
@@ -313,6 +334,8 @@ class GameSetup {
           json['worldSeed'] == null ? 0 : _readSetupInt(json['worldSeed']),
       startingDiplomacy: json['startingDiplomacy'] as String? ??
           OpenDeadlockGame.diplomacyStatusWar,
+      victoryCondition: json['victoryCondition'] as String? ??
+          OpenDeadlockGame.victoryConditionAny,
       factions: (json['factions'] as List<dynamic>)
           .map((faction) =>
               GameSetupFaction.fromJson(faction as Map<String, dynamic>))
@@ -332,6 +355,9 @@ class GameSetup {
     }
     if (!OpenDeadlockGame.diplomacyStatuses.contains(startingDiplomacy)) {
       throw ArgumentError('Unknown starting diplomacy: $startingDiplomacy.');
+    }
+    if (!OpenDeadlockGame.victoryConditions.contains(victoryCondition)) {
+      throw ArgumentError('Unknown victory condition: $victoryCondition.');
     }
     if (factions.length < 2 || factions.length > 4) {
       throw ArgumentError('New games require two to four factions.');
@@ -484,6 +510,7 @@ class GameSetup {
       width: width,
       height: height,
       activeFactionId: factions.first.id,
+      victoryCondition: victoryCondition,
       factions: gameFactions,
       tiles: tiles,
       colonies: colonies,
@@ -495,7 +522,8 @@ class GameSetup {
           title: 'Planetfall complete',
           message:
               '${factions.length} factions have established starting colonies. '
-              'Starting relations: ${startingDiplomacyLabelFor(startingDiplomacy)}.',
+              'Starting relations: ${startingDiplomacyLabelFor(startingDiplomacy)}. '
+              'Victory condition: ${victoryConditionLabelFor(victoryCondition)}.',
         ),
       ],
     );
@@ -507,10 +535,14 @@ class GameSetup {
         setup.startingDiplomacy == OpenDeadlockGame.diplomacyStatusWar
             ? ''
             : '-${setup.startingDiplomacy}';
+    final victorySlug =
+        setup.victoryCondition == OpenDeadlockGame.victoryConditionAny
+            ? ''
+            : '-${setup.victoryCondition}';
     if (setup.worldSeed != 0) {
-      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug-seed${setup.worldSeed}-$factionIds';
+      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug-seed${setup.worldSeed}-$factionIds';
     }
-    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug-$factionIds';
+    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug-$factionIds';
   }
 
   static List<DiplomacyRelation> _initialDiplomacyFor(

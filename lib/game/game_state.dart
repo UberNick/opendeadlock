@@ -1854,6 +1854,7 @@ class OpenDeadlockGame {
     required this.diplomacy,
     required this.commandHistory,
     required this.reports,
+    this.victoryCondition = 'any',
   });
 
   final String sessionId;
@@ -1861,6 +1862,7 @@ class OpenDeadlockGame {
   final int width;
   final int height;
   final String activeFactionId;
+  final String victoryCondition;
   final List<Faction> factions;
   final List<PlanetTile> tiles;
   final List<Colony> colonies;
@@ -1987,6 +1989,27 @@ class OpenDeadlockGame {
 
   static const String victoryTypeConquest = 'conquest';
   static const String victoryTypeScience = 'science';
+  static const String victoryConditionAny = 'any';
+  static const String victoryConditionConquest = victoryTypeConquest;
+  static const String victoryConditionScience = victoryTypeScience;
+  static const List<String> victoryConditions = <String>[
+    victoryConditionAny,
+    victoryConditionConquest,
+    victoryConditionScience,
+  ];
+
+  static String victoryConditionLabelFor(String victoryCondition) {
+    if (victoryCondition == victoryConditionAny) {
+      return 'Any Victory';
+    }
+    if (victoryCondition == victoryConditionConquest) {
+      return 'Conquest';
+    }
+    if (victoryCondition == victoryConditionScience) {
+      return 'Science';
+    }
+    return victoryCondition;
+  }
 
   static String diplomacyStatusLabelFor(String status) {
     if (status == diplomacyStatusWar) {
@@ -2918,13 +2941,23 @@ class OpenDeadlockGame {
   }
 
   String? get winningVictoryType {
-    if (conquestVictoryFactionId != null) {
+    if (_allowsConquestVictory && conquestVictoryFactionId != null) {
       return victoryTypeConquest;
     }
-    if (scienceVictoryFactionId != null) {
+    if (_allowsScienceVictory && scienceVictoryFactionId != null) {
       return victoryTypeScience;
     }
     return null;
+  }
+
+  bool get _allowsConquestVictory {
+    return victoryCondition == victoryConditionAny ||
+        victoryCondition == victoryConditionConquest;
+  }
+
+  bool get _allowsScienceVictory {
+    return victoryCondition == victoryConditionAny ||
+        victoryCondition == victoryConditionScience;
   }
 
   String? get winningFactionId {
@@ -3352,6 +3385,7 @@ class OpenDeadlockGame {
     String? sessionId,
     int? turn,
     String? activeFactionId,
+    String? victoryCondition,
     List<Faction>? factions,
     List<PlanetTile>? tiles,
     List<Colony>? colonies,
@@ -3366,6 +3400,7 @@ class OpenDeadlockGame {
       width: width,
       height: height,
       activeFactionId: activeFactionId ?? this.activeFactionId,
+      victoryCondition: victoryCondition ?? this.victoryCondition,
       factions: factions ?? this.factions,
       tiles: tiles ?? this.tiles,
       colonies: colonies ?? this.colonies,
@@ -4966,6 +5001,7 @@ class OpenDeadlockGame {
       'width': width,
       'height': height,
       'activeFactionId': activeFactionId,
+      'victoryCondition': victoryCondition,
       'factions': factions.map((faction) => faction.toJson()).toList(),
       'tiles': tiles.map((tile) => tile.toJson()).toList(),
       'colonies': colonies.map((colony) => colony.toJson()).toList(),
@@ -4984,6 +5020,8 @@ class OpenDeadlockGame {
       width: _readInt(json['width']),
       height: _readInt(json['height']),
       activeFactionId: json['activeFactionId'] as String,
+      victoryCondition:
+          _knownVictoryConditionOrDefault(json['victoryCondition'] as String?),
       factions: (json['factions'] as List<dynamic>)
           .map((faction) => Faction.fromJson(faction as Map<String, dynamic>))
           .toList(),
@@ -5156,6 +5194,7 @@ class OpenDeadlockGame {
       width: width,
       height: height,
       activeFactionId: activeFactionId,
+      victoryCondition: victoryCondition,
       factions: updatedFactions,
       tiles: _tilesWithAllianceIntelShared(tiles),
       colonies: updatedColonies,
@@ -7301,6 +7340,7 @@ class OpenDeadlockGame {
       width: width,
       height: height,
       activeFactionId: player.id,
+      victoryCondition: victoryConditionAny,
       factions: const <Faction>[player, rival],
       tiles: tiles,
       colonies: const <Colony>[
@@ -7398,6 +7438,14 @@ String _legacyRaceIdFor(String factionId) {
     return 'uva_mosk';
   }
   return 'human';
+}
+
+String _knownVictoryConditionOrDefault(String? victoryCondition) {
+  if (victoryCondition != null &&
+      OpenDeadlockGame.victoryConditions.contains(victoryCondition)) {
+    return victoryCondition;
+  }
+  return OpenDeadlockGame.victoryConditionAny;
 }
 
 String _creditLabel(int credits) {
