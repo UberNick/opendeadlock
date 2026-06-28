@@ -35,6 +35,10 @@ void main() {
       find.text('Each faction knows the sectors around its capital.'),
       findsOneWidget,
     );
+    expect(
+      find.text('Balanced reserves for a normal opening.'),
+      findsOneWidget,
+    );
     expect(find.text('2 starting colonies'), findsOneWidget);
     expect(
       find.text('Flexible colonists with strong budget reserves.'),
@@ -80,6 +84,15 @@ void main() {
     );
     expect(
       find.text('Every faction starts with the whole planet revealed.'),
+      findsOneWidget,
+    );
+    await _selectDropdownOption(
+      tester,
+      currentLabel: 'Standard Supplies',
+      optionLabel: 'Abundant Supplies',
+    );
+    expect(
+      find.text('Extra reserves accelerate early builds and research.'),
       findsOneWidget,
     );
     await tester.dragUntilVisible(
@@ -144,6 +157,24 @@ void main() {
     expect(gameScreen.initialGame.units.length, 4);
     expect(gameScreen.initialGame.victoryCondition,
         OpenDeadlockGame.victoryConditionScience);
+    expect(
+      gameScreen.initialGame.factionById('humans')!.resources.toJson(),
+      <String, dynamic>{
+        'food': 28,
+        'industry': 14,
+        'research': 4,
+        'credits': 40
+      },
+    );
+    expect(
+      gameScreen.initialGame.factionById('rebels')!.resources.toJson(),
+      <String, dynamic>{
+        'food': 24,
+        'industry': 12,
+        'research': 4,
+        'credits': 34
+      },
+    );
     expect(
       gameScreen.initialGame.tiles.every(
         (tile) => tile.isExploredBy('humans'),

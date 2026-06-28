@@ -247,6 +247,7 @@ void main() {
     expect(restored.planetType, GameSetup.planetTypeAncient);
     expect(restored.victoryCondition, OpenDeadlockGame.victoryConditionAny);
     expect(restored.startingIntel, GameSetup.startingIntelHomeRegion);
+    expect(restored.startingResources, GameSetup.startingResourcesStandard);
     expect(GameSetup.traitLabelFor('agrarian'), 'Agrarian');
     expect(GameSetup.raceLabelFor('relu'), "Re'Lu");
     expect(
@@ -307,6 +308,10 @@ void main() {
     expect(game.commandHistory, isEmpty);
     expect(game.reports.first.title, 'Planetfall complete');
     expect(game.reports.first.message, contains('Map intel: Home Region.'));
+    expect(
+      game.reports.first.message,
+      contains('Supplies: Standard Supplies.'),
+    );
 
     final traderCapital = game.colonyById('traders-capital');
     expect(game.tileAt(traderCapital.x, traderCapital.y).ownerId, 'traders');
@@ -537,6 +542,101 @@ void main() {
     );
   });
 
+  test('game setup can choose starting supplies', () {
+    const scarceSetup = GameSetup(
+      mapSize: GameSetup.mapSizeStandard,
+      planetType: GameSetup.planetTypeTerran,
+      startingResources: GameSetup.startingResourcesScarce,
+      factions: <GameSetupFaction>[
+        GameSetupFaction(
+          id: 'humans',
+          name: 'Human',
+          colorValue: 0xFF2F80ED,
+          raceId: 'human',
+          controlMode: Faction.controlLocal,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['scholars'],
+        ),
+        GameSetupFaction(
+          id: 'rebels',
+          name: 'Tarth',
+          colorValue: 0xFFB83232,
+          raceId: 'tarth',
+          controlMode: Faction.controlComputer,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['militarists'],
+        ),
+      ],
+    );
+    final restoredScarce = GameSetup.fromJson(scarceSetup.toJson());
+    final scarceGame = restoredScarce.buildGame();
+
+    expect(restoredScarce.startingResources, GameSetup.startingResourcesScarce);
+    expect(
+      GameSetup.startingResourcesLabelFor(restoredScarce.startingResources),
+      'Scarce Supplies',
+    );
+    expect(
+      GameSetup.startingResourcesDescriptionFor(
+        restoredScarce.startingResources,
+      ),
+      'Low reserves make early construction and research tighter.',
+    );
+    expect(
+      scarceGame.sessionId,
+      'setup-standard-terran-scarceres-humans-rebels',
+    );
+    expect(
+      scarceGame.factionById('humans')!.resources.toJson(),
+      <String, dynamic>{
+        'food': 12,
+        'industry': 4,
+        'research': 0,
+        'credits': 12
+      },
+    );
+    expect(
+      scarceGame.factionById('rebels')!.resources.toJson(),
+      <String, dynamic>{'food': 10, 'industry': 3, 'research': 0, 'credits': 9},
+    );
+    expect(scarceGame.reports.first.message,
+        contains('Supplies: Scarce Supplies.'));
+
+    final abundantGame = GameSetup(
+      mapSize: scarceSetup.mapSize,
+      planetType: scarceSetup.planetType,
+      startingResources: GameSetup.startingResourcesAbundant,
+      factions: scarceSetup.factions,
+    ).buildGame();
+
+    expect(
+      abundantGame.sessionId,
+      'setup-standard-terran-abundantres-humans-rebels',
+    );
+    expect(
+      GameSetup.startingResourcesLabelFor(GameSetup.startingResourcesAbundant),
+      'Abundant Supplies',
+    );
+    expect(
+      abundantGame.factionById('humans')!.resources.toJson(),
+      <String, dynamic>{
+        'food': 28,
+        'industry': 14,
+        'research': 4,
+        'credits': 40
+      },
+    );
+    expect(
+      abundantGame.factionById('rebels')!.resources.toJson(),
+      <String, dynamic>{
+        'food': 24,
+        'industry': 12,
+        'research': 4,
+        'credits': 34
+      },
+    );
+  });
+
   test('game setup rejects invalid generated games', () {
     expect(
       () => const GameSetup(
@@ -624,6 +724,34 @@ void main() {
         mapSize: GameSetup.mapSizeStandard,
         planetType: GameSetup.planetTypeTerran,
         startingIntel: 'omniscient',
+        factions: <GameSetupFaction>[
+          GameSetupFaction(
+            id: 'humans',
+            name: 'The Chosen',
+            colorValue: 0xFF2F80ED,
+            raceId: 'human',
+            controlMode: Faction.controlLocal,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>[],
+          ),
+          GameSetupFaction(
+            id: 'rebels',
+            name: 'Crimson Pact',
+            colorValue: 0xFFB83232,
+            raceId: 'tarth',
+            controlMode: Faction.controlComputer,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>['industrialists'],
+          ),
+        ],
+      ).buildGame(),
+      throwsArgumentError,
+    );
+    expect(
+      () => const GameSetup(
+        mapSize: GameSetup.mapSizeStandard,
+        planetType: GameSetup.planetTypeTerran,
+        startingResources: 'unlimited',
         factions: <GameSetupFaction>[
           GameSetupFaction(
             id: 'humans',

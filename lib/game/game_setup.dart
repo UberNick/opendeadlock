@@ -62,6 +62,7 @@ class GameSetup {
     this.startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar,
     this.victoryCondition = OpenDeadlockGame.victoryConditionAny,
     this.startingIntel = startingIntelHomeRegion,
+    this.startingResources = startingResourcesStandard,
   });
 
   static const String mapSizeSkirmish = 'skirmish';
@@ -74,6 +75,9 @@ class GameSetup {
   static const String startingIntelClassicFog = 'classic';
   static const String startingIntelHomeRegion = 'home';
   static const String startingIntelFullMap = 'full';
+  static const String startingResourcesScarce = 'scarce';
+  static const String startingResourcesStandard = 'standard';
+  static const String startingResourcesAbundant = 'abundant';
   static const List<String> mapSizes = <String>[
     mapSizeSkirmish,
     mapSizeStandard,
@@ -90,6 +94,11 @@ class GameSetup {
     startingIntelHomeRegion,
     startingIntelFullMap,
   ];
+  static const List<String> startingResourceOptions = <String>[
+    startingResourcesScarce,
+    startingResourcesStandard,
+    startingResourcesAbundant,
+  ];
 
   final String mapSize;
   final String planetType;
@@ -97,6 +106,7 @@ class GameSetup {
   final String startingDiplomacy;
   final String victoryCondition;
   final String startingIntel;
+  final String startingResources;
   final List<GameSetupFaction> factions;
 
   static GameSetup standard() {
@@ -106,6 +116,7 @@ class GameSetup {
       startingDiplomacy: OpenDeadlockGame.diplomacyStatusWar,
       victoryCondition: OpenDeadlockGame.victoryConditionAny,
       startingIntel: startingIntelHomeRegion,
+      startingResources: startingResourcesStandard,
       factions: <GameSetupFaction>[
         GameSetupFaction(
           id: 'humans',
@@ -171,6 +182,19 @@ class GameSetup {
       return 'Full Map';
     }
     return startingIntel;
+  }
+
+  static String startingResourcesLabelFor(String startingResources) {
+    if (startingResources == startingResourcesScarce) {
+      return 'Scarce Supplies';
+    }
+    if (startingResources == startingResourcesStandard) {
+      return 'Standard Supplies';
+    }
+    if (startingResources == startingResourcesAbundant) {
+      return 'Abundant Supplies';
+    }
+    return startingResources;
   }
 
   static int widthFor(String mapSize) {
@@ -272,6 +296,19 @@ class GameSetup {
     throw ArgumentError('Unknown starting intel: $startingIntel.');
   }
 
+  static String startingResourcesDescriptionFor(String startingResources) {
+    if (startingResources == startingResourcesScarce) {
+      return 'Low reserves make early construction and research tighter.';
+    }
+    if (startingResources == startingResourcesStandard) {
+      return 'Balanced reserves for a normal opening.';
+    }
+    if (startingResources == startingResourcesAbundant) {
+      return 'Extra reserves accelerate early builds and research.';
+    }
+    throw ArgumentError('Unknown starting resources: $startingResources.');
+  }
+
   static List<String> traitOptions() {
     return OpenDeadlockGame.factionTraitCatalog.keys.toList(growable: false);
   }
@@ -360,6 +397,7 @@ class GameSetup {
       'startingDiplomacy': startingDiplomacy,
       'victoryCondition': victoryCondition,
       'startingIntel': startingIntel,
+      'startingResources': startingResources,
       'factions': factions.map((faction) => faction.toJson()).toList(),
     };
   }
@@ -376,6 +414,8 @@ class GameSetup {
           OpenDeadlockGame.victoryConditionAny,
       startingIntel:
           json['startingIntel'] as String? ?? startingIntelHomeRegion,
+      startingResources:
+          json['startingResources'] as String? ?? startingResourcesStandard,
       factions: (json['factions'] as List<dynamic>)
           .map((faction) =>
               GameSetupFaction.fromJson(faction as Map<String, dynamic>))
@@ -401,6 +441,9 @@ class GameSetup {
     }
     if (!startingIntelOptions.contains(startingIntel)) {
       throw ArgumentError('Unknown starting intel: $startingIntel.');
+    }
+    if (!startingResourceOptions.contains(startingResources)) {
+      throw ArgumentError('Unknown starting resources: $startingResources.');
     }
     if (factions.length < 2 || factions.length > 4) {
       throw ArgumentError('New games require two to four factions.');
@@ -456,7 +499,7 @@ class GameSetup {
           controlMode: setupFaction.controlMode,
           difficulty: setupFaction.difficulty,
           aiPersonality: setupFaction.aiPersonality,
-          resources: _startingResourcesFor(index),
+          resources: _startingResourcesFor(index, startingResources),
           traitIds: setupFaction.traitIds,
         ),
       );
@@ -574,7 +617,8 @@ class GameSetup {
               '${factions.length} factions have established starting colonies. '
               'Starting relations: ${startingDiplomacyLabelFor(startingDiplomacy)}. '
               'Victory condition: ${victoryConditionLabelFor(victoryCondition)}. '
-              'Map intel: ${startingIntelLabelFor(startingIntel)}.',
+              'Map intel: ${startingIntelLabelFor(startingIntel)}. '
+              'Supplies: ${startingResourcesLabelFor(startingResources)}.',
         ),
       ],
     );
@@ -593,10 +637,13 @@ class GameSetup {
     final intelSlug = setup.startingIntel == startingIntelHomeRegion
         ? ''
         : '-${setup.startingIntel}intel';
+    final resourcesSlug = setup.startingResources == startingResourcesStandard
+        ? ''
+        : '-${setup.startingResources}res';
     if (setup.worldSeed != 0) {
-      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug-seed${setup.worldSeed}-$factionIds';
+      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug$resourcesSlug-seed${setup.worldSeed}-$factionIds';
     }
-    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug-$factionIds';
+    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug$resourcesSlug-$factionIds';
   }
 
   static bool _startingIntelRevealsTile(
@@ -637,8 +684,27 @@ class GameSetup {
     return relations;
   }
 
-  static ResourceStockpile _startingResourcesFor(int index) {
-    if (index == 0) {
+  static ResourceStockpile _startingResourcesFor(
+    int index,
+    String startingResources,
+  ) {
+    if (startingResources == startingResourcesScarce) {
+      if (index == 0) {
+        return const ResourceStockpile(
+          food: 12,
+          industry: 4,
+          research: 0,
+          credits: 12,
+        );
+      }
+      return const ResourceStockpile(
+        food: 10,
+        industry: 3,
+        research: 0,
+        credits: 9,
+      );
+    }
+    if (startingResources == startingResourcesStandard && index == 0) {
       return const ResourceStockpile(
         food: 18,
         industry: 8,
@@ -646,12 +712,31 @@ class GameSetup {
         credits: 24,
       );
     }
-    return const ResourceStockpile(
-      food: 14,
-      industry: 6,
-      research: 0,
-      credits: 18,
-    );
+    if (startingResources == startingResourcesStandard) {
+      return const ResourceStockpile(
+        food: 14,
+        industry: 6,
+        research: 0,
+        credits: 18,
+      );
+    }
+    if (startingResources == startingResourcesAbundant) {
+      if (index == 0) {
+        return const ResourceStockpile(
+          food: 28,
+          industry: 14,
+          research: 4,
+          credits: 40,
+        );
+      }
+      return const ResourceStockpile(
+        food: 24,
+        industry: 12,
+        research: 4,
+        credits: 34,
+      );
+    }
+    throw ArgumentError('Unknown starting resources: $startingResources.');
   }
 
   static String _capitalNameFor(GameSetupFaction faction, int index) {

@@ -31,6 +31,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
   String startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar;
   String victoryCondition = OpenDeadlockGame.victoryConditionAny;
   String startingIntel = GameSetup.startingIntelHomeRegion;
+  String startingResources = GameSetup.startingResourcesStandard;
   late final TextEditingController worldSeedController;
   String playerRaceId = 'human';
   String playerAiPersonality = Faction.aiPersonalityResearcher;
@@ -172,6 +173,17 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                         });
                       },
                     ),
+                    _SetupDropdown(
+                      label: 'Supplies',
+                      value: startingResources,
+                      items: GameSetup.startingResourceOptions,
+                      labelFor: GameSetup.startingResourcesLabelFor,
+                      onChanged: (value) {
+                        setState(() {
+                          startingResources = value;
+                        });
+                      },
+                    ),
                     _SeedField(
                       controller: worldSeedController,
                       onRoll: _rollWorldSeed,
@@ -204,6 +216,12 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                       label: 'Intel',
                       value: GameSetup.startingIntelDescriptionFor(
                         startingIntel,
+                      ),
+                    ),
+                    _SetupReadout(
+                      label: 'Supplies',
+                      value: GameSetup.startingResourcesDescriptionFor(
+                        startingResources,
                       ),
                     ),
                     _SetupReadout(
@@ -576,6 +594,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
       startingDiplomacy: startingDiplomacy,
       victoryCondition: victoryCondition,
       startingIntel: startingIntel,
+      startingResources: startingResources,
       factions: <GameSetupFaction>[
         GameSetupFaction(
           id: 'humans',
