@@ -84,7 +84,8 @@ Then open `http://127.0.0.1:8081/`.
 This branch includes a playable Flutter prototype that focuses on the first
 usable loop:
 
-* New game setup with race, difficulty, opponents, map, and rules options
+* New game setup with AI, hotseat, and async multiplayer presets plus race,
+  difficulty, opponent, map, and rules options
 * Planet map, colony overview, construction, population, resource, and research
   controls
 * Turn advancement with colony production, AI turns, reports, and news

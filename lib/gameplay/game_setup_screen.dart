@@ -14,8 +14,20 @@ class GameSetupScreen extends StatefulWidget {
 }
 
 class _GameSetupScreenState extends State<GameSetupScreen> {
+  static const String setupModeAi = 'ai';
+  static const String setupModeHotseat = 'hotseat';
+  static const String setupModeAsync = 'async';
+  static const String setupModeCustom = 'custom';
+  static const List<String> setupModes = <String>[
+    setupModeAi,
+    setupModeHotseat,
+    setupModeAsync,
+    setupModeCustom,
+  ];
+
   String mapSize = GameSetup.mapSizeStandard;
   String planetType = GameSetup.planetTypeTerran;
+  String setupMode = setupModeAi;
   late final TextEditingController worldSeedController;
   String playerRaceId = 'human';
   String playerAiPersonality = Faction.aiPersonalityResearcher;
@@ -113,6 +125,17 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                         });
                       },
                     ),
+                    _SetupDropdown(
+                      label: 'Mode',
+                      value: setupMode,
+                      items: setupModes,
+                      labelFor: _setupModeLabelFor,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectSetupMode(value);
+                        });
+                      },
+                    ),
                     _SeedField(
                       controller: worldSeedController,
                       onRoll: _rollWorldSeed,
@@ -124,6 +147,10 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                     _SetupReadout(
                       label: 'Bias',
                       value: GameSetup.planetTypeDescriptionFor(planetType),
+                    ),
+                    _SetupReadout(
+                      label: 'Seats',
+                      value: _setupModeDescriptionFor(setupMode),
                     ),
                     _SetupReadout(
                       label: 'Starts',
@@ -207,6 +234,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                       onChanged: (value) {
                         setState(() {
                           rivalControlMode = value;
+                          _syncSetupModeToSeats();
                         });
                       },
                     ),
@@ -274,7 +302,10 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                           includeThirdFaction = value;
                           if (!includeThirdFaction) {
                             includeFourthFaction = false;
+                          } else {
+                            _applySetupModeToFactionSeats(setupMode);
                           }
+                          _syncSetupModeToSeats();
                         });
                       },
                     ),
@@ -300,6 +331,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                         onChanged: (value) {
                           setState(() {
                             thirdControlMode = value;
+                            _syncSetupModeToSeats();
                           });
                         },
                       ),
@@ -367,6 +399,10 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                         onChanged: (value) {
                           setState(() {
                             includeFourthFaction = value;
+                            if (includeFourthFaction) {
+                              _applySetupModeToFactionSeats(setupMode);
+                            }
+                            _syncSetupModeToSeats();
                           });
                         },
                       ),
@@ -392,6 +428,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                           onChanged: (value) {
                             setState(() {
                               fourthControlMode = value;
+                              _syncSetupModeToSeats();
                             });
                           },
                         ),
@@ -546,6 +583,85 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
 
   int _factionCount() {
     return 2 + (includeThirdFaction ? 1 : 0) + (includeFourthFaction ? 1 : 0);
+  }
+
+  void _selectSetupMode(String mode) {
+    setupMode = mode;
+    _applySetupModeToFactionSeats(mode);
+  }
+
+  void _applySetupModeToFactionSeats(String mode) {
+    final controlMode = _controlModeForSetupMode(mode);
+    if (controlMode == null) {
+      return;
+    }
+    rivalControlMode = controlMode;
+    thirdControlMode = controlMode;
+    fourthControlMode = controlMode;
+  }
+
+  void _syncSetupModeToSeats() {
+    setupMode = _setupModeForCurrentSeats();
+  }
+
+  String _setupModeForCurrentSeats() {
+    final activeSeats = <String>[
+      rivalControlMode,
+      if (includeThirdFaction) thirdControlMode,
+      if (includeThirdFaction && includeFourthFaction) fourthControlMode,
+    ];
+    if (activeSeats.every((seat) => seat == Faction.controlComputer)) {
+      return setupModeAi;
+    }
+    if (activeSeats.every((seat) => seat == Faction.controlLocal)) {
+      return setupModeHotseat;
+    }
+    if (activeSeats.every((seat) => seat == Faction.controlRemote)) {
+      return setupModeAsync;
+    }
+    return setupModeCustom;
+  }
+
+  static String? _controlModeForSetupMode(String mode) {
+    if (mode == setupModeAi) {
+      return Faction.controlComputer;
+    }
+    if (mode == setupModeHotseat) {
+      return Faction.controlLocal;
+    }
+    if (mode == setupModeAsync) {
+      return Faction.controlRemote;
+    }
+    return null;
+  }
+
+  static String _setupModeLabelFor(String mode) {
+    if (mode == setupModeAi) {
+      return 'AI Opponents';
+    }
+    if (mode == setupModeHotseat) {
+      return 'Hotseat';
+    }
+    if (mode == setupModeAsync) {
+      return 'Async Multiplayer';
+    }
+    if (mode == setupModeCustom) {
+      return 'Custom Seats';
+    }
+    return mode;
+  }
+
+  String _setupModeDescriptionFor(String mode) {
+    if (mode == setupModeAi) {
+      return 'Rival factions run computer turns.';
+    }
+    if (mode == setupModeHotseat) {
+      return 'Rival factions are local seats on this device.';
+    }
+    if (mode == setupModeAsync) {
+      return 'Rival factions wait for invite and order packages.';
+    }
+    return 'Use each faction Seat dropdown.';
   }
 
   List<Widget> _factionReadouts(

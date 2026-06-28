@@ -23,6 +23,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('10 x 7 sectors (70 total)'), findsOneWidget);
+    expect(find.text('AI Opponents'), findsOneWidget);
+    expect(find.text('Rival factions run computer turns.'), findsOneWidget);
     expect(
       find.text('Balanced plains, forests, ridges, water, and ruins.'),
       findsOneWidget,
@@ -89,15 +91,80 @@ void main() {
     expect(gameScreen.initialGame.tileAt(0, 0).terrain, 'ridge');
     expect(gameScreen.initialGame.factionById('humans')!.aiPersonality,
         Faction.aiPersonalityResearcher);
+    expect(gameScreen.initialGame.factionById('humans')!.isLocal, isTrue);
     expect(gameScreen.initialGame.factionById('rebels')!.aiPersonality,
         Faction.aiPersonalityConqueror);
+    expect(gameScreen.initialGame.factionById('rebels')!.isComputer, isTrue);
     expect(gameScreen.initialGame.factionById('traders')!.aiPersonality,
         Faction.aiPersonalityTrader);
+    expect(gameScreen.initialGame.factionById('traders')!.isComputer, isTrue);
     expect(gameScreen.initialGame.factionById('maug')!.aiPersonality,
         Faction.aiPersonalityResearcher);
+    expect(gameScreen.initialGame.factionById('maug')!.isComputer, isTrue);
     expect(gameScreen.initialGame.colonies.length, 4);
     expect(gameScreen.initialGame.units.length, 4);
     expect(gameScreen.initialGame.factionById('maug'), isNotNull);
     expect(gameScreen.initialGame.diplomacy.length, 6);
   });
+
+  testWidgets('setup mode can start async multiplayer seats', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: GameSetupScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _selectDropdownOption(
+      tester,
+      currentLabel: 'AI Opponents',
+      optionLabel: 'Async Multiplayer',
+    );
+    expect(find.text('Async Multiplayer'), findsOneWidget);
+    expect(
+      find.text('Rival factions wait for invite and order packages.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byType(SwitchListTile).first);
+    await tester.pumpAndSettle();
+
+    final startButton = find.widgetWithText(ElevatedButton, 'Start');
+    await tester.dragUntilVisible(
+      startButton,
+      find.byType(ListView),
+      const Offset(0, -420),
+      maxIteration: 12,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(startButton);
+    await tester.pumpAndSettle();
+
+    final gameScreen = tester.widget<GameScreen>(find.byType(GameScreen));
+
+    expect(tester.takeException(), isNull);
+    expect(gameScreen.initialGame.factionById('humans')!.isLocal, isTrue);
+    expect(gameScreen.initialGame.factionById('rebels')!.isRemote, isTrue);
+    expect(gameScreen.initialGame.factionById('traders')!.isRemote, isTrue);
+    expect(gameScreen.initialGame.factions.length, 3);
+  });
+}
+
+Future<void> _selectDropdownOption(
+  WidgetTester tester, {
+  required String currentLabel,
+  required String optionLabel,
+}) async {
+  await tester.tap(find.text(currentLabel).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(optionLabel).last);
+  await tester.pumpAndSettle();
 }
