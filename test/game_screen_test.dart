@@ -3183,14 +3183,23 @@ void main() {
         return null;
       },
     );
-    final synced =
-        OpenDeadlockGame.sample(sessionId: 'copy-order-suffix').applyCommand(
-      const SetColonyConstructionCommand(
-        factionId: 'humans',
-        colonyId: 'new-haven',
-        construction: 'Factory',
-      ),
-    );
+    final sample = OpenDeadlockGame.sample(sessionId: 'copy-order-suffix');
+    final synced = sample
+        .applyCommand(
+          const SetColonyConstructionCommand(
+            factionId: 'humans',
+            colonyId: 'new-haven',
+            construction: 'Factory',
+          ),
+        )
+        .copyWith(
+          factions: sample.factions.map((faction) {
+            if (faction.id != 'rebels') {
+              return faction;
+            }
+            return faction.copyWith(controlMode: Faction.controlRemote);
+          }).toList(),
+        );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -3213,13 +3222,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('+2 industry, -1 food.').last);
     await tester.pumpAndSettle();
-    await tester.dragUntilVisible(
-      find.text('Pending Orders'),
-      find.byType(ListView),
-      const Offset(0, -420),
-      maxIteration: 12,
-    );
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 16; i += 1) {
+      if (find.text('Pending Orders').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(ListView).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Pending Orders'), findsOneWidget);
     expect(find.text('1 pending'), findsOneWidget);
@@ -3248,6 +3257,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Sender'), findsOneWidget);
+    expect(find.text('Share With'), findsOneWidget);
+    expect(find.text('Tarth Legion'), findsWidgets);
     expect(
       find.descendant(
         of: find.byType(AlertDialog),
@@ -3256,6 +3267,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Your turn | Turn 1 | Human Assembly'), findsOneWidget);
+    expect(find.text('Base State'), findsOneWidget);
+    expect(find.text('Result State'), findsOneWidget);
     expect(find.text('Command 1'), findsWidgets);
     expect(find.text('New Haven: focus Industry'), findsWidgets);
 
@@ -3332,14 +3345,23 @@ void main() {
       FileSelectorPlatform.instance = originalPlatform;
       tempDirectory.deleteSync(recursive: true);
     });
-    final synced =
-        OpenDeadlockGame.sample(sessionId: 'export-order-file').applyCommand(
-      const SetColonyConstructionCommand(
-        factionId: 'humans',
-        colonyId: 'new-haven',
-        construction: 'Factory',
-      ),
-    );
+    final sample = OpenDeadlockGame.sample(sessionId: 'export-order-file');
+    final synced = sample
+        .applyCommand(
+          const SetColonyConstructionCommand(
+            factionId: 'humans',
+            colonyId: 'new-haven',
+            construction: 'Factory',
+          ),
+        )
+        .copyWith(
+          factions: sample.factions.map((faction) {
+            if (faction.id != 'rebels') {
+              return faction;
+            }
+            return faction.copyWith(controlMode: Faction.controlRemote);
+          }).toList(),
+        );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -3363,13 +3385,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('+2 industry, -1 food.').last);
     await tester.pumpAndSettle();
-    await tester.dragUntilVisible(
-      find.text('Pending Orders'),
-      find.byType(ListView),
-      const Offset(0, -420),
-      maxIteration: 12,
-    );
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 16; i += 1) {
+      if (find.text('Pending Orders').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(ListView).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('1 pending'), findsOneWidget);
     expect(
@@ -3388,6 +3410,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('1 new order from Human Assembly'), findsOneWidget);
+    expect(find.text('Share With'), findsOneWidget);
+    expect(find.text('Tarth Legion'), findsWidgets);
+    expect(find.text('Base State'), findsOneWidget);
+    expect(find.text('Result State'), findsOneWidget);
     expect(find.text('New Haven: focus Industry'), findsWidgets);
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Save File'));

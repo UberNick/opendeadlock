@@ -2132,6 +2132,10 @@ class _CopyOrdersPreviewDialog extends StatelessWidget {
                 label: 'Sender',
                 value: _factionNameFor(game, package.exportedByFactionId),
               ),
+              _DetailRow(
+                label: 'Share With',
+                value: _commandPackageRecipientLabelFor(game, package),
+              ),
               _DetailRow(label: 'Session', value: package.sessionId),
               _DetailRow(
                 label: 'Baseline',
@@ -2150,6 +2154,14 @@ class _CopyOrdersPreviewDialog extends StatelessWidget {
               _DetailRow(
                 label: 'Handoff',
                 value: _commandPackageHandoffLabelFor(game, package),
+              ),
+              _DetailRow(
+                label: 'Base State',
+                value: _shortFingerprint(package.baseCommandFingerprint),
+              ),
+              _DetailRow(
+                label: 'Result State',
+                value: _shortFingerprint(package.stateFingerprint),
               ),
               if (pendingRecords.isEmpty)
                 const Padding(
@@ -7775,6 +7787,31 @@ String _commandPackageHandoffLabelFor(
     activeFactionName: activeFactionName,
     controlMode: activeFaction?.controlMode ?? game.activeFaction.controlMode,
   );
+}
+
+String _commandPackageRecipientLabelFor(
+  OpenDeadlockGame game,
+  CommandPackage package,
+) {
+  final recipients = game.factions
+      .where((faction) =>
+          faction.isRemote && faction.id != package.exportedByFactionId)
+      .map((faction) => faction.name)
+      .toList(growable: false);
+  if (recipients.isEmpty) {
+    return 'Manual handoff';
+  }
+  if (recipients.length <= 2) {
+    return recipients.join(', ');
+  }
+  return '${recipients.take(2).join(', ')} +${recipients.length - 2}';
+}
+
+String _shortFingerprint(String fingerprint) {
+  if (fingerprint.isEmpty) {
+    return 'Unavailable';
+  }
+  return _shortSessionId(fingerprint);
 }
 
 String _shortSessionId(String sessionId) {
