@@ -29,8 +29,21 @@ flutter pub get
 flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
 ```
 
-Then open `http://127.0.0.1:8080/`. The longer sections below include
-requirements, a no-GitHub-CLI checkout path, and troubleshooting notes.
+Then open `http://127.0.0.1:8080/`. You should see the OpenDeadlock main menu
+with **Continue**, **Quick Start**, **New Game**, **Load Game**, and
+**Developer Menu** actions. Keep the Flutter terminal process running while the
+browser is open.
+
+Already have a local clone? Start from the repository folder instead:
+
+```sh
+gh pr checkout 2
+flutter pub get
+flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
+```
+
+The longer sections below include requirements, a no-GitHub-CLI checkout path,
+static serving, and troubleshooting notes.
 
 ### Requirements
 
@@ -69,6 +82,10 @@ http://127.0.0.1:8080/
 Flutter usually opens Chrome automatically, but the URL above is the stable local
 address for this review session. Keep the Flutter terminal process running while
 reviewing the app; press `Ctrl-C` in that terminal when you are done.
+
+When the page loads successfully, the first screen should show the OpenDeadlock
+main menu. If Chrome opens to a blank page, hard refresh the tab once; if the
+terminal process stopped, run the `flutter run` command again.
 
 If you do not have GitHub CLI, fetch the pull request ref directly:
 
