@@ -2329,7 +2329,7 @@ void main() {
     expect(baselineResult.unitById('human-scout').health, 3);
   });
 
-  test('computer difficulty adjusts AI production only', () {
+  test('computer difficulty adjusts AI production for computer factions', () {
     final sample = OpenDeadlockGame.sample();
     final normal = sample.endTurn();
     final hard = sample
@@ -5107,38 +5107,46 @@ void main() {
 
   test('cautious computer factions recover instead of desperate attacks', () {
     final sample = OpenDeadlockGame.sample();
-    final game = sample.copyWith(
-      activeFactionId: 'rebels',
-      tiles: sample.tiles.map((tile) {
-        if ((tile.x == 6 && tile.y == 2) || (tile.x == 6 && tile.y == 3)) {
-          return _testTile(
-            tile,
-            terrain: 'plains',
-            yields: tile.yields,
-            ownerId: tile.ownerId,
-            colonyId: tile.colonyId,
-            exploredBy: const <String>['humans', 'rebels'],
+    OpenDeadlockGame fixture({
+      String difficulty = Faction.difficultyNormal,
+      List<String> traitIds = const <String>[],
+    }) {
+      return sample.copyWith(
+        activeFactionId: 'rebels',
+        tiles: sample.tiles.map((tile) {
+          if ((tile.x == 6 && tile.y == 2) || (tile.x == 6 && tile.y == 3)) {
+            return _testTile(
+              tile,
+              terrain: 'plains',
+              yields: tile.yields,
+              ownerId: tile.ownerId,
+              colonyId: tile.colonyId,
+              exploredBy: const <String>['humans', 'rebels'],
+            );
+          }
+          return tile;
+        }).toList(),
+        factions: sample.factions.map((faction) {
+          if (faction.id != 'rebels') {
+            return faction;
+          }
+          return faction.copyWith(
+            raceId: 'human',
+            aiPersonality: Faction.aiPersonalityAdaptive,
+            difficulty: difficulty,
+            traitIds: traitIds,
           );
-        }
-        return tile;
-      }).toList(),
-      factions: sample.factions.map((faction) {
-        if (faction.id != 'rebels') {
-          return faction;
-        }
-        return faction.copyWith(
-          raceId: 'human',
-          aiPersonality: Faction.aiPersonalityAdaptive,
-          traitIds: const <String>[],
-        );
-      }).toList(),
-      units: <Unit>[
-        sample.unitById('human-scout').copyWith(x: 6, y: 2),
-        sample
-            .unitById('rebel-scout')
-            .copyWith(x: 6, y: 3, health: 3, movesRemaining: 2),
-      ],
-    );
+        }).toList(),
+        units: <Unit>[
+          sample.unitById('human-scout').copyWith(x: 6, y: 2),
+          sample
+              .unitById('rebel-scout')
+              .copyWith(x: 6, y: 3, health: 3, movesRemaining: 2),
+        ],
+      );
+    }
+
+    final game = fixture();
     final commands = game.planComputerCommandsFor('rebels');
     final attacks = commands.whereType<MoveUnitCommand>().where((command) {
       return command.unitId == 'rebel-scout' &&
@@ -5156,6 +5164,31 @@ void main() {
     expect(preview.attackerHealth, 1);
     expect(attacks, isEmpty);
     expect(recoverCommand.unitId, 'rebel-scout');
+
+    final hardCommands = fixture(difficulty: Faction.difficultyHard)
+        .planComputerCommandsFor('rebels');
+    final hardAttack = hardCommands.whereType<MoveUnitCommand>().singleWhere(
+          (command) =>
+              command.unitId == 'rebel-scout' &&
+              command.x == 6 &&
+              command.y == 2,
+        );
+    expect(hardAttack.factionId, 'rebels');
+    expect(hardCommands.whereType<RecoverUnitCommand>(), isEmpty);
+
+    final easyCommands = fixture(
+      difficulty: Faction.difficultyEasy,
+      traitIds: const <String>['militarists'],
+    ).planComputerCommandsFor('rebels');
+    final easyAttacks = easyCommands.whereType<MoveUnitCommand>().where(
+          (command) =>
+              command.unitId == 'rebel-scout' &&
+              command.x == 6 &&
+              command.y == 2,
+        );
+    expect(easyAttacks, isEmpty);
+    expect(easyCommands.whereType<RecoverUnitCommand>().single.unitId,
+        'rebel-scout');
   });
 
   test('computer factions avoid attacks against peaceful factions', () {

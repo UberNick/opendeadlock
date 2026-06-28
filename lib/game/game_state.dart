@@ -6594,12 +6594,25 @@ class OpenDeadlockGame {
     if (faction == null) {
       return false;
     }
+    if (faction.difficulty == Faction.difficultyEasy) {
+      return false;
+    }
+    if (faction.difficulty == Faction.difficultyHard) {
+      return true;
+    }
     return faction.aiPersonality == Faction.aiPersonalityConqueror ||
         faction.traitIds.contains('militarists') ||
         raceProfileFor(faction).attackBonus > 0;
   }
 
   int _sacrificeValueMarginFor(Unit unit) {
+    final faction = factionById(unit.ownerId);
+    if (faction != null && faction.difficulty == Faction.difficultyEasy) {
+      return 8;
+    }
+    if (faction != null && faction.difficulty == Faction.difficultyHard) {
+      return 0;
+    }
     return _isBoldCombatant(unit) ? 0 : 4;
   }
 
