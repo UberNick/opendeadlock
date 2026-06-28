@@ -61,6 +61,7 @@ class GameSetup {
     this.worldSeed = 0,
     this.startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar,
     this.victoryCondition = OpenDeadlockGame.victoryConditionAny,
+    this.startingIntel = startingIntelHomeRegion,
   });
 
   static const String mapSizeSkirmish = 'skirmish';
@@ -70,6 +71,9 @@ class GameSetup {
   static const String planetTypeVerdant = 'verdant';
   static const String planetTypeMineral = 'mineral';
   static const String planetTypeAncient = 'ancient';
+  static const String startingIntelClassicFog = 'classic';
+  static const String startingIntelHomeRegion = 'home';
+  static const String startingIntelFullMap = 'full';
   static const List<String> mapSizes = <String>[
     mapSizeSkirmish,
     mapSizeStandard,
@@ -81,12 +85,18 @@ class GameSetup {
     planetTypeMineral,
     planetTypeAncient,
   ];
+  static const List<String> startingIntelOptions = <String>[
+    startingIntelClassicFog,
+    startingIntelHomeRegion,
+    startingIntelFullMap,
+  ];
 
   final String mapSize;
   final String planetType;
   final int worldSeed;
   final String startingDiplomacy;
   final String victoryCondition;
+  final String startingIntel;
   final List<GameSetupFaction> factions;
 
   static GameSetup standard() {
@@ -95,6 +105,7 @@ class GameSetup {
       planetType: planetTypeTerran,
       startingDiplomacy: OpenDeadlockGame.diplomacyStatusWar,
       victoryCondition: OpenDeadlockGame.victoryConditionAny,
+      startingIntel: startingIntelHomeRegion,
       factions: <GameSetupFaction>[
         GameSetupFaction(
           id: 'humans',
@@ -147,6 +158,19 @@ class GameSetup {
       return 'Ancient Ruins';
     }
     return planetType;
+  }
+
+  static String startingIntelLabelFor(String startingIntel) {
+    if (startingIntel == startingIntelClassicFog) {
+      return 'Classic Fog';
+    }
+    if (startingIntel == startingIntelHomeRegion) {
+      return 'Home Region';
+    }
+    if (startingIntel == startingIntelFullMap) {
+      return 'Full Map';
+    }
+    return startingIntel;
   }
 
   static int widthFor(String mapSize) {
@@ -233,6 +257,19 @@ class GameSetup {
       return 'Only completing every core research project ends the game.';
     }
     throw ArgumentError('Unknown victory condition: $victoryCondition.');
+  }
+
+  static String startingIntelDescriptionFor(String startingIntel) {
+    if (startingIntel == startingIntelClassicFog) {
+      return 'Only capitals and starting scouts are known.';
+    }
+    if (startingIntel == startingIntelHomeRegion) {
+      return 'Each faction knows the sectors around its capital.';
+    }
+    if (startingIntel == startingIntelFullMap) {
+      return 'Every faction starts with the whole planet revealed.';
+    }
+    throw ArgumentError('Unknown starting intel: $startingIntel.');
   }
 
   static List<String> traitOptions() {
@@ -322,6 +359,7 @@ class GameSetup {
       'worldSeed': worldSeed,
       'startingDiplomacy': startingDiplomacy,
       'victoryCondition': victoryCondition,
+      'startingIntel': startingIntel,
       'factions': factions.map((faction) => faction.toJson()).toList(),
     };
   }
@@ -336,6 +374,8 @@ class GameSetup {
           OpenDeadlockGame.diplomacyStatusWar,
       victoryCondition: json['victoryCondition'] as String? ??
           OpenDeadlockGame.victoryConditionAny,
+      startingIntel:
+          json['startingIntel'] as String? ?? startingIntelHomeRegion,
       factions: (json['factions'] as List<dynamic>)
           .map((faction) =>
               GameSetupFaction.fromJson(faction as Map<String, dynamic>))
@@ -359,6 +399,9 @@ class GameSetup {
     if (!OpenDeadlockGame.victoryConditions.contains(victoryCondition)) {
       throw ArgumentError('Unknown victory condition: $victoryCondition.');
     }
+    if (!startingIntelOptions.contains(startingIntel)) {
+      throw ArgumentError('Unknown starting intel: $startingIntel.');
+    }
     if (factions.length < 2 || factions.length > 4) {
       throw ArgumentError('New games require two to four factions.');
     }
@@ -370,6 +413,7 @@ class GameSetup {
     final gameFactions = <Faction>[];
     final colonies = <Colony>[];
     final units = <Unit>[];
+    final scoutPositionsByFactionId = <String, _SetupPoint>{};
 
     for (var index = 0; index < factions.length; index += 1) {
       final setupFaction = factions[index];
@@ -432,6 +476,7 @@ class GameSetup {
       );
       final scout =
           _scoutPositionFor(home, width, height, planetType, worldSeed);
+      scoutPositionsByFactionId[setupFaction.id] = scout;
       units.add(
         Unit(
           id: '${setupFaction.id}-scout',
@@ -459,16 +504,21 @@ class GameSetup {
           final home = homes[index];
           final distance = _manhattanDistance(home.x, home.y, x, y);
           if (distance <= 2) {
-            exploredBy.add(faction.id);
             ownerId ??= terrain == 'water' ? null : faction.id;
+          }
+          if (_startingIntelRevealsTile(
+            startingIntel,
+            home,
+            scoutPositionsByFactionId[faction.id]!,
+            x,
+            y,
+          )) {
+            exploredBy.add(faction.id);
           }
           if (home.x == x && home.y == y) {
             isHomeSector = true;
             ownerId = faction.id;
             colonyId = '${faction.id}-capital';
-            if (!exploredBy.contains(faction.id)) {
-              exploredBy.add(faction.id);
-            }
           }
         }
         if (isHomeSector && terrain == 'water') {
@@ -523,7 +573,8 @@ class GameSetup {
           message:
               '${factions.length} factions have established starting colonies. '
               'Starting relations: ${startingDiplomacyLabelFor(startingDiplomacy)}. '
-              'Victory condition: ${victoryConditionLabelFor(victoryCondition)}.',
+              'Victory condition: ${victoryConditionLabelFor(victoryCondition)}. '
+              'Map intel: ${startingIntelLabelFor(startingIntel)}.',
         ),
       ],
     );
@@ -539,10 +590,32 @@ class GameSetup {
         setup.victoryCondition == OpenDeadlockGame.victoryConditionAny
             ? ''
             : '-${setup.victoryCondition}';
+    final intelSlug = setup.startingIntel == startingIntelHomeRegion
+        ? ''
+        : '-${setup.startingIntel}intel';
     if (setup.worldSeed != 0) {
-      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug-seed${setup.worldSeed}-$factionIds';
+      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug-seed${setup.worldSeed}-$factionIds';
     }
-    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug-$factionIds';
+    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug-$factionIds';
+  }
+
+  static bool _startingIntelRevealsTile(
+    String startingIntel,
+    _SetupPoint home,
+    _SetupPoint scout,
+    int x,
+    int y,
+  ) {
+    if (startingIntel == startingIntelFullMap) {
+      return true;
+    }
+    if (startingIntel == startingIntelHomeRegion) {
+      return _manhattanDistance(home.x, home.y, x, y) <= 2;
+    }
+    if (startingIntel == startingIntelClassicFog) {
+      return (home.x == x && home.y == y) || (scout.x == x && scout.y == y);
+    }
+    throw ArgumentError('Unknown starting intel: $startingIntel.');
   }
 
   static List<DiplomacyRelation> _initialDiplomacyFor(

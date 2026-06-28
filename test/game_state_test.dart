@@ -246,6 +246,7 @@ void main() {
     expect(restored.mapSize, GameSetup.mapSizeFrontier);
     expect(restored.planetType, GameSetup.planetTypeAncient);
     expect(restored.victoryCondition, OpenDeadlockGame.victoryConditionAny);
+    expect(restored.startingIntel, GameSetup.startingIntelHomeRegion);
     expect(GameSetup.traitLabelFor('agrarian'), 'Agrarian');
     expect(GameSetup.raceLabelFor('relu'), "Re'Lu");
     expect(
@@ -305,6 +306,7 @@ void main() {
     expect(game.areAtWar('traders', 'maug'), isTrue);
     expect(game.commandHistory, isEmpty);
     expect(game.reports.first.title, 'Planetfall complete');
+    expect(game.reports.first.message, contains('Map intel: Home Region.'));
 
     final traderCapital = game.colonyById('traders-capital');
     expect(game.tileAt(traderCapital.x, traderCapital.y).ownerId, 'traders');
@@ -465,6 +467,76 @@ void main() {
         'Conquest');
   });
 
+  test('game setup can choose starting map intel', () {
+    const classicSetup = GameSetup(
+      mapSize: GameSetup.mapSizeStandard,
+      planetType: GameSetup.planetTypeTerran,
+      startingIntel: GameSetup.startingIntelClassicFog,
+      factions: <GameSetupFaction>[
+        GameSetupFaction(
+          id: 'humans',
+          name: 'Human',
+          colorValue: 0xFF2F80ED,
+          raceId: 'human',
+          controlMode: Faction.controlLocal,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['scholars'],
+        ),
+        GameSetupFaction(
+          id: 'rebels',
+          name: 'Tarth',
+          colorValue: 0xFFB83232,
+          raceId: 'tarth',
+          controlMode: Faction.controlComputer,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['militarists'],
+        ),
+      ],
+    );
+    final restoredClassic = GameSetup.fromJson(classicSetup.toJson());
+    final classicGame = restoredClassic.buildGame();
+
+    expect(restoredClassic.startingIntel, GameSetup.startingIntelClassicFog);
+    expect(GameSetup.startingIntelLabelFor(restoredClassic.startingIntel),
+        'Classic Fog');
+    expect(
+      GameSetup.startingIntelDescriptionFor(restoredClassic.startingIntel),
+      'Only capitals and starting scouts are known.',
+    );
+    expect(
+      classicGame.sessionId,
+      'setup-standard-terran-classicintel-humans-rebels',
+    );
+    expect(classicGame.tileAt(2, 2).isExploredBy('humans'), isTrue);
+    expect(classicGame.tileAt(3, 2).isExploredBy('humans'), isTrue);
+    expect(classicGame.tileAt(2, 3).isExploredBy('humans'), isFalse);
+    expect(classicGame.worldSummaryFor('humans').exploredSectors, 2);
+    expect(
+        classicGame.reports.first.message, contains('Map intel: Classic Fog.'));
+
+    final fullMapGame = GameSetup(
+      mapSize: classicSetup.mapSize,
+      planetType: classicSetup.planetType,
+      startingIntel: GameSetup.startingIntelFullMap,
+      factions: classicSetup.factions,
+    ).buildGame();
+
+    expect(
+      fullMapGame.sessionId,
+      'setup-standard-terran-fullintel-humans-rebels',
+    );
+    expect(GameSetup.startingIntelLabelFor(GameSetup.startingIntelFullMap),
+        'Full Map');
+    expect(
+        fullMapGame.tiles.every((tile) => tile.isExploredBy('humans')), isTrue);
+    expect(
+        fullMapGame.tiles.every((tile) => tile.isExploredBy('rebels')), isTrue);
+    expect(
+      fullMapGame.worldSummaryFor('humans').exploredSectors,
+      fullMapGame.tiles.length,
+    );
+  });
+
   test('game setup rejects invalid generated games', () {
     expect(
       () => const GameSetup(
@@ -524,6 +596,34 @@ void main() {
         mapSize: GameSetup.mapSizeStandard,
         planetType: GameSetup.planetTypeTerran,
         victoryCondition: 'score',
+        factions: <GameSetupFaction>[
+          GameSetupFaction(
+            id: 'humans',
+            name: 'The Chosen',
+            colorValue: 0xFF2F80ED,
+            raceId: 'human',
+            controlMode: Faction.controlLocal,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>[],
+          ),
+          GameSetupFaction(
+            id: 'rebels',
+            name: 'Crimson Pact',
+            colorValue: 0xFFB83232,
+            raceId: 'tarth',
+            controlMode: Faction.controlComputer,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>['industrialists'],
+          ),
+        ],
+      ).buildGame(),
+      throwsArgumentError,
+    );
+    expect(
+      () => const GameSetup(
+        mapSize: GameSetup.mapSizeStandard,
+        planetType: GameSetup.planetTypeTerran,
+        startingIntel: 'omniscient',
         factions: <GameSetupFaction>[
           GameSetupFaction(
             id: 'humans',

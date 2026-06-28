@@ -31,6 +31,10 @@ void main() {
     );
     expect(find.text('All factions begin at war.'), findsOneWidget);
     expect(find.text('Conquest or science can win the game.'), findsOneWidget);
+    expect(
+      find.text('Each faction knows the sectors around its capital.'),
+      findsOneWidget,
+    );
     expect(find.text('2 starting colonies'), findsOneWidget);
     expect(
       find.text('Flexible colonists with strong budget reserves.'),
@@ -67,6 +71,15 @@ void main() {
     );
     expect(
       find.text('Only completing every core research project ends the game.'),
+      findsOneWidget,
+    );
+    await _selectDropdownOption(
+      tester,
+      currentLabel: 'Home Region',
+      optionLabel: 'Full Map',
+    );
+    expect(
+      find.text('Every faction starts with the whole planet revealed.'),
       findsOneWidget,
     );
     await tester.dragUntilVisible(
@@ -131,6 +144,12 @@ void main() {
     expect(gameScreen.initialGame.units.length, 4);
     expect(gameScreen.initialGame.victoryCondition,
         OpenDeadlockGame.victoryConditionScience);
+    expect(
+      gameScreen.initialGame.tiles.every(
+        (tile) => tile.isExploredBy('humans'),
+      ),
+      isTrue,
+    );
     expect(gameScreen.initialGame.factionById('maug'), isNotNull);
     expect(gameScreen.initialGame.diplomacy.length, 6);
     expect(

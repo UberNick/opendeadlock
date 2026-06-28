@@ -30,6 +30,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
   String setupMode = setupModeAi;
   String startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar;
   String victoryCondition = OpenDeadlockGame.victoryConditionAny;
+  String startingIntel = GameSetup.startingIntelHomeRegion;
   late final TextEditingController worldSeedController;
   String playerRaceId = 'human';
   String playerAiPersonality = Faction.aiPersonalityResearcher;
@@ -160,6 +161,17 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                         });
                       },
                     ),
+                    _SetupDropdown(
+                      label: 'Intel',
+                      value: startingIntel,
+                      items: GameSetup.startingIntelOptions,
+                      labelFor: GameSetup.startingIntelLabelFor,
+                      onChanged: (value) {
+                        setState(() {
+                          startingIntel = value;
+                        });
+                      },
+                    ),
                     _SeedField(
                       controller: worldSeedController,
                       onRoll: _rollWorldSeed,
@@ -186,6 +198,12 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                       label: 'Victory',
                       value: GameSetup.victoryConditionDescriptionFor(
                         victoryCondition,
+                      ),
+                    ),
+                    _SetupReadout(
+                      label: 'Intel',
+                      value: GameSetup.startingIntelDescriptionFor(
+                        startingIntel,
                       ),
                     ),
                     _SetupReadout(
@@ -557,6 +575,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
       worldSeed: _worldSeed(),
       startingDiplomacy: startingDiplomacy,
       victoryCondition: victoryCondition,
+      startingIntel: startingIntel,
       factions: <GameSetupFaction>[
         GameSetupFaction(
           id: 'humans',
