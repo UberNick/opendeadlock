@@ -5559,6 +5559,121 @@ void main() {
     );
   });
 
+  test('researcher computer factions partially fund delayed research', () {
+    final sample = OpenDeadlockGame.sample();
+    final game = sample.copyWith(
+      activeFactionId: 'rebels',
+      diplomacy: const <DiplomacyRelation>[
+        DiplomacyRelation(
+          factionAId: 'humans',
+          factionBId: 'rebels',
+          status: OpenDeadlockGame.diplomacyStatusPeace,
+        ),
+      ],
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'rebels') {
+          return faction;
+        }
+        return faction.copyWith(
+          raceId: 'human',
+          aiPersonality: Faction.aiPersonalityResearcher,
+          researchProject: 'Xenoarchaeology',
+          resources: faction.resources.copyWith(research: 0, credits: 15),
+          traitIds: const <String>[],
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != 'rebels') {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+    final naturalResearch =
+        game.colonyProductionFor(game.colonyById('redoubt')).output.research;
+    final commands = game.planComputerCommandsFor('rebels');
+    final fundCommand = commands.whereType<FundResearchCommand>().single;
+    final updated = game.applyCommands(commands);
+    final rebels = updated.factionById('rebels')!;
+
+    expect(
+      game.factionById('rebels')!.resources.credits,
+      lessThan(
+        OpenDeadlockGame.fundResearchCostFor(
+          OpenDeadlockGame.researchCostFor('Xenoarchaeology'),
+        ),
+      ),
+    );
+    expect(
+        naturalResearch,
+        lessThan(OpenDeadlockGame.researchCostFor(
+          'Xenoarchaeology',
+        )));
+    expect(fundCommand.factionId, 'rebels');
+    expect(fundCommand.research, 3);
+    expect(rebels.resources.research, 3);
+    expect(rebels.resources.credits, 6);
+  });
+
+  test('computer factions preserve research credits during resource recovery',
+      () {
+    final sample = OpenDeadlockGame.sample();
+    final game = sample.copyWith(
+      activeFactionId: 'rebels',
+      diplomacy: const <DiplomacyRelation>[
+        DiplomacyRelation(
+          factionAId: 'humans',
+          factionBId: 'rebels',
+          status: OpenDeadlockGame.diplomacyStatusPeace,
+        ),
+      ],
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'rebels') {
+          return faction;
+        }
+        return faction.copyWith(
+          raceId: 'human',
+          aiPersonality: Faction.aiPersonalityResearcher,
+          researchProject: 'Xenoarchaeology',
+          resources: faction.resources.copyWith(research: 0, credits: 15),
+          traitIds: const <String>[],
+        );
+      }).toList(),
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'redoubt') {
+          return colony;
+        }
+        return Colony(
+          id: colony.id,
+          name: colony.name,
+          ownerId: colony.ownerId,
+          x: 4,
+          y: 0,
+          population: 5,
+          morale: colony.morale,
+          construction: 'Farm Dome',
+          storedIndustry: 0,
+          completedBuildings: const <String>[],
+          focus: colony.focus,
+          assignedSectors: colony.assignedSectors,
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != 'rebels') {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+    final projection = game.colonyProductionFor(game.colonyById('redoubt'));
+    final commands = game.planComputerCommandsFor('rebels');
+
+    expect(projection.foodBalance, lessThan(0));
+    expect(commands.whereType<FundResearchCommand>(), isEmpty);
+    expect(commands.whereType<RushConstructionCommand>().single.colonyId,
+        'redoubt');
+  });
+
   test('computer factions do not fund research already finishing naturally',
       () {
     final sample = OpenDeadlockGame.sample();

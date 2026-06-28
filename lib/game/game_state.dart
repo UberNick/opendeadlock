@@ -7267,9 +7267,6 @@ class OpenDeadlockGame {
     if (remainingResearch <= 0) {
       return null;
     }
-    if (faction.resources.credits < fundResearchCostFor(remainingResearch)) {
-      return null;
-    }
 
     var projectedResearch = 0;
     for (final colony in colonies) {
@@ -7280,7 +7277,59 @@ class OpenDeadlockGame {
     if (faction.resources.research + projectedResearch >= researchCost) {
       return null;
     }
-    return remainingResearch;
+    if (faction.resources.credits >= fundResearchCostFor(remainingResearch)) {
+      return remainingResearch;
+    }
+    if (!_shouldPartiallyFundResearch(faction) ||
+        _hasResourceRecoveryPressure(factionId)) {
+      return null;
+    }
+
+    final availableCredits =
+        faction.resources.credits - _researchFundingCreditReserveFor(faction);
+    if (availableCredits < researchCreditCostPerPoint) {
+      return null;
+    }
+    final usefulResearch = remainingResearch - projectedResearch;
+    if (usefulResearch <= 0) {
+      return null;
+    }
+    final affordableResearch = availableCredits ~/ researchCreditCostPerPoint;
+    if (affordableResearch <= 0) {
+      return null;
+    }
+    return _clampInt(affordableResearch, 1, usefulResearch);
+  }
+
+  bool _shouldPartiallyFundResearch(Faction faction) {
+    if (isRepeatableResearch(faction.researchProject)) {
+      return false;
+    }
+    if (faction.aiPersonality == Faction.aiPersonalityResearcher ||
+        faction.traitIds.contains('scholars')) {
+      return true;
+    }
+    return false;
+  }
+
+  int _researchFundingCreditReserveFor(Faction faction) {
+    if (faction.aiPersonality == Faction.aiPersonalityResearcher) {
+      return 6;
+    }
+    return 9;
+  }
+
+  bool _hasResourceRecoveryPressure(String factionId) {
+    for (final colony in colonies) {
+      if (colony.ownerId != factionId) {
+        continue;
+      }
+      final projection = colonyProductionFor(colony);
+      if (projection.foodBalance < 0 || projection.hasMaintenanceShortfall) {
+        return true;
+      }
+    }
+    return false;
   }
 
   int? _rushIndustryForColony(Colony colony) {
