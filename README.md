@@ -8,14 +8,15 @@ opponents, mobile play, and refreshed artwork.
 The app is built with Flutter so the same codebase can target web, desktop, and
 mobile.
 
-## Quick Start for Local Review
+## Quick Start for Nick's Local Review
 
 These commands bring up the playable prototype from PR #2 at a predictable local
-URL.
+URL. They are written for a fresh checkout of Nick's upstream repository.
 
 ### Requirements
 
 * Flutter SDK: https://docs.flutter.dev/get-started/install
+  * CI currently validates with Flutter `3.44.4` on the stable channel.
 * Chrome, for the local web runner
 * Git
 * GitHub CLI, optional but convenient for checking out pull requests:
@@ -27,7 +28,7 @@ Check the Flutter install with:
 flutter doctor
 ```
 
-### Review PR #2 Locally
+### 1. Check Out PR #2
 
 If you have GitHub CLI installed, this is the shortest path from a fresh checkout
 to a browser URL:
@@ -62,6 +63,17 @@ flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
 
 Then open `http://127.0.0.1:8080/`.
 
+You can also fetch the review branch directly from the fork:
+
+```sh
+git clone https://github.com/UberNick/opendeadlock.git
+cd opendeadlock
+git fetch https://github.com/hashkanna/opendeadlock.git kanna/playable-prototype
+git switch -c review-kanna-playable-prototype FETCH_HEAD
+flutter pub get
+flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
+```
+
 If port `8080` is already in use, use another port:
 
 ```sh
@@ -70,7 +82,17 @@ flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8081
 
 Then open `http://127.0.0.1:8081/`.
 
-### Run the Default Branch Locally
+### 2. What to Click First
+
+The first screen should be the OpenDeadlock main menu. For a quick review:
+
+* Click **Quick Start** to jump straight into the playable map.
+* Click **New Game** to review the setup flow with race, map, opponent, and
+  rules options.
+* Click **Developer Menu**, then **Legacy References**, to compare the prototype
+  against Nick's legacy screenshots.
+
+### 3. Run the Default Branch Locally
 
 Clone the repository and install packages:
 
@@ -91,7 +113,7 @@ Flutter will print a local URL in the terminal and open Chrome automatically.
 For a future pull request, replace `2` in the commands above with the pull
 request number you want to review.
 
-### Run a Static Local Web Build
+### 4. Run a Static Local Web Build
 
 For a predictable local URL, build the web app and serve the generated files:
 
@@ -113,6 +135,17 @@ python3 -m http.server 8081 -d build/web
 ```
 
 Then open `http://127.0.0.1:8081/`.
+
+### Local Troubleshooting
+
+* If Flutter reports no Chrome device, run `flutter config --enable-web` and
+  then `flutter devices`.
+* If dependency resolution fails after switching branches, run
+  `flutter clean && flutter pub get`.
+* If the app starts but the browser does not open automatically, open the printed
+  localhost URL manually. For the commands above, use `http://127.0.0.1:8080/`.
+* If port `8080` is busy, use `--web-port 8081` for `flutter run` or
+  `python3 -m http.server 8081 -d build/web` for the static build.
 
 ## Current Prototype
 
