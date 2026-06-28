@@ -4775,27 +4775,16 @@ class OpenDeadlockGame {
       if (planningUnit.movesRemaining <= 0) {
         continue;
       }
-      final attackTarget = planningGame._preferredAttackFor(planningUnit);
-      if (attackTarget != null) {
+      final tacticalTarget = planningGame._preferredTacticalTargetFor(
+        planningUnit,
+      );
+      if (tacticalTarget != null) {
         addPlannedCommand(
           MoveUnitCommand(
             factionId: faction.id,
             unitId: unit.id,
-            x: attackTarget.x,
-            y: attackTarget.y,
-          ),
-        );
-        continue;
-      }
-      final colonyAssaultTarget =
-          planningGame._preferredColonyAssaultFor(planningUnit);
-      if (colonyAssaultTarget != null) {
-        addPlannedCommand(
-          MoveUnitCommand(
-            factionId: faction.id,
-            unitId: unit.id,
-            x: colonyAssaultTarget.x,
-            y: colonyAssaultTarget.y,
+            x: tacticalTarget.x,
+            y: tacticalTarget.y,
           ),
         );
         continue;
@@ -6495,6 +6484,25 @@ class OpenDeadlockGame {
     return score;
   }
 
+  PlanetTile? _preferredTacticalTargetFor(Unit unit) {
+    final attackTarget = _preferredAttackFor(unit);
+    final colonyAssaultTarget = _preferredColonyAssaultFor(unit);
+    if (attackTarget == null) {
+      return colonyAssaultTarget;
+    }
+    if (colonyAssaultTarget == null) {
+      return attackTarget;
+    }
+
+    final attackScore = _unitAttackTacticalScoreFor(unit, attackTarget);
+    final assaultScore =
+        _colonyAssaultTacticalScoreFor(unit, colonyAssaultTarget);
+    if (assaultScore > attackScore) {
+      return colonyAssaultTarget;
+    }
+    return attackTarget;
+  }
+
   PlanetTile? _preferredAttackFor(Unit unit) {
     final candidates = <PlanetTile>[];
     final offsets = const <List<int>>[
@@ -6639,6 +6647,21 @@ class OpenDeadlockGame {
     return score;
   }
 
+  int _unitAttackTacticalScoreFor(Unit attacker, PlanetTile targetTile) {
+    final preview = previewUnitCombat(
+      attacker,
+      visibleUnitAt(attacker.ownerId, targetTile.x, targetTile.y)!,
+    );
+    var score = _unitAttackScoreFor(attacker, targetTile);
+    if (!preview.defenderSurvives) {
+      score += 40;
+    }
+    if (preview.attackerSurvives) {
+      score += 20;
+    }
+    return score;
+  }
+
   int _unitCombatValue(Unit unit) {
     return _unitAttackFor(unit) +
         defenseFor(unit.type) +
@@ -6737,6 +6760,21 @@ class OpenDeadlockGame {
     score += colony.population * 8;
     score += preview.attackerHealth * 4;
     score -= preview.counterDamage * 5;
+    return score;
+  }
+
+  int _colonyAssaultTacticalScoreFor(Unit attacker, PlanetTile targetTile) {
+    final colony = colonyAt(targetTile.x, targetTile.y)!;
+    final preview = previewColonyAssault(attacker, colony);
+    var score = _colonyAssaultScoreFor(attacker, targetTile);
+    if (preview.colonyCaptured) {
+      score += 80;
+    } else {
+      score -= 50;
+    }
+    if (preview.attackerSurvives) {
+      score += 20;
+    }
     return score;
   }
 

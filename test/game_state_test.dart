@@ -5494,6 +5494,65 @@ void main() {
     expect(assaultCommand.y, 2);
   });
 
+  test('computer factions prefer captures over low value adjacent attacks', () {
+    final sample = OpenDeadlockGame.sample();
+    final weakenedColonies = sample.colonies.map((colony) {
+      if (colony.id != 'new-haven') {
+        return colony;
+      }
+      return colony.copyWith(population: 1, morale: 20);
+    }).toList();
+    final game = sample.copyWith(
+      activeFactionId: 'rebels',
+      tiles: sample.tiles.map((tile) {
+        final isCombatSector = (tile.x == 2 && tile.y == 2) ||
+            (tile.x == 2 && tile.y == 3) ||
+            (tile.x == 3 && tile.y == 3);
+        if (!isCombatSector) {
+          return tile;
+        }
+        return _testTile(
+          tile,
+          terrain: 'plains',
+          yields: tile.yields,
+          ownerId: tile.ownerId,
+          colonyId: tile.colonyId,
+          exploredBy: const <String>['humans', 'rebels'],
+        );
+      }).toList(),
+      colonies: weakenedColonies,
+      units: <Unit>[
+        sample.unitById('human-scout').copyWith(
+              x: 3,
+              y: 3,
+              health: 1,
+              movesRemaining: 2,
+            ),
+        sample.unitById('rebel-scout').copyWith(x: 2, y: 3),
+      ],
+    );
+    final commands = game.planComputerCommandsFor('rebels');
+    final assaultCommand = commands.whereType<MoveUnitCommand>().singleWhere(
+          (command) => command.unitId == 'rebel-scout',
+        );
+    final updated = game.applyCommand(assaultCommand);
+
+    expect(
+      game
+          .previewColonyAssault(
+            game.unitById('rebel-scout'),
+            game.colonyById('new-haven'),
+          )
+          .colonyCaptured,
+      isTrue,
+    );
+    expect(assaultCommand.factionId, 'rebels');
+    expect(assaultCommand.x, 2);
+    expect(assaultCommand.y, 2);
+    expect(updated.colonyById('new-haven').ownerId, 'rebels');
+    expect(updated.units.where((unit) => unit.id == 'human-scout'), isNotEmpty);
+  });
+
   test('computer factions avoid suicidal colony assaults', () {
     final sample = OpenDeadlockGame.sample();
     final game = sample.copyWith(
