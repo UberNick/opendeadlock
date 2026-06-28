@@ -19,7 +19,7 @@ Review snapshot:
 * Review branch: `hashkanna:kanna/playable-prototype`
 * Local review URL: `http://127.0.0.1:8080/`
 
-Fast path:
+Copy/paste review path:
 
 ```sh
 git clone https://github.com/UberNick/opendeadlock.git
@@ -155,7 +155,8 @@ request number you want to review.
 
 ### 4. Run a Static Local Web Build
 
-For a predictable local URL, build the web app and serve the generated files:
+For a predictable local URL without the Flutter debug runner, build the web app
+and serve the generated files:
 
 ```sh
 flutter build web
@@ -167,6 +168,10 @@ Then open:
 ```text
 http://127.0.0.1:8080/
 ```
+
+Do not open `build/web/index.html` directly with `file://`; serve the `build/web`
+folder over `http://` with the command above so Flutter web assets load in the
+same way they do in a deployed build.
 
 If port `8080` is already busy, use another port:
 
@@ -186,6 +191,8 @@ Then open `http://127.0.0.1:8081/`.
   localhost URL manually. For the commands above, use `http://127.0.0.1:8080/`.
 * If port `8080` is busy, use `--web-port 8081` for `flutter run` or
   `python3 -m http.server 8081 -d build/web` for the static build.
+* If `gh pr checkout 2` says a review branch already exists, switch to that
+  branch and pull the latest changes from the PR before running `flutter pub get`.
 
 ## Current Prototype
 
