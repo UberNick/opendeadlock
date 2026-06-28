@@ -7294,14 +7294,22 @@ class OpenDeadlockGame {
     if (remainingIndustry <= 0) {
       return null;
     }
-    if (faction.resources.credits <
+    final projection = colonyProductionFor(colony);
+    if (projection.willCompleteConstruction) {
+      return null;
+    }
+    if (faction.resources.credits >=
         rushConstructionCostFor(remainingIndustry)) {
-      return null;
+      return remainingIndustry;
     }
-    if (colonyProductionFor(colony).willCompleteConstruction) {
-      return null;
+    if (colony.construction == 'Farm Dome' && projection.foodBalance < 0) {
+      final affordableIndustry =
+          faction.resources.credits ~/ rushCreditCostPerIndustry;
+      if (affordableIndustry > 0) {
+        return _clampInt(affordableIndustry, 1, remainingIndustry);
+      }
     }
-    return remainingIndustry;
+    return null;
   }
 
   bool _isInsideMap(int x, int y) {

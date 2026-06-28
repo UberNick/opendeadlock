@@ -5628,6 +5628,72 @@ void main() {
     );
   });
 
+  test('computer factions partially rush food infrastructure in shortages', () {
+    final sample = OpenDeadlockGame.sample();
+    final game = sample.copyWith(
+      activeFactionId: 'rebels',
+      diplomacy: const <DiplomacyRelation>[
+        DiplomacyRelation(
+          factionAId: 'humans',
+          factionBId: 'rebels',
+          status: OpenDeadlockGame.diplomacyStatusPeace,
+        ),
+      ],
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'rebels') {
+          return faction;
+        }
+        return faction.copyWith(
+          raceId: 'human',
+          resources: faction.resources.copyWith(credits: 10),
+          traitIds: const <String>[],
+        );
+      }).toList(),
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'redoubt') {
+          return colony;
+        }
+        return Colony(
+          id: colony.id,
+          name: colony.name,
+          ownerId: colony.ownerId,
+          x: 4,
+          y: 0,
+          population: 5,
+          morale: colony.morale,
+          construction: 'Farm Dome',
+          storedIndustry: 0,
+          completedBuildings: const <String>[],
+          focus: colony.focus,
+          assignedSectors: colony.assignedSectors,
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != 'rebels') {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+    final projection = game.colonyProductionFor(game.colonyById('redoubt'));
+    final commands = game.planComputerCommandsFor('rebels');
+    final rushCommand = commands.whereType<RushConstructionCommand>().single;
+    final updated = game.applyCommands(commands);
+
+    expect(projection.foodBalance, lessThan(0));
+    expect(
+      OpenDeadlockGame.rushConstructionCostFor(
+        OpenDeadlockGame.buildCostFor('Farm Dome'),
+      ),
+      greaterThan(game.factionById('rebels')!.resources.credits),
+    );
+    expect(rushCommand.factionId, 'rebels');
+    expect(rushCommand.colonyId, 'redoubt');
+    expect(rushCommand.industry, 5);
+    expect(updated.colonyById('redoubt').storedIndustry, 5);
+    expect(updated.factionById('rebels')!.resources.credits, 0);
+  });
+
   test('computer factions do not rush construction finishing naturally', () {
     final sample = OpenDeadlockGame.sample();
     final game = sample.copyWith(
