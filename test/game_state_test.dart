@@ -4883,6 +4883,47 @@ void main() {
     expect(focusCommand.focus, OpenDeadlockGame.colonyFocusGrowth);
   });
 
+  test('computer factions choose revenue focus for upkeep shortfalls', () {
+    final sample = OpenDeadlockGame.sample();
+    final strained = sample.copyWith(
+      activeFactionId: 'rebels',
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'redoubt') {
+          return colony;
+        }
+        return colony.copyWith(
+          completedBuildings: const <String>[
+            'Apartment Complex',
+            'Luxury Housing',
+            'Farm Dome',
+            'Factory',
+            'Research Lab',
+            'Militia Post',
+            'Barracks',
+          ],
+          focus: OpenDeadlockGame.colonyFocusBalanced,
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != 'rebels') {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+    final projection = strained.colonyProductionFor(strained.colonyById(
+      'redoubt',
+    ));
+    final commands = strained.planComputerCommandsFor('rebels');
+    final focusCommand = commands.whereType<SetColonyFocusCommand>().single;
+
+    expect(projection.foodBalance, isNot(lessThan(0)));
+    expect(projection.hasMaintenanceShortfall, isTrue);
+    expect(focusCommand.factionId, 'rebels');
+    expect(focusCommand.colonyId, 'redoubt');
+    expect(focusCommand.focus, OpenDeadlockGame.colonyFocusRevenue);
+  });
+
   test('fast-growth race AI prioritizes growth focus while fed', () {
     final sample = OpenDeadlockGame.sample();
     final chchtOpponent = sample.copyWith(

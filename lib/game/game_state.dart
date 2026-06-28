@@ -6250,6 +6250,9 @@ class OpenDeadlockGame {
     if (projection.foodBalance < 0) {
       return colonyFocusGrowth;
     }
+    if (projection.hasMaintenanceShortfall) {
+      return colonyFocusRevenue;
+    }
 
     if (faction.aiPersonality == Faction.aiPersonalityExpansionist &&
         colony.population < 6) {
