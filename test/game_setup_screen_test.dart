@@ -29,6 +29,7 @@ void main() {
       find.text('Balanced plains, forests, ridges, water, and ruins.'),
       findsOneWidget,
     );
+    expect(find.text('All factions begin at war.'), findsOneWidget);
     expect(find.text('2 starting colonies'), findsOneWidget);
     expect(
       find.text('Flexible colonists with strong budget reserves.'),
@@ -50,6 +51,15 @@ void main() {
       '7',
     );
     await tester.pumpAndSettle();
+    await _selectDropdownOption(
+      tester,
+      currentLabel: 'War',
+      optionLabel: 'Peace',
+    );
+    expect(
+      find.text('All factions begin at peace and may trade.'),
+      findsOneWidget,
+    );
     await tester.tap(addFactionSwitches.first);
     await tester.pumpAndSettle();
     expect(find.text('3 starting colonies'), findsOneWidget);
@@ -105,6 +115,14 @@ void main() {
     expect(gameScreen.initialGame.units.length, 4);
     expect(gameScreen.initialGame.factionById('maug'), isNotNull);
     expect(gameScreen.initialGame.diplomacy.length, 6);
+    expect(
+      gameScreen.initialGame.diplomacyStatusBetween('humans', 'rebels'),
+      OpenDeadlockGame.diplomacyStatusPeace,
+    );
+    expect(
+      gameScreen.initialGame.diplomacyStatusBetween('traders', 'maug'),
+      OpenDeadlockGame.diplomacyStatusPeace,
+    );
   });
 
   testWidgets('setup mode can start async multiplayer seats', (tester) async {

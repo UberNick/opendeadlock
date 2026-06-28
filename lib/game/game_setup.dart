@@ -59,6 +59,7 @@ class GameSetup {
     required this.planetType,
     required this.factions,
     this.worldSeed = 0,
+    this.startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar,
   });
 
   static const String mapSizeSkirmish = 'skirmish';
@@ -83,12 +84,14 @@ class GameSetup {
   final String mapSize;
   final String planetType;
   final int worldSeed;
+  final String startingDiplomacy;
   final List<GameSetupFaction> factions;
 
   static GameSetup standard() {
     return const GameSetup(
       mapSize: mapSizeStandard,
       planetType: planetTypeTerran,
+      startingDiplomacy: OpenDeadlockGame.diplomacyStatusWar,
       factions: <GameSetupFaction>[
         GameSetupFaction(
           id: 'humans',
@@ -195,6 +198,23 @@ class GameSetup {
     throw ArgumentError('Unknown planet type: $planetType.');
   }
 
+  static String startingDiplomacyLabelFor(String status) {
+    return OpenDeadlockGame.diplomacyStatusLabelFor(status);
+  }
+
+  static String startingDiplomacyDescriptionFor(String status) {
+    if (status == OpenDeadlockGame.diplomacyStatusWar) {
+      return 'All factions begin at war.';
+    }
+    if (status == OpenDeadlockGame.diplomacyStatusPeace) {
+      return 'All factions begin at peace and may trade.';
+    }
+    if (status == OpenDeadlockGame.diplomacyStatusAlliance) {
+      return 'All factions begin allied with shared sensor coverage.';
+    }
+    throw ArgumentError('Unknown diplomacy status: $status.');
+  }
+
   static List<String> traitOptions() {
     return OpenDeadlockGame.factionTraitCatalog.keys.toList(growable: false);
   }
@@ -280,6 +300,7 @@ class GameSetup {
       'mapSize': mapSize,
       'planetType': planetType,
       'worldSeed': worldSeed,
+      'startingDiplomacy': startingDiplomacy,
       'factions': factions.map((faction) => faction.toJson()).toList(),
     };
   }
@@ -290,6 +311,8 @@ class GameSetup {
       planetType: json['planetType'] as String? ?? planetTypeTerran,
       worldSeed:
           json['worldSeed'] == null ? 0 : _readSetupInt(json['worldSeed']),
+      startingDiplomacy: json['startingDiplomacy'] as String? ??
+          OpenDeadlockGame.diplomacyStatusWar,
       factions: (json['factions'] as List<dynamic>)
           .map((faction) =>
               GameSetupFaction.fromJson(faction as Map<String, dynamic>))
@@ -306,6 +329,9 @@ class GameSetup {
     }
     if (worldSeed < 0) {
       throw ArgumentError('World seed cannot be negative.');
+    }
+    if (!OpenDeadlockGame.diplomacyStatuses.contains(startingDiplomacy)) {
+      throw ArgumentError('Unknown starting diplomacy: $startingDiplomacy.');
     }
     if (factions.length < 2 || factions.length > 4) {
       throw ArgumentError('New games require two to four factions.');
@@ -462,13 +488,14 @@ class GameSetup {
       tiles: tiles,
       colonies: colonies,
       units: units,
-      diplomacy: _initialDiplomacyFor(factions),
+      diplomacy: _initialDiplomacyFor(factions, startingDiplomacy),
       commandHistory: const <CommandRecord>[],
       reports: <TurnReport>[
         TurnReport(
           title: 'Planetfall complete',
           message:
-              '${factions.length} factions have established starting colonies.',
+              '${factions.length} factions have established starting colonies. '
+              'Starting relations: ${startingDiplomacyLabelFor(startingDiplomacy)}.',
         ),
       ],
     );
@@ -476,14 +503,20 @@ class GameSetup {
 
   static String _defaultSessionIdFor(GameSetup setup) {
     final factionIds = setup.factions.map((faction) => faction.id).join('-');
+    final diplomacySlug =
+        setup.startingDiplomacy == OpenDeadlockGame.diplomacyStatusWar
+            ? ''
+            : '-${setup.startingDiplomacy}';
     if (setup.worldSeed != 0) {
-      return 'setup-${setup.mapSize}-${setup.planetType}-seed${setup.worldSeed}-$factionIds';
+      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug-seed${setup.worldSeed}-$factionIds';
     }
-    return 'setup-${setup.mapSize}-${setup.planetType}-$factionIds';
+    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug-$factionIds';
   }
 
   static List<DiplomacyRelation> _initialDiplomacyFor(
-      List<GameSetupFaction> factions) {
+    List<GameSetupFaction> factions,
+    String startingDiplomacy,
+  ) {
     final relations = <DiplomacyRelation>[];
     for (var a = 0; a < factions.length; a += 1) {
       for (var b = a + 1; b < factions.length; b += 1) {
@@ -491,7 +524,7 @@ class GameSetup {
           DiplomacyRelation.between(
             factionId: factions[a].id,
             targetFactionId: factions[b].id,
-            status: OpenDeadlockGame.diplomacyStatusWar,
+            status: startingDiplomacy,
           ),
         );
       }

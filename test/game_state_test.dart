@@ -338,6 +338,64 @@ void main() {
     }
   });
 
+  test('game setup can start factions at peace or alliance', () {
+    const peaceSetup = GameSetup(
+      mapSize: GameSetup.mapSizeStandard,
+      planetType: GameSetup.planetTypeTerran,
+      startingDiplomacy: OpenDeadlockGame.diplomacyStatusPeace,
+      factions: <GameSetupFaction>[
+        GameSetupFaction(
+          id: 'humans',
+          name: 'Human',
+          colorValue: 0xFF2F80ED,
+          raceId: 'human',
+          controlMode: Faction.controlLocal,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['scholars'],
+        ),
+        GameSetupFaction(
+          id: 'rebels',
+          name: 'Tarth',
+          colorValue: 0xFFB83232,
+          raceId: 'tarth',
+          controlMode: Faction.controlComputer,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['militarists'],
+        ),
+      ],
+    );
+    final restoredPeace = GameSetup.fromJson(peaceSetup.toJson());
+    final peaceGame = restoredPeace.buildGame();
+
+    expect(
+        restoredPeace.startingDiplomacy, OpenDeadlockGame.diplomacyStatusPeace);
+    expect(GameSetup.startingDiplomacyLabelFor(restoredPeace.startingDiplomacy),
+        'Peace');
+    expect(
+      GameSetup.startingDiplomacyDescriptionFor(
+        restoredPeace.startingDiplomacy,
+      ),
+      'All factions begin at peace and may trade.',
+    );
+    expect(peaceGame.sessionId, 'setup-standard-terran-peace-humans-rebels');
+    expect(peaceGame.diplomacyStatusBetween('humans', 'rebels'),
+        OpenDeadlockGame.diplomacyStatusPeace);
+    expect(peaceGame.areAtWar('humans', 'rebels'), isFalse);
+    expect(peaceGame.reports.first.message,
+        contains('Starting relations: Peace.'));
+
+    final allianceGame = GameSetup(
+      mapSize: peaceSetup.mapSize,
+      planetType: peaceSetup.planetType,
+      startingDiplomacy: OpenDeadlockGame.diplomacyStatusAlliance,
+      factions: peaceSetup.factions,
+    ).buildGame();
+
+    expect(
+        allianceGame.sessionId, 'setup-standard-terran-alliance-humans-rebels');
+    expect(allianceGame.areAllied('humans', 'rebels'), isTrue);
+  });
+
   test('game setup rejects invalid generated games', () {
     expect(
       () => const GameSetup(
@@ -361,6 +419,34 @@ void main() {
         mapSize: GameSetup.mapSizeStandard,
         planetType: 'gas',
         factions: <GameSetupFaction>[],
+      ).buildGame(),
+      throwsArgumentError,
+    );
+    expect(
+      () => const GameSetup(
+        mapSize: GameSetup.mapSizeStandard,
+        planetType: GameSetup.planetTypeTerran,
+        startingDiplomacy: 'vendetta',
+        factions: <GameSetupFaction>[
+          GameSetupFaction(
+            id: 'humans',
+            name: 'The Chosen',
+            colorValue: 0xFF2F80ED,
+            raceId: 'human',
+            controlMode: Faction.controlLocal,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>[],
+          ),
+          GameSetupFaction(
+            id: 'rebels',
+            name: 'Crimson Pact',
+            colorValue: 0xFFB83232,
+            raceId: 'tarth',
+            controlMode: Faction.controlComputer,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>['industrialists'],
+          ),
+        ],
       ).buildGame(),
       throwsArgumentError,
     );

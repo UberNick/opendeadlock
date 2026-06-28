@@ -28,6 +28,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
   String mapSize = GameSetup.mapSizeStandard;
   String planetType = GameSetup.planetTypeTerran;
   String setupMode = setupModeAi;
+  String startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar;
   late final TextEditingController worldSeedController;
   String playerRaceId = 'human';
   String playerAiPersonality = Faction.aiPersonalityResearcher;
@@ -136,6 +137,17 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                         });
                       },
                     ),
+                    _SetupDropdown(
+                      label: 'Relations',
+                      value: startingDiplomacy,
+                      items: OpenDeadlockGame.diplomacyStatuses,
+                      labelFor: GameSetup.startingDiplomacyLabelFor,
+                      onChanged: (value) {
+                        setState(() {
+                          startingDiplomacy = value;
+                        });
+                      },
+                    ),
                     _SeedField(
                       controller: worldSeedController,
                       onRoll: _rollWorldSeed,
@@ -151,6 +163,12 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                     _SetupReadout(
                       label: 'Seats',
                       value: _setupModeDescriptionFor(setupMode),
+                    ),
+                    _SetupReadout(
+                      label: 'Relations',
+                      value: GameSetup.startingDiplomacyDescriptionFor(
+                        startingDiplomacy,
+                      ),
                     ),
                     _SetupReadout(
                       label: 'Starts',
@@ -519,6 +537,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
       mapSize: mapSize,
       planetType: planetType,
       worldSeed: _worldSeed(),
+      startingDiplomacy: startingDiplomacy,
       factions: <GameSetupFaction>[
         GameSetupFaction(
           id: 'humans',
