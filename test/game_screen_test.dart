@@ -2144,6 +2144,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('AI Orders'), findsOneWidget);
     expect(find.text(plannedLabel), findsOneWidget);
+    expect(
+      find.text('Tactical 2 / Research 1 / Economy 4 / Movement 1'),
+      findsOneWidget,
+    );
+    expect(find.text('Research'), findsWidgets);
+    expect(find.text('Economy'), findsWidgets);
+    expect(find.text('Tactical'), findsWidgets);
+    expect(find.text('Movement'), findsWidgets);
     expect(find.text('AI Plan | Tarth Legion'), findsWidgets);
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Run AI'));

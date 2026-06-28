@@ -6347,6 +6347,10 @@ class _ComputerOrdersDetail extends StatelessWidget {
             label: 'Difficulty',
             value: Faction.difficultyLabelFor(faction.difficulty),
           ),
+          _DetailRow(
+            label: 'Plan',
+            value: _aiPlanBreakdownFor(game, plannedCommands),
+          ),
           if (plannedCommands.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 6),
@@ -6360,6 +6364,7 @@ class _ComputerOrdersDetail extends StatelessWidget {
               return _ComputerOrderLine(
                 index: entry.key + 1,
                 factionName: faction.name,
+                category: _aiPlanCategoryFor(game, entry.value),
                 summary: _commandSummaryFor(game, entry.value),
               );
             }),
@@ -6449,11 +6454,13 @@ class _ComputerOrderLine extends StatelessWidget {
     Key? key,
     required this.index,
     required this.factionName,
+    required this.category,
     required this.summary,
   }) : super(key: key);
 
   final int index;
   final String factionName;
+  final String category;
   final String summary;
 
   @override
@@ -6490,17 +6497,54 @@ class _ComputerOrderLine extends StatelessWidget {
                   style: const TextStyle(color: Color(0xFFE9EEF2)),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  'AI Plan | $factionName',
-                  style: const TextStyle(
-                    color: Color(0xFF9FB0BE),
-                    fontSize: 12,
-                  ),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _PlanCategoryChip(label: category),
+                    Text(
+                      'AI Plan | $factionName',
+                      style: const TextStyle(
+                        color: Color(0xFF9FB0BE),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PlanCategoryChip extends StatelessWidget {
+  const _PlanCategoryChip({
+    Key? key,
+    required this.label,
+  }) : super(key: key);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF313B44),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFF55616C)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFFCCD6A6),
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -6568,6 +6612,98 @@ class _IncomingOrderLine extends StatelessWidget {
       ),
     );
   }
+}
+
+const List<String> _aiPlanCategoryOrder = <String>[
+  'Combat',
+  'Tactical',
+  'Diplomacy',
+  'Research',
+  'Economy',
+  'Expansion',
+  'Movement',
+  'Recovery',
+  'Setup',
+  'Turn',
+  'Other',
+];
+
+String _aiPlanBreakdownFor(
+  OpenDeadlockGame game,
+  List<GameCommand> commands,
+) {
+  if (commands.isEmpty) {
+    return 'No planned orders';
+  }
+
+  final counts = <String, int>{};
+  for (final command in commands) {
+    final category = _aiPlanCategoryFor(game, command);
+    counts[category] = (counts[category] ?? 0) + 1;
+  }
+
+  return _aiPlanCategoryOrder
+      .where((category) => counts.containsKey(category))
+      .map((category) => '$category ${counts[category]}')
+      .join(' / ');
+}
+
+String _aiPlanCategoryFor(OpenDeadlockGame game, GameCommand command) {
+  if (command is MoveUnitCommand) {
+    final ownerId = _unitOwnerIdFor(game, command.unitId) ?? command.factionId;
+    final defender = game.unitAt(command.x, command.y);
+    if (defender != null &&
+        defender.ownerId != ownerId &&
+        game.areAtWar(ownerId, defender.ownerId)) {
+      return 'Combat';
+    }
+    final targetColony = game.colonyAt(command.x, command.y);
+    if (targetColony != null &&
+        targetColony.ownerId != ownerId &&
+        game.areAtWar(ownerId, targetColony.ownerId)) {
+      return 'Combat';
+    }
+    return 'Movement';
+  }
+  if (command is ScanFactionIntelCommand || command is SabotageColonyCommand) {
+    return 'Tactical';
+  }
+  if (command is SetDiplomacyStatusCommand) {
+    return 'Diplomacy';
+  }
+  if (command is SetResearchProjectCommand || command is FundResearchCommand) {
+    return 'Research';
+  }
+  if (command is SetColonyConstructionCommand ||
+      command is RushConstructionCommand ||
+      command is SetColonyFocusCommand ||
+      command is SetColonySectorAssignmentCommand ||
+      command is SetFactionTaxPolicyCommand) {
+    return 'Economy';
+  }
+  if (command is FoundColonyCommand) {
+    return 'Expansion';
+  }
+  if (command is RecoverUnitCommand) {
+    return 'Recovery';
+  }
+  if (command is SetFactionControlCommand ||
+      command is SetFactionDifficultyCommand) {
+    return 'Setup';
+  }
+  if (command is EndTurnCommand || command is RunComputerTurnCommand) {
+    return 'Turn';
+  }
+  return 'Other';
+}
+
+String? _unitOwnerIdFor(OpenDeadlockGame game, String unitId) {
+  for (final unit in game.units) {
+    if (unit.id == unitId) {
+      return unit.ownerId;
+    }
+  }
+  return null;
 }
 
 String _commandSummaryFor(OpenDeadlockGame game, GameCommand command) {
