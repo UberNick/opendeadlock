@@ -2598,6 +2598,46 @@ void main() {
         find.widgetWithText(OutlinedButton, 'Undo Last Order'), findsNothing);
   });
 
+  testWidgets('command bar can undo the last pending local order',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'toolbar-undo-order'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Undo last order'), findsOneWidget);
+    expect(find.text('0 cmd'), findsOneWidget);
+
+    await tester.tap(find.textContaining('Balanced - No production bias.'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('+2 industry, -1 food.').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Send 1 order'), findsOneWidget);
+    expect(find.text('1 cmd'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Undo last order'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Undid New Haven: focus Industry'), findsOneWidget);
+    expect(find.text('Issue orders'), findsOneWidget);
+    expect(find.text('0 cmd'), findsOneWidget);
+  });
+
   testWidgets('game screen copies only orders since the sync baseline',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

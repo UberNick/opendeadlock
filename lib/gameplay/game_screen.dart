@@ -181,6 +181,8 @@ class _GameScreenState extends State<GameScreen> {
               soundEffectsEnabled: soundEffectsEnabled,
               onToggleSoundEffects: _toggleSoundEffects,
               onToggleHotseat: _toggleHotseatMode,
+              canUndoLastOrder: _canUndoLastOrder,
+              onUndoLastOrder: _undoLastOrder,
               onEndTurn: () {
                 _replaceGame(
                   game.applyCommand(
@@ -2156,6 +2158,8 @@ class _CommandBar extends StatelessWidget {
     required this.soundEffectsEnabled,
     required this.onToggleSoundEffects,
     required this.onToggleHotseat,
+    required this.canUndoLastOrder,
+    required this.onUndoLastOrder,
     required this.onEndTurn,
     required this.onRunComputerTurn,
   }) : super(key: key);
@@ -2180,6 +2184,8 @@ class _CommandBar extends StatelessWidget {
   final bool soundEffectsEnabled;
   final VoidCallback onToggleSoundEffects;
   final VoidCallback onToggleHotseat;
+  final bool canUndoLastOrder;
+  final VoidCallback onUndoLastOrder;
   final VoidCallback onEndTurn;
   final VoidCallback onRunComputerTurn;
 
@@ -2217,6 +2223,8 @@ class _CommandBar extends StatelessWidget {
                         ),
                         _syncMenu(context, hasComputerOpponents),
                         const SizedBox(width: 2),
+                        _undoButton(),
+                        const SizedBox(width: 2),
                         _soundButton(),
                         const SizedBox(width: 4),
                         _compactEndTurnButton(),
@@ -2252,6 +2260,8 @@ class _CommandBar extends StatelessWidget {
                     ),
                     _syncMenu(context, hasComputerOpponents),
                     const SizedBox(width: 4),
+                    _undoButton(),
+                    const SizedBox(width: 4),
                     _soundButton(),
                     const SizedBox(width: 8),
                     _endTurnButton(),
@@ -2268,6 +2278,16 @@ class _CommandBar extends StatelessWidget {
       color: Colors.white,
       icon: const Icon(Icons.arrow_back),
       onPressed: onBack,
+    );
+  }
+
+  Widget _undoButton() {
+    return IconButton(
+      tooltip: 'Undo last order',
+      color: Colors.white,
+      disabledColor: const Color(0xFF6B7784),
+      icon: const Icon(Icons.undo),
+      onPressed: canUndoLastOrder ? onUndoLastOrder : null,
     );
   }
 
