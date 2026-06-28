@@ -558,6 +558,49 @@ void main() {
     );
   });
 
+  testWidgets('world overview compares race profiles and traits',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame:
+              OpenDeadlockGame.sample(sessionId: 'world-profile-readout'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('World'),
+      420,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 10,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('World'), findsOneWidget);
+    expect(find.text('Human Assembly'), findsWidgets);
+    expect(find.text('Tarth Legion'), findsWidgets);
+    expect(
+      find.text('Profile Adaptive | Traits Scholars, Traders'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Profile Conqueror | Traits Industrialists, Militarists'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('game screen can assign a sector to colony production',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

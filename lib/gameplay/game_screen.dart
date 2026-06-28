@@ -5436,6 +5436,9 @@ class _WorldOverviewDetail extends StatelessWidget {
     final summariesByFactionId = <String, FactionWorldSummary>{
       for (final summary in game.worldSummaries()) summary.factionId: summary,
     };
+    final factionsById = <String, Faction>{
+      for (final faction in game.factions) faction.id: faction,
+    };
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -5495,6 +5498,7 @@ class _WorldOverviewDetail extends StatelessWidget {
               score: scores[index],
               rank: index + 1,
               summary: summariesByFactionId[scores[index].factionId]!,
+              faction: factionsById[scores[index].factionId]!,
             ),
         ],
       ),
@@ -5508,11 +5512,13 @@ class _FactionScoreRow extends StatelessWidget {
     required this.score,
     required this.rank,
     required this.summary,
+    required this.faction,
   }) : super(key: key);
 
   final FactionScore score;
   final int rank;
   final FactionWorldSummary summary;
+  final Faction faction;
 
   @override
   Widget build(BuildContext context) {
@@ -5555,6 +5561,13 @@ class _FactionScoreRow extends StatelessWidget {
                 ),
                 Text(
                   '${summary.isDefeated ? 'Defeated | ' : ''}${summary.raceName} | ${summary.victoryProgressLabel} | ${summary.scienceVictoryProgressLabel} | ${summary.unitCount} units | ${summary.controlledSectors} sectors',
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  'Profile ${Faction.aiPersonalityLabelFor(faction.aiPersonality)} | Traits ${OpenDeadlockGame.traitSummaryFor(faction)}',
                   style: const TextStyle(
                     color: Color(0xFFB9C5CE),
                     fontSize: 12,
