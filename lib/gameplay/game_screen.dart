@@ -4355,7 +4355,8 @@ class _TurnChecklistDetail extends StatelessWidget {
   bool _hasColonyWarning(ColonyProduction projection) {
     return projection.isStarving ||
         projection.isInUnrest ||
-        projection.isRioting;
+        projection.isRioting ||
+        projection.hasMaintenanceShortfall;
   }
 
   String _stateLabel(int pendingOrderCount) {
@@ -4751,7 +4752,8 @@ class _ColonyOverviewDetail extends StatelessWidget {
   bool _hasWarning(ColonyProduction projection) {
     return projection.isStarving ||
         projection.isInUnrest ||
-        projection.isRioting;
+        projection.isRioting ||
+        projection.hasMaintenanceShortfall;
   }
 }
 
@@ -4882,7 +4884,8 @@ class _ColonyOverviewRow extends StatelessWidget {
   bool _hasWarning() {
     return projection.isStarving ||
         projection.isInUnrest ||
-        projection.isRioting;
+        projection.isRioting ||
+        projection.hasMaintenanceShortfall;
   }
 
   String _statusLabel() {
@@ -4891,6 +4894,9 @@ class _ColonyOverviewRow extends StatelessWidget {
     }
     if (projection.isStarving) {
       return 'Status: food shortage ${_signedInt(projection.foodBalance)}';
+    }
+    if (projection.hasMaintenanceShortfall) {
+      return 'Status: upkeep shortfall -${projection.maintenanceShortfall} credits';
     }
     if (projection.isInUnrest) {
       return 'Status: unrest penalties active';
@@ -8361,6 +8367,12 @@ class _ColonyDetail extends StatelessWidget {
             value:
                 '$grossCredits gross - ${projection.buildingUpkeep} upkeep = ${projection.output.credits} net',
           ),
+          if (projection.hasMaintenanceShortfall)
+            _DetailRow(
+              label: 'Maintenance',
+              value:
+                  '${projection.maintenanceShortfall} credit shortfall, ${_signedInt(-projection.maintenanceShortfall * OpenDeadlockGame.buildingUpkeepShortfallMoralePenalty)} morale',
+            ),
           _DetailRow(
             label: 'Worked',
             value:
@@ -8558,6 +8570,11 @@ class _ColonyDetail extends StatelessWidget {
     if (taxMorale != 0 && ownerFaction != null) {
       drivers.add(
         '${_taxMoraleDriverNameFor(ownerFaction.taxPolicy)} ${_signedInt(taxMorale)}',
+      );
+    }
+    if (projection.hasMaintenanceShortfall) {
+      drivers.add(
+        'upkeep shortfall ${_signedInt(-projection.maintenanceShortfall * OpenDeadlockGame.buildingUpkeepShortfallMoralePenalty)}',
       );
     }
     if (projection.isRioting) {

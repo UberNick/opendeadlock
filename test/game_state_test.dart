@@ -2371,6 +2371,7 @@ void main() {
     expect(projection.foodBalance, 1);
     expect(projection.housingCapacity, 8);
     expect(projection.buildingUpkeep, 0);
+    expect(projection.maintenanceShortfall, 0);
     expect(projection.populationChange, 1);
     expect(projection.moraleChange, 0);
     expect(projection.nextPopulation, 6);
@@ -2378,6 +2379,7 @@ void main() {
     expect(projection.willGrow, isTrue);
     expect(projection.isAtHousingCapacity, isFalse);
     expect(projection.isStarving, isFalse);
+    expect(projection.hasMaintenanceShortfall, isFalse);
     expect(projection.willCompleteConstruction, isFalse);
   });
 
@@ -2546,6 +2548,33 @@ void main() {
       next.factionById('humans')!.resources.credits,
       maintained.factionById('humans')!.resources.credits +
           projection.output.credits,
+    );
+  });
+
+  test('maintenance shortfalls reduce morale and report upkeep pressure', () {
+    final maintained = _maintenanceShortfallGame();
+    final colony = maintained.colonyById('new-haven');
+    final projection = maintained.colonyProductionFor(colony);
+    final next = maintained.endTurn();
+
+    expect(projection.buildingUpkeep, 8);
+    expect(projection.output.credits, 0);
+    expect(projection.maintenanceShortfall, 3);
+    expect(projection.hasMaintenanceShortfall, isTrue);
+    expect(
+      projection.moraleChange,
+      -3 * OpenDeadlockGame.buildingUpkeepShortfallMoralePenalty,
+    );
+    expect(next.colonyById('new-haven').morale, 63);
+    expect(
+      next.factionById('humans')!.resources.credits,
+      maintained.factionById('humans')!.resources.credits,
+    );
+    expect(next.reports.first.title, 'New Haven: upkeep shortfall');
+    expect(
+      next.reports.first.message,
+      'Building upkeep exceeded income by 3 credits. '
+      'Morale fell by 9 until revenue improves or upkeep falls.',
     );
   });
 
@@ -6537,6 +6566,37 @@ OpenDeadlockGame _sabotageExposedScholarOpponent({
         construction: construction,
         storedIndustry: 10,
         completedBuildings: completedBuildings,
+      );
+    }).toList(),
+  );
+}
+
+OpenDeadlockGame _maintenanceShortfallGame() {
+  final sample = OpenDeadlockGame.sample();
+  return sample.copyWith(
+    factions: sample.factions.map((faction) {
+      if (faction.id != 'humans') {
+        return faction;
+      }
+      return faction.copyWith(
+        raceId: 'tarth',
+        traitIds: const <String>[],
+      );
+    }).toList(),
+    colonies: sample.colonies.map((colony) {
+      if (colony.id != 'new-haven') {
+        return colony;
+      }
+      return colony.copyWith(
+        completedBuildings: const <String>[
+          'Apartment Complex',
+          'Luxury Housing',
+          'Farm Dome',
+          'Factory',
+          'Research Lab',
+          'Militia Post',
+          'Barracks',
+        ],
       );
     }).toList(),
   );

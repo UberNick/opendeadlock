@@ -634,6 +634,7 @@ class ColonyProduction {
     required this.foodBalance,
     required this.housingCapacity,
     required this.buildingUpkeep,
+    required this.maintenanceShortfall,
     required this.populationChange,
     required this.moraleChange,
     required this.nextPopulation,
@@ -652,6 +653,7 @@ class ColonyProduction {
   final int foodBalance;
   final int housingCapacity;
   final int buildingUpkeep;
+  final int maintenanceShortfall;
   final int populationChange;
   final int moraleChange;
   final int nextPopulation;
@@ -684,6 +686,10 @@ class ColonyProduction {
 
   bool get isRioting {
     return riotIndustryLoss > 0;
+  }
+
+  bool get hasMaintenanceShortfall {
+    return maintenanceShortfall > 0;
   }
 }
 
@@ -1914,6 +1920,7 @@ class OpenDeadlockGame {
     'Militia Post': 1,
     'Barracks': 1,
   };
+  static const int buildingUpkeepShortfallMoralePenalty = 3;
 
   static const int rushCreditCostPerIndustry = 2;
   static const int basePopulationCapacity = 8;
@@ -5191,6 +5198,18 @@ class OpenDeadlockGame {
           ),
         );
       }
+      if (colonyProduction.hasMaintenanceShortfall) {
+        final moraleLoss = colonyProduction.maintenanceShortfall *
+            buildingUpkeepShortfallMoralePenalty;
+        newReports.add(
+          TurnReport(
+            title: '${colony.name}: upkeep shortfall',
+            message:
+                'Building upkeep exceeded income by ${_creditLabel(colonyProduction.maintenanceShortfall)}. '
+                'Morale fell by $moraleLoss until revenue improves or upkeep falls.',
+          ),
+        );
+      }
       if (colonyProduction.isInUnrest) {
         newReports.add(
           TurnReport(
@@ -5279,6 +5298,8 @@ class OpenDeadlockGame {
             taxCreditAdjustment);
     final buildingUpkeep = buildingUpkeepFor(colony);
     final credits = _adjustedProduction(grossCredits, -buildingUpkeep);
+    final maintenanceShortfall =
+        _clampInt(buildingUpkeep - grossCredits, 0, buildingUpkeep);
     final constructionWork =
         industry + _raceProfileForFactionId(colony.ownerId).constructionBonus;
     final buildCost = buildCostFor(colony.construction);
@@ -5294,7 +5315,8 @@ class OpenDeadlockGame {
         _populationChangeFor(colony, foodBalance, housingCapacity);
     final moraleChange =
         _moraleChangeFor(foodBalance, willCompleteConstruction) +
-            taxMoraleAdjustment;
+            taxMoraleAdjustment +
+            _maintenanceMoraleAdjustmentFor(maintenanceShortfall);
     final nextPopulation =
         _clampInt(colony.population + populationChange, 1, 99);
     final nextMorale =
@@ -5312,6 +5334,7 @@ class OpenDeadlockGame {
       foodBalance: foodBalance,
       housingCapacity: housingCapacity,
       buildingUpkeep: buildingUpkeep,
+      maintenanceShortfall: maintenanceShortfall,
       populationChange: populationChange,
       moraleChange: nextMorale - colony.morale,
       nextPopulation: nextPopulation,
@@ -5460,6 +5483,10 @@ class OpenDeadlockGame {
       moraleChange -= 8;
     }
     return moraleChange;
+  }
+
+  int _maintenanceMoraleAdjustmentFor(int maintenanceShortfall) {
+    return -(maintenanceShortfall * buildingUpkeepShortfallMoralePenalty);
   }
 
   int _moraleForFaction(String factionId, int morale) {

@@ -1075,6 +1075,41 @@ void main() {
     expect(find.text('7 food / 5 ind / 2 res / 5 cred'), findsOneWidget);
   });
 
+  testWidgets('game screen shows maintenance shortfall warnings',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final game = _maintenanceShortfallGame();
+    final projection = game.colonyProductionFor(game.colonyById('new-haven'));
+    final grossCredits = projection.output.credits + projection.buildingUpkeep;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.text(
+        '$grossCredits gross - ${projection.buildingUpkeep} upkeep = ${projection.output.credits} net',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Maintenance'), findsOneWidget);
+    expect(find.text('3 credit shortfall, -9 morale'), findsOneWidget);
+    expect(find.textContaining('upkeep shortfall -9'), findsOneWidget);
+  });
+
   testWidgets('game screen shows severe unrest riot damage', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 1200);
@@ -3264,6 +3299,37 @@ OpenDeadlockGame _defeatedWorldOverviewGame() {
     units: <Unit>[
       sample.unitById('human-scout'),
     ],
+  );
+}
+
+OpenDeadlockGame _maintenanceShortfallGame() {
+  final sample = OpenDeadlockGame.sample(sessionId: 'maintenance-ui');
+  return sample.copyWith(
+    factions: sample.factions.map((faction) {
+      if (faction.id != 'humans') {
+        return faction;
+      }
+      return faction.copyWith(
+        raceId: 'tarth',
+        traitIds: const <String>[],
+      );
+    }).toList(),
+    colonies: sample.colonies.map((colony) {
+      if (colony.id != 'new-haven') {
+        return colony;
+      }
+      return colony.copyWith(
+        completedBuildings: const <String>[
+          'Apartment Complex',
+          'Luxury Housing',
+          'Farm Dome',
+          'Factory',
+          'Research Lab',
+          'Militia Post',
+          'Barracks',
+        ],
+      );
+    }).toList(),
   );
 }
 
