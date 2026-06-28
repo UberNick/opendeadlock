@@ -7309,6 +7309,14 @@ class OpenDeadlockGame {
         return _clampInt(affordableIndustry, 1, remainingIndustry);
       }
     }
+    if (colony.construction == 'Colony Hub' &&
+        projection.hasMaintenanceShortfall) {
+      final affordableIndustry =
+          faction.resources.credits ~/ rushCreditCostPerIndustry;
+      if (affordableIndustry > 0) {
+        return _clampInt(affordableIndustry, 1, remainingIndustry);
+      }
+    }
     return null;
   }
 
