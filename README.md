@@ -8,44 +8,18 @@ opponents, mobile play, and refreshed artwork.
 The app is built with Flutter so the same codebase can target web, desktop, and
 mobile.
 
-## Quick Start
+## Quick Start for Local Review
 
-These commands bring up a local web version that is easy to share and inspect.
-
-### Review the Current PR Locally
-
-If you are reviewing the playable prototype pull request, this is the shortest
-path from a fresh checkout to a browser URL:
-
-```sh
-git clone https://github.com/UberNick/opendeadlock.git
-cd opendeadlock
-gh pr checkout <pr-number>
-flutter pub get
-flutter run -d chrome
-```
-
-Flutter opens Chrome automatically and also prints the local development URL in
-the terminal.
-
-For a stable URL that you can reopen or share on the same machine, run:
-
-```sh
-flutter build web
-python3 -m http.server 8080 -d build/web
-```
-
-Then open `http://127.0.0.1:8080/`.
-
-If port `8080` is already in use, change the command to another port such as
-`python3 -m http.server 8081 -d build/web` and open
-`http://127.0.0.1:8081/`.
+These commands bring up the playable prototype from PR #2 at a predictable local
+URL.
 
 ### Requirements
 
 * Flutter SDK: https://docs.flutter.dev/get-started/install
 * Chrome, for the local web runner
 * Git
+* GitHub CLI, optional but convenient for checking out pull requests:
+  https://cli.github.com/
 
 Check the Flutter install with:
 
@@ -53,7 +27,50 @@ Check the Flutter install with:
 flutter doctor
 ```
 
-### Run the App Locally
+### Review PR #2 Locally
+
+If you have GitHub CLI installed, this is the shortest path from a fresh checkout
+to a browser URL:
+
+```sh
+git clone https://github.com/UberNick/opendeadlock.git
+cd opendeadlock
+gh pr checkout 2
+flutter pub get
+flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8080/
+```
+
+Flutter usually opens Chrome automatically, but the URL above is the stable local
+address for this review session.
+
+If you do not have GitHub CLI, fetch the pull request ref directly:
+
+```sh
+git clone https://github.com/UberNick/opendeadlock.git
+cd opendeadlock
+git fetch origin pull/2/head:review-pr-2
+git switch review-pr-2
+flutter pub get
+flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
+```
+
+Then open `http://127.0.0.1:8080/`.
+
+If port `8080` is already in use, use another port:
+
+```sh
+flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8081
+```
+
+Then open `http://127.0.0.1:8081/`.
+
+### Run the Default Branch Locally
 
 Clone the repository and install packages:
 
@@ -63,20 +80,6 @@ cd opendeadlock
 flutter pub get
 ```
 
-If you are reviewing a pull request before it has been merged, check out the PR
-first. With GitHub CLI:
-
-```sh
-gh pr checkout <pr-number>
-```
-
-Without GitHub CLI, fetch the pull request ref from the original repository:
-
-```sh
-git fetch origin pull/<pr-number>/head:review-pr-<pr-number>
-git switch review-pr-<pr-number>
-```
-
 Start the Flutter web runner:
 
 ```sh
@@ -84,6 +87,9 @@ flutter run -d chrome
 ```
 
 Flutter will print a local URL in the terminal and open Chrome automatically.
+
+For a future pull request, replace `2` in the commands above with the pull
+request number you want to review.
 
 ### Run a Static Local Web Build
 
