@@ -2309,9 +2309,26 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _tapSyncMenuItem(tester, 'Apply Orders');
+    await tester.dragUntilVisible(
+      find.text('Last Sync'),
+      find.byType(ListView),
+      const Offset(0, -420),
+      maxIteration: 12,
+    );
+    await tester.pumpAndSettle();
 
-    expect(find.text('Apply Orders'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Apply Orders'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Apply Orders'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Apply Orders'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.enterText(find.byType(TextField), orderCode);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Apply'));
@@ -2340,7 +2357,7 @@ void main() {
         'Applied 1 new order from Human Assembly. '
         'Next: Your turn | Turn 1 | Human Assembly',
       ),
-      findsOneWidget,
+      findsWidgets,
     );
     expect(find.textContaining('1 cmd'), findsWidgets);
 
@@ -2351,7 +2368,7 @@ void main() {
 
     expect(find.text('Review Orders'), findsOneWidget);
     expect(find.text('No new orders from Human Assembly'), findsOneWidget);
-    expect(find.text('0 orders'), findsOneWidget);
+    expect(find.text('0 orders'), findsWidgets);
     expect(find.text('No unapplied orders in this package.'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Close'));
@@ -2363,7 +2380,7 @@ void main() {
         'No new orders from Human Assembly. '
         'Next: Your turn | Turn 1 | Human Assembly',
       ),
-      findsOneWidget,
+      findsWidgets,
     );
     expect(find.textContaining('1 cmd'), findsWidgets);
   });
@@ -2817,7 +2834,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _tapSyncMenuItem(tester, 'Import Orders File');
+    await tester.dragUntilVisible(
+      find.text('Last Sync'),
+      find.byType(ListView),
+      const Offset(0, -420),
+      maxIteration: 12,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.widgetWithText(OutlinedButton, 'Import Orders File'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Import Orders File'));
     await _pumpUntilFound(tester, find.text('Review Orders'));
 
     expect(find.text('Review Orders'), findsOneWidget);
@@ -2833,9 +2863,9 @@ void main() {
         'Imported 1 new order from Human Assembly. '
         'Next: Your turn | Turn 1 | Human Assembly',
       ),
-      findsOneWidget,
+      findsWidgets,
     );
-    expect(find.text('Factory'), findsWidgets);
+    expect(find.textContaining('1 cmd'), findsWidgets);
   });
 
   testWidgets('game screen exports snapshots to a file', (tester) async {

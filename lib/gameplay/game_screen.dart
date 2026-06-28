@@ -420,6 +420,8 @@ class _GameScreenState extends State<GameScreen> {
                     onExportInvite: _exportInviteForFaction,
                     onCopyOrders: _copyOrdersToClipboard,
                     onExportOrdersFile: _exportOrdersToFile,
+                    onApplyOrders: _applyOrdersFromClipboard,
+                    onImportOrdersFile: _importOrdersFromFile,
                     canUndoLastOrder: _canUndoLastOrder,
                     onUndoLastOrder: _undoLastOrder,
                   );
@@ -3879,6 +3881,8 @@ class _SelectionPanel extends StatelessWidget {
     required this.onExportInvite,
     required this.onCopyOrders,
     required this.onExportOrdersFile,
+    required this.onApplyOrders,
+    required this.onImportOrdersFile,
     required this.canUndoLastOrder,
     required this.onUndoLastOrder,
   }) : super(key: key);
@@ -3918,6 +3922,8 @@ class _SelectionPanel extends StatelessWidget {
   final Future<void> Function(String factionId) onExportInvite;
   final Future<void> Function() onCopyOrders;
   final Future<void> Function() onExportOrdersFile;
+  final Future<void> Function() onApplyOrders;
+  final Future<void> Function() onImportOrdersFile;
   final bool canUndoLastOrder;
   final VoidCallback onUndoLastOrder;
 
@@ -4087,6 +4093,8 @@ class _SelectionPanel extends StatelessWidget {
             lastSyncStatus: lastSyncStatus,
             onCopyInvite: onCopyInvite,
             onExportInvite: onExportInvite,
+            onApplyOrders: onApplyOrders,
+            onImportOrdersFile: onImportOrdersFile,
           ),
           if (game.activeFaction.isComputer && !game.isGameOver) ...[
             const SizedBox(height: 18),
@@ -6037,6 +6045,8 @@ class _SyncStatusDetail extends StatelessWidget {
     required this.lastSyncStatus,
     required this.onCopyInvite,
     required this.onExportInvite,
+    required this.onApplyOrders,
+    required this.onImportOrdersFile,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
@@ -6045,6 +6055,8 @@ class _SyncStatusDetail extends StatelessWidget {
   final String? lastSyncStatus;
   final Future<void> Function(String factionId) onCopyInvite;
   final Future<void> Function(String factionId) onExportInvite;
+  final Future<void> Function() onApplyOrders;
+  final Future<void> Function() onImportOrdersFile;
 
   @override
   Widget build(BuildContext context) {
@@ -6119,6 +6131,35 @@ class _SyncStatusDetail extends StatelessWidget {
           ),
           _DetailRow(label: 'Commands', value: '${game.commandHistory.length}'),
           _DetailRow(label: 'State', value: fingerprint),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.playlist_add_check, size: 18),
+                label: const Text('Apply Orders'),
+                onPressed: () {
+                  onApplyOrders();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.drive_folder_upload, size: 18),
+                label: const Text('Import Orders File'),
+                onPressed: () {
+                  onImportOrdersFile();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+            ],
+          ),
           if (remoteFactions.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text(
