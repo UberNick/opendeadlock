@@ -4128,6 +4128,12 @@ class _SelectionPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ...game.reports.take(5).map((report) => _ReportLine(report: report)),
+          const SizedBox(height: 18),
+          _TurnChecklistDetail(
+            game: game,
+            activeColonies: activeColonies,
+            orderExportBaseCommandCount: orderExportBaseCommandCount,
+          ),
         ],
       ),
     );
@@ -4216,6 +4222,198 @@ class _VictoryBanner extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _TurnChecklistDetail extends StatelessWidget {
+  const _TurnChecklistDetail({
+    Key? key,
+    required this.game,
+    required this.activeColonies,
+    required this.orderExportBaseCommandCount,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final List<Colony> activeColonies;
+  final int orderExportBaseCommandCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final pendingOrderCount =
+        _pendingOrderCountFor(game, orderExportBaseCommandCount);
+    final movableUnits = game.units
+        .where((unit) =>
+            unit.ownerId == game.activeFactionId && unit.movesRemaining > 0)
+        .length;
+    final colonyWarningCount = activeColonies
+        .where((colony) => _hasColonyWarning(game.colonyProductionFor(colony)))
+        .length;
+    final completingBuildCount = activeColonies
+        .where((colony) =>
+            game.colonyProductionFor(colony).willCompleteConstruction)
+        .length;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.checklist, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Turn Checklist',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                _stateLabel(pendingOrderCount),
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Action',
+            value: _actionLabel(
+              pendingOrderCount,
+              movableUnits,
+              colonyWarningCount,
+            ),
+          ),
+          _DetailRow(
+            label: 'Unsent',
+            value: pendingOrderCount == 0
+                ? 'No unsent orders'
+                : _countLabel(pendingOrderCount, 'order', 'orders',
+                    suffix: 'ready to send'),
+          ),
+          _DetailRow(
+            label: 'Units',
+            value: movableUnits == 0
+                ? 'No units can move'
+                : _countLabel(movableUnits, 'unit', 'units',
+                    suffix: 'can still move'),
+          ),
+          _DetailRow(
+            label: 'Colonies',
+            value: colonyWarningCount == 0
+                ? _countLabel(
+                    activeColonies.length, 'stable colony', 'stable colonies')
+                : _countLabel(
+                    colonyWarningCount, 'colony warning', 'colony warnings'),
+          ),
+          _DetailRow(
+            label: 'Builds',
+            value: completingBuildCount == 0
+                ? 'No builds complete next turn'
+                : _countLabel(completingBuildCount, 'build', 'builds',
+                    suffix: 'complete next turn'),
+          ),
+          _DetailRow(
+            label: 'Research',
+            value: _researchProgressLabel(game.activeFaction),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _hasColonyWarning(ColonyProduction projection) {
+    return projection.isStarving ||
+        projection.isInUnrest ||
+        projection.isRioting;
+  }
+
+  String _stateLabel(int pendingOrderCount) {
+    if (game.isGameOver) {
+      return 'Complete';
+    }
+    if (game.activeFaction.isRemote) {
+      return 'Waiting';
+    }
+    if (game.activeFaction.isComputer) {
+      return 'AI';
+    }
+    if (pendingOrderCount > 0) {
+      return 'Handoff';
+    }
+    return 'Planning';
+  }
+
+  String _actionLabel(
+    int pendingOrderCount,
+    int movableUnits,
+    int colonyWarningCount,
+  ) {
+    if (game.isGameOver) {
+      return 'Review victory and start a new game';
+    }
+    if (game.activeFaction.isRemote) {
+      return 'Import orders from ${game.activeFaction.name}';
+    }
+    if (game.activeFaction.isComputer) {
+      return 'Run AI for ${game.activeFaction.name}';
+    }
+    if (!game.activeFactionCanIssueLocalOrders) {
+      return 'No local actions available';
+    }
+    if (pendingOrderCount > 0) {
+      return 'Send ${_countLabel(pendingOrderCount, 'order', 'orders')} or keep planning';
+    }
+    if (movableUnits > 0) {
+      return 'Move or recover ${_countLabel(movableUnits, 'unit', 'units')}';
+    }
+    if (colonyWarningCount > 0) {
+      return 'Review ${_countLabel(colonyWarningCount, 'colony warning', 'colony warnings')}';
+    }
+    return 'End turn when ready';
+  }
+
+  String _researchProgressLabel(Faction faction) {
+    if (!OpenDeadlockGame.researchOptions.contains(faction.researchProject)) {
+      return 'No active project';
+    }
+    final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
+    final stored = _clamp(faction.resources.research, 0, cost);
+    final remaining = cost - stored;
+    if (remaining <= 0) {
+      return '${faction.researchProject} ready';
+    }
+    return '${faction.researchProject} $stored/$cost, $remaining left';
+  }
+
+  int _clamp(int value, int minimum, int maximum) {
+    if (value < minimum) {
+      return minimum;
+    }
+    if (value > maximum) {
+      return maximum;
+    }
+    return value;
+  }
+
+  String _countLabel(
+    int count,
+    String singular,
+    String plural, {
+    String? suffix,
+  }) {
+    final label = '$count ${count == 1 ? singular : plural}';
+    return suffix == null ? label : '$label $suffix';
   }
 }
 

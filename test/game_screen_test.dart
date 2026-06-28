@@ -96,6 +96,45 @@ void main() {
     expect(find.text('1 order'), findsOneWidget);
   });
 
+  testWidgets('game screen summarizes turn checklist on phone width',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'turn-checklist'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (var i = 0; i < 24; i += 1) {
+      if (find.text('Turn Checklist').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(ListView).last, const Offset(0, -520));
+      await tester.pumpAndSettle();
+    }
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Turn Checklist'), findsOneWidget);
+    expect(find.text('Planning'), findsOneWidget);
+    expect(find.text('Move or recover 1 unit'), findsOneWidget);
+    expect(find.text('No unsent orders'), findsOneWidget);
+    expect(find.text('1 unit can still move'), findsOneWidget);
+    expect(find.text('1 stable colony'), findsOneWidget);
+    expect(find.text('No builds complete next turn'), findsOneWidget);
+    expect(find.text('Hydroponics 0/10, 10 left'), findsOneWidget);
+  });
+
   testWidgets('mobile sync cue reports remote and AI turns', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(390, 844);
@@ -2648,7 +2687,13 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Sender'), findsOneWidget);
-    expect(find.text('Handoff'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Handoff'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Your turn | Turn 1 | Human Assembly'), findsOneWidget);
     expect(find.text('Command 1'), findsWidgets);
     expect(find.text('New Haven: focus Industry'), findsWidgets);
