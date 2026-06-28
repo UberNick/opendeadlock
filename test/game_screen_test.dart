@@ -1812,11 +1812,31 @@ void main() {
     expect(find.text('Combat Preview'), findsOneWidget);
     expect(find.text('Attack Pact Recon'), findsOneWidget);
     expect(
+      find.text('Survey Team | scout | 5/5 HP | 3 atk / 1 def'),
+      findsNWidgets(2),
+    );
+    expect(
+      find.text('Pact Recon | scout | 5/5 HP | 3 atk / 1 def'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('You 2 HP | target 3 HP | both survive | damaged risk'),
+      findsOneWidget,
+    );
+    expect(
       find.text(
           'Deal 2, counter 3, you 2/5, target 3/5, both survive, damaged risk'),
       findsOneWidget,
     );
     expect(find.text('Assault Redoubt'), findsOneWidget);
+    expect(
+      find.text('Redoubt | colony | 4 pop / 61 morale | 5 defense'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('You 1 HP | 3 pop / 26 morale | repelled | critical risk'),
+      findsOneWidget,
+    );
     expect(
       find.text('5 vs 5, repelled, you 1/5, 3 pop / 26 morale, critical risk'),
       findsOneWidget,

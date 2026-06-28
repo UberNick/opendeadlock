@@ -8372,10 +8372,7 @@ class _UnitDetail extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             ...combatPreviews.map(
-              (preview) => _DetailRow(
-                label: preview.label,
-                value: preview.value,
-              ),
+              (preview) => _CombatPreviewDetail(preview: preview),
             ),
           ],
           if (canFoundColony) ...[
@@ -8448,6 +8445,9 @@ class _UnitDetail extends StatelessWidget {
           _CombatPreviewRow(
             label: 'Attack ${defender.name}',
             value: _unitCombatPreviewValue(defender, preview),
+            attacker: _unitBattleStatsLabel(unit),
+            target: _unitBattleStatsLabel(defender),
+            aftermath: _unitCombatAftermathLabel(unit, defender, preview),
           ),
         );
         continue;
@@ -8463,6 +8463,9 @@ class _UnitDetail extends StatelessWidget {
           _CombatPreviewRow(
             label: 'Assault ${targetColony.name}',
             value: _colonyAssaultPreviewValue(preview),
+            attacker: _unitBattleStatsLabel(unit),
+            target: _colonyBattleStatsLabel(game, targetColony),
+            aftermath: _colonyAssaultAftermathLabel(unit, preview),
           ),
         );
       }
@@ -8553,14 +8556,105 @@ String _riskLabelFor({
   return 'low';
 }
 
+String _unitBattleStatsLabel(Unit unit) {
+  return '${unit.name} | ${unit.type} | '
+      '${unit.health}/${OpenDeadlockGame.maxHealthFor(unit.type)} HP | '
+      '${OpenDeadlockGame.attackFor(unit.type)} atk / '
+      '${OpenDeadlockGame.defenseFor(unit.type)} def';
+}
+
+String _colonyBattleStatsLabel(OpenDeadlockGame game, Colony colony) {
+  return '${colony.name} | colony | ${colony.population} pop / '
+      '${colony.morale} morale | ${game.colonyDefenseForColony(colony)} defense';
+}
+
+String _unitCombatAftermathLabel(
+  Unit attacker,
+  Unit defender,
+  UnitCombatPreview preview,
+) {
+  return 'You ${preview.attackerHealth} HP | '
+      'target ${preview.defenderHealth} HP | '
+      '${_unitCombatOutcomeLabel(preview)} | '
+      '${_riskLabelFor(
+    attackerSurvives: preview.attackerSurvives,
+    attackerHealth: preview.attackerHealth,
+    maxHealth: OpenDeadlockGame.maxHealthFor(attacker.type),
+    counterDamage: preview.counterDamage,
+  )} risk';
+}
+
+String _colonyAssaultAftermathLabel(
+  Unit attacker,
+  ColonyAssaultPreview preview,
+) {
+  return 'You ${preview.attackerHealth} HP | '
+      '${preview.population} pop / ${preview.morale} morale | '
+      '${preview.colonyCaptured ? 'capture' : 'repelled'} | '
+      '${_riskLabelFor(
+    attackerSurvives: preview.attackerSurvives,
+    attackerHealth: preview.attackerHealth,
+    maxHealth: OpenDeadlockGame.maxHealthFor(attacker.type),
+    counterDamage: preview.counterDamage,
+  )} risk';
+}
+
 class _CombatPreviewRow {
   const _CombatPreviewRow({
     required this.label,
     required this.value,
+    required this.attacker,
+    required this.target,
+    required this.aftermath,
   });
 
   final String label;
   final String value;
+  final String attacker;
+  final String target;
+  final String aftermath;
+}
+
+class _CombatPreviewDetail extends StatelessWidget {
+  const _CombatPreviewDetail({
+    Key? key,
+    required this.preview,
+  }) : super(key: key);
+
+  final _CombatPreviewRow preview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Color(0xFF31404C)),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                preview.label,
+                style: const TextStyle(
+                  color: Color(0xFFE9EEF2),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              _DetailRow(label: 'Attacker', value: preview.attacker),
+              _DetailRow(label: 'Target', value: preview.target),
+              _DetailRow(label: 'Outcome', value: preview.aftermath),
+              _DetailRow(label: 'Summary', value: preview.value),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ColonyWorkPlanner extends StatelessWidget {
