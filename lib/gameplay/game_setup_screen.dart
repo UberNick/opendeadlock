@@ -30,6 +30,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
   String setupMode = setupModeAi;
   String startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar;
   String victoryCondition = OpenDeadlockGame.victoryConditionAny;
+  String scoreLimit = GameSetup.scoreLimitNone;
   String startingIntel = GameSetup.startingIntelHomeRegion;
   String startingResources = GameSetup.startingResourcesStandard;
   late final TextEditingController worldSeedController;
@@ -163,6 +164,17 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                       },
                     ),
                     _SetupDropdown(
+                      label: 'Score',
+                      value: scoreLimit,
+                      items: GameSetup.scoreLimitOptions,
+                      labelFor: GameSetup.scoreLimitLabelFor,
+                      onChanged: (value) {
+                        setState(() {
+                          scoreLimit = value;
+                        });
+                      },
+                    ),
+                    _SetupDropdown(
                       label: 'Intel',
                       value: startingIntel,
                       items: GameSetup.startingIntelOptions,
@@ -211,6 +223,10 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                       value: GameSetup.victoryConditionDescriptionFor(
                         victoryCondition,
                       ),
+                    ),
+                    _SetupReadout(
+                      label: 'Score',
+                      value: GameSetup.scoreLimitDescriptionFor(scoreLimit),
                     ),
                     _SetupReadout(
                       label: 'Intel',
@@ -593,6 +609,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
       worldSeed: _worldSeed(),
       startingDiplomacy: startingDiplomacy,
       victoryCondition: victoryCondition,
+      scoreLimit: scoreLimit,
       startingIntel: startingIntel,
       startingResources: startingResources,
       factions: <GameSetupFaction>[

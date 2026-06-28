@@ -29,6 +29,7 @@ void main() {
     expect(game.areAtWar('humans', 'rebels'), isTrue);
     expect(game.sessionId, 'sample-skirmish');
     expect(game.victoryCondition, OpenDeadlockGame.victoryConditionAny);
+    expect(game.scoreTurnLimit, 0);
   });
 
   test('endTurn advances production and stores a report', () {
@@ -96,6 +97,7 @@ void main() {
     expect(restored.diplomacyStatusBetween('humans', 'rebels'),
         game.diplomacyStatusBetween('humans', 'rebels'));
     expect(restored.victoryCondition, game.victoryCondition);
+    expect(restored.scoreTurnLimit, game.scoreTurnLimit);
     expect(restored.commandHistory.length, game.commandHistory.length);
     expect(restored.reports.first.title, game.reports.first.title);
   });
@@ -191,6 +193,7 @@ void main() {
     expect(restored.colonyById('new-haven').assignedSectors, isEmpty);
     expect(restored.diplomacy, isEmpty);
     expect(restored.areAtWar('humans', 'rebels'), isTrue);
+    expect(restored.scoreTurnLimit, 0);
   });
 
   test('game setup can round-trip and build a configured new game', () {
@@ -246,6 +249,7 @@ void main() {
     expect(restored.mapSize, GameSetup.mapSizeFrontier);
     expect(restored.planetType, GameSetup.planetTypeAncient);
     expect(restored.victoryCondition, OpenDeadlockGame.victoryConditionAny);
+    expect(restored.scoreLimit, GameSetup.scoreLimitNone);
     expect(restored.startingIntel, GameSetup.startingIntelHomeRegion);
     expect(restored.startingResources, GameSetup.startingResourcesStandard);
     expect(GameSetup.traitLabelFor('agrarian'), 'Agrarian');
@@ -279,6 +283,7 @@ void main() {
     expect(game.width, 12);
     expect(game.height, 8);
     expect(game.victoryCondition, OpenDeadlockGame.victoryConditionAny);
+    expect(game.scoreTurnLimit, 0);
     expect(game.sessionId, 'setup-frontier-ancient-humans-rebels-traders-maug');
     expect(game.tileAt(0, 0).terrain, 'ruins');
     expect(game.tileAt(0, 0).yields.research, 4);
@@ -307,6 +312,8 @@ void main() {
     expect(game.areAtWar('traders', 'maug'), isTrue);
     expect(game.commandHistory, isEmpty);
     expect(game.reports.first.title, 'Planetfall complete');
+    expect(
+        game.reports.first.message, contains('Score limit: No Score Limit.'));
     expect(game.reports.first.message, contains('Map intel: Home Region.'));
     expect(
       game.reports.first.message,
@@ -470,6 +477,67 @@ void main() {
     );
     expect(GameSetup.victoryConditionLabelFor(conquestGame.victoryCondition),
         'Conquest');
+  });
+
+  test('game setup can choose score limits', () {
+    const quickScoreSetup = GameSetup(
+      mapSize: GameSetup.mapSizeStandard,
+      planetType: GameSetup.planetTypeTerran,
+      scoreLimit: GameSetup.scoreLimitQuick,
+      factions: <GameSetupFaction>[
+        GameSetupFaction(
+          id: 'humans',
+          name: 'Human',
+          colorValue: 0xFF2F80ED,
+          raceId: 'human',
+          controlMode: Faction.controlLocal,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['scholars'],
+        ),
+        GameSetupFaction(
+          id: 'rebels',
+          name: 'Tarth',
+          colorValue: 0xFFB83232,
+          raceId: 'tarth',
+          controlMode: Faction.controlComputer,
+          difficulty: Faction.difficultyNormal,
+          traitIds: <String>['militarists'],
+        ),
+      ],
+    );
+    final restoredQuick = GameSetup.fromJson(quickScoreSetup.toJson());
+    final quickScoreGame = restoredQuick.buildGame();
+
+    expect(restoredQuick.scoreLimit, GameSetup.scoreLimitQuick);
+    expect(
+        GameSetup.scoreLimitLabelFor(restoredQuick.scoreLimit), 'Quick Score');
+    expect(
+      GameSetup.scoreLimitDescriptionFor(restoredQuick.scoreLimit),
+      'Highest score wins when turn 20 begins if no faction wins earlier.',
+    );
+    expect(GameSetup.scoreTurnLimitFor(restoredQuick.scoreLimit), 20);
+    expect(quickScoreGame.scoreTurnLimit, 20);
+    expect(
+      quickScoreGame.sessionId,
+      'setup-standard-terran-score20-humans-rebels',
+    );
+    expect(quickScoreGame.reports.first.message,
+        contains('Score limit: Quick Score.'));
+
+    final longScoreGame = GameSetup(
+      mapSize: quickScoreSetup.mapSize,
+      planetType: quickScoreSetup.planetType,
+      scoreLimit: GameSetup.scoreLimitLong,
+      factions: quickScoreSetup.factions,
+    ).buildGame();
+
+    expect(longScoreGame.scoreTurnLimit, 80);
+    expect(
+      longScoreGame.sessionId,
+      'setup-standard-terran-score80-humans-rebels',
+    );
+    expect(
+        GameSetup.scoreLimitLabelFor(GameSetup.scoreLimitLong), 'Long Score');
   });
 
   test('game setup can choose starting map intel', () {
@@ -696,6 +764,34 @@ void main() {
         mapSize: GameSetup.mapSizeStandard,
         planetType: GameSetup.planetTypeTerran,
         victoryCondition: 'score',
+        factions: <GameSetupFaction>[
+          GameSetupFaction(
+            id: 'humans',
+            name: 'The Chosen',
+            colorValue: 0xFF2F80ED,
+            raceId: 'human',
+            controlMode: Faction.controlLocal,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>[],
+          ),
+          GameSetupFaction(
+            id: 'rebels',
+            name: 'Crimson Pact',
+            colorValue: 0xFFB83232,
+            raceId: 'tarth',
+            controlMode: Faction.controlComputer,
+            difficulty: Faction.difficultyNormal,
+            traitIds: <String>['industrialists'],
+          ),
+        ],
+      ).buildGame(),
+      throwsArgumentError,
+    );
+    expect(
+      () => const GameSetup(
+        mapSize: GameSetup.mapSizeStandard,
+        planetType: GameSetup.planetTypeTerran,
+        scoreLimit: 'sudden',
         factions: <GameSetupFaction>[
           GameSetupFaction(
             id: 'humans',
@@ -2211,6 +2307,33 @@ void main() {
     expect(conquered.winningVictoryType, isNull);
     expect(conquered.winningFactionId, isNull);
     expect(conquered.isGameOver, isFalse);
+  });
+
+  test('score limit awards the highest score after the turn limit', () {
+    final beforeLimit = OpenDeadlockGame.sample().copyWith(
+      turn: 19,
+      scoreTurnLimit: 20,
+    );
+    final atLimit = beforeLimit.copyWith(turn: 20);
+
+    expect(beforeLimit.scoreVictoryFactionId, isNull);
+    expect(beforeLimit.winningVictoryType, isNull);
+    expect(beforeLimit.isGameOver, isFalse);
+
+    expect(atLimit.scoreVictoryFactionId, 'humans');
+    expect(atLimit.winningVictoryType, OpenDeadlockGame.victoryTypeScore);
+    expect(atLimit.winningFactionId, 'humans');
+    expect(atLimit.winningVictoryMessage,
+        'Human Assembly has the highest score at turn 20.');
+    expect(atLimit.isGameOver, isTrue);
+
+    final afterProduction = beforeLimit.endTurn();
+    expect(afterProduction.turn, 20);
+    expect(
+        afterProduction.winningVictoryType, OpenDeadlockGame.victoryTypeScore);
+    expect(afterProduction.reports.first.title, 'Human Assembly wins');
+    expect(afterProduction.reports.first.message,
+        'Human Assembly has the highest score at turn 20.');
   });
 
   test('faction traits add production bonuses', () {

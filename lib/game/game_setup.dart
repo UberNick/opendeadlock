@@ -61,6 +61,7 @@ class GameSetup {
     this.worldSeed = 0,
     this.startingDiplomacy = OpenDeadlockGame.diplomacyStatusWar,
     this.victoryCondition = OpenDeadlockGame.victoryConditionAny,
+    this.scoreLimit = scoreLimitNone,
     this.startingIntel = startingIntelHomeRegion,
     this.startingResources = startingResourcesStandard,
   });
@@ -78,6 +79,10 @@ class GameSetup {
   static const String startingResourcesScarce = 'scarce';
   static const String startingResourcesStandard = 'standard';
   static const String startingResourcesAbundant = 'abundant';
+  static const String scoreLimitNone = 'none';
+  static const String scoreLimitQuick = 'quick';
+  static const String scoreLimitStandard = 'standard';
+  static const String scoreLimitLong = 'long';
   static const List<String> mapSizes = <String>[
     mapSizeSkirmish,
     mapSizeStandard,
@@ -99,12 +104,25 @@ class GameSetup {
     startingResourcesStandard,
     startingResourcesAbundant,
   ];
+  static const List<String> scoreLimitOptions = <String>[
+    scoreLimitNone,
+    scoreLimitQuick,
+    scoreLimitStandard,
+    scoreLimitLong,
+  ];
+  static const Map<String, int> _scoreTurnLimits = <String, int>{
+    scoreLimitNone: 0,
+    scoreLimitQuick: 20,
+    scoreLimitStandard: 40,
+    scoreLimitLong: 80,
+  };
 
   final String mapSize;
   final String planetType;
   final int worldSeed;
   final String startingDiplomacy;
   final String victoryCondition;
+  final String scoreLimit;
   final String startingIntel;
   final String startingResources;
   final List<GameSetupFaction> factions;
@@ -115,6 +133,7 @@ class GameSetup {
       planetType: planetTypeTerran,
       startingDiplomacy: OpenDeadlockGame.diplomacyStatusWar,
       victoryCondition: OpenDeadlockGame.victoryConditionAny,
+      scoreLimit: scoreLimitNone,
       startingIntel: startingIntelHomeRegion,
       startingResources: startingResourcesStandard,
       factions: <GameSetupFaction>[
@@ -195,6 +214,22 @@ class GameSetup {
       return 'Abundant Supplies';
     }
     return startingResources;
+  }
+
+  static String scoreLimitLabelFor(String scoreLimit) {
+    if (scoreLimit == scoreLimitNone) {
+      return 'No Score Limit';
+    }
+    if (scoreLimit == scoreLimitQuick) {
+      return 'Quick Score';
+    }
+    if (scoreLimit == scoreLimitStandard) {
+      return 'Standard Score';
+    }
+    if (scoreLimit == scoreLimitLong) {
+      return 'Long Score';
+    }
+    return scoreLimit;
   }
 
   static int widthFor(String mapSize) {
@@ -281,6 +316,22 @@ class GameSetup {
       return 'Only completing every core research project ends the game.';
     }
     throw ArgumentError('Unknown victory condition: $victoryCondition.');
+  }
+
+  static int scoreTurnLimitFor(String scoreLimit) {
+    final turnLimit = _scoreTurnLimits[scoreLimit];
+    if (turnLimit == null) {
+      throw ArgumentError('Unknown score limit: $scoreLimit.');
+    }
+    return turnLimit;
+  }
+
+  static String scoreLimitDescriptionFor(String scoreLimit) {
+    final turnLimit = scoreTurnLimitFor(scoreLimit);
+    if (turnLimit == 0) {
+      return 'Scores never end the game.';
+    }
+    return 'Highest score wins when turn $turnLimit begins if no faction wins earlier.';
   }
 
   static String startingIntelDescriptionFor(String startingIntel) {
@@ -396,6 +447,7 @@ class GameSetup {
       'worldSeed': worldSeed,
       'startingDiplomacy': startingDiplomacy,
       'victoryCondition': victoryCondition,
+      'scoreLimit': scoreLimit,
       'startingIntel': startingIntel,
       'startingResources': startingResources,
       'factions': factions.map((faction) => faction.toJson()).toList(),
@@ -412,6 +464,7 @@ class GameSetup {
           OpenDeadlockGame.diplomacyStatusWar,
       victoryCondition: json['victoryCondition'] as String? ??
           OpenDeadlockGame.victoryConditionAny,
+      scoreLimit: json['scoreLimit'] as String? ?? scoreLimitNone,
       startingIntel:
           json['startingIntel'] as String? ?? startingIntelHomeRegion,
       startingResources:
@@ -438,6 +491,9 @@ class GameSetup {
     }
     if (!OpenDeadlockGame.victoryConditions.contains(victoryCondition)) {
       throw ArgumentError('Unknown victory condition: $victoryCondition.');
+    }
+    if (!scoreLimitOptions.contains(scoreLimit)) {
+      throw ArgumentError('Unknown score limit: $scoreLimit.');
     }
     if (!startingIntelOptions.contains(startingIntel)) {
       throw ArgumentError('Unknown starting intel: $startingIntel.');
@@ -604,6 +660,7 @@ class GameSetup {
       height: height,
       activeFactionId: factions.first.id,
       victoryCondition: victoryCondition,
+      scoreTurnLimit: scoreTurnLimitFor(scoreLimit),
       factions: gameFactions,
       tiles: tiles,
       colonies: colonies,
@@ -617,6 +674,7 @@ class GameSetup {
               '${factions.length} factions have established starting colonies. '
               'Starting relations: ${startingDiplomacyLabelFor(startingDiplomacy)}. '
               'Victory condition: ${victoryConditionLabelFor(victoryCondition)}. '
+              'Score limit: ${scoreLimitLabelFor(scoreLimit)}. '
               'Map intel: ${startingIntelLabelFor(startingIntel)}. '
               'Supplies: ${startingResourcesLabelFor(startingResources)}.',
         ),
@@ -634,6 +692,9 @@ class GameSetup {
         setup.victoryCondition == OpenDeadlockGame.victoryConditionAny
             ? ''
             : '-${setup.victoryCondition}';
+    final scoreSlug = setup.scoreLimit == scoreLimitNone
+        ? ''
+        : '-score${scoreTurnLimitFor(setup.scoreLimit)}';
     final intelSlug = setup.startingIntel == startingIntelHomeRegion
         ? ''
         : '-${setup.startingIntel}intel';
@@ -641,9 +702,9 @@ class GameSetup {
         ? ''
         : '-${setup.startingResources}res';
     if (setup.worldSeed != 0) {
-      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug$resourcesSlug-seed${setup.worldSeed}-$factionIds';
+      return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$scoreSlug$intelSlug$resourcesSlug-seed${setup.worldSeed}-$factionIds';
     }
-    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$intelSlug$resourcesSlug-$factionIds';
+    return 'setup-${setup.mapSize}-${setup.planetType}$diplomacySlug$victorySlug$scoreSlug$intelSlug$resourcesSlug-$factionIds';
   }
 
   static bool _startingIntelRevealsTile(

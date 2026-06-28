@@ -1460,6 +1460,42 @@ void main() {
     );
   });
 
+  testWidgets('game screen shows score victory route', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final scoreWinner = OpenDeadlockGame.sample(
+      sessionId: 'score-victory-ui',
+    ).copyWith(
+      turn: 20,
+      scoreTurnLimit: 20,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: scoreWinner,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Human Assembly wins'), findsWidgets);
+    expect(find.text('Human Assembly has the highest score at turn 20.'),
+        findsOneWidget);
+    expect(find.text('Victory Type'), findsOneWidget);
+    expect(find.text('Score'), findsWidgets);
+    expect(find.text('Held the highest score when the turn limit expired'),
+        findsOneWidget);
+  });
+
   testWidgets('selected local unit shows legal movement hints', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 720);

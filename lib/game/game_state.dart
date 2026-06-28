@@ -1855,6 +1855,7 @@ class OpenDeadlockGame {
     required this.commandHistory,
     required this.reports,
     this.victoryCondition = 'any',
+    this.scoreTurnLimit = 0,
   });
 
   final String sessionId;
@@ -1863,6 +1864,7 @@ class OpenDeadlockGame {
   final int height;
   final String activeFactionId;
   final String victoryCondition;
+  final int scoreTurnLimit;
   final List<Faction> factions;
   final List<PlanetTile> tiles;
   final List<Colony> colonies;
@@ -1989,6 +1991,7 @@ class OpenDeadlockGame {
 
   static const String victoryTypeConquest = 'conquest';
   static const String victoryTypeScience = 'science';
+  static const String victoryTypeScore = 'score';
   static const String victoryConditionAny = 'any';
   static const String victoryConditionConquest = victoryTypeConquest;
   static const String victoryConditionScience = victoryTypeScience;
@@ -2940,12 +2943,28 @@ class OpenDeadlockGame {
     return null;
   }
 
+  String? get scoreVictoryFactionId {
+    if (scoreTurnLimit <= 0 || turn < scoreTurnLimit) {
+      return null;
+    }
+
+    for (final score in factionScores()) {
+      if (!score.isDefeated) {
+        return score.factionId;
+      }
+    }
+    return null;
+  }
+
   String? get winningVictoryType {
     if (_allowsConquestVictory && conquestVictoryFactionId != null) {
       return victoryTypeConquest;
     }
     if (_allowsScienceVictory && scienceVictoryFactionId != null) {
       return victoryTypeScience;
+    }
+    if (scoreVictoryFactionId != null) {
+      return victoryTypeScore;
     }
     return null;
   }
@@ -2968,6 +2987,9 @@ class OpenDeadlockGame {
     if (victoryType == victoryTypeScience) {
       return scienceVictoryFactionId;
     }
+    if (victoryType == victoryTypeScore) {
+      return scoreVictoryFactionId;
+    }
     return null;
   }
 
@@ -2987,6 +3009,9 @@ class OpenDeadlockGame {
     }
     if (victoryType == victoryTypeConquest) {
       return '$winnerName controls every colony on the planet.';
+    }
+    if (victoryType == victoryTypeScore) {
+      return '$winnerName has the highest score at turn $scoreTurnLimit.';
     }
     return 'No faction has won yet.';
   }
@@ -3386,6 +3411,7 @@ class OpenDeadlockGame {
     int? turn,
     String? activeFactionId,
     String? victoryCondition,
+    int? scoreTurnLimit,
     List<Faction>? factions,
     List<PlanetTile>? tiles,
     List<Colony>? colonies,
@@ -3401,6 +3427,7 @@ class OpenDeadlockGame {
       height: height,
       activeFactionId: activeFactionId ?? this.activeFactionId,
       victoryCondition: victoryCondition ?? this.victoryCondition,
+      scoreTurnLimit: scoreTurnLimit ?? this.scoreTurnLimit,
       factions: factions ?? this.factions,
       tiles: tiles ?? this.tiles,
       colonies: colonies ?? this.colonies,
@@ -5002,6 +5029,7 @@ class OpenDeadlockGame {
       'height': height,
       'activeFactionId': activeFactionId,
       'victoryCondition': victoryCondition,
+      'scoreTurnLimit': scoreTurnLimit,
       'factions': factions.map((faction) => faction.toJson()).toList(),
       'tiles': tiles.map((tile) => tile.toJson()).toList(),
       'colonies': colonies.map((colony) => colony.toJson()).toList(),
@@ -5022,6 +5050,7 @@ class OpenDeadlockGame {
       activeFactionId: json['activeFactionId'] as String,
       victoryCondition:
           _knownVictoryConditionOrDefault(json['victoryCondition'] as String?),
+      scoreTurnLimit: _readScoreTurnLimit(json['scoreTurnLimit']),
       factions: (json['factions'] as List<dynamic>)
           .map((faction) => Faction.fromJson(faction as Map<String, dynamic>))
           .toList(),
@@ -5195,6 +5224,7 @@ class OpenDeadlockGame {
       height: height,
       activeFactionId: activeFactionId,
       victoryCondition: victoryCondition,
+      scoreTurnLimit: scoreTurnLimit,
       factions: updatedFactions,
       tiles: _tilesWithAllianceIntelShared(tiles),
       colonies: updatedColonies,
@@ -7415,6 +7445,17 @@ int _readInt(Object? value) {
     return value.toInt();
   }
   throw ArgumentError('Expected an integer-compatible value, got $value.');
+}
+
+int _readScoreTurnLimit(Object? value) {
+  if (value == null) {
+    return 0;
+  }
+  final limit = _readInt(value);
+  if (limit < 0) {
+    throw ArgumentError('Score turn limit cannot be negative.');
+  }
+  return limit;
 }
 
 String _legacySessionIdFor(Map<String, dynamic> json) {

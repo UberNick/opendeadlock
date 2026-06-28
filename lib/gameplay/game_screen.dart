@@ -5229,6 +5229,9 @@ class _PostGameStatsDetail extends StatelessWidget {
     if (victoryType == OpenDeadlockGame.victoryTypeConquest) {
       return 'Conquest';
     }
+    if (victoryType == OpenDeadlockGame.victoryTypeScore) {
+      return 'Score';
+    }
     return 'Undecided';
   }
 
@@ -5239,6 +5242,9 @@ class _PostGameStatsDetail extends StatelessWidget {
     }
     if (victoryType == OpenDeadlockGame.victoryTypeConquest) {
       return 'Controlled every colony on the planet';
+    }
+    if (victoryType == OpenDeadlockGame.victoryTypeScore) {
+      return 'Held the highest score when the turn limit expired';
     }
     return 'No victory route completed';
   }

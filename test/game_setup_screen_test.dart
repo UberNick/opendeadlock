@@ -31,6 +31,7 @@ void main() {
     );
     expect(find.text('All factions begin at war.'), findsOneWidget);
     expect(find.text('Conquest or science can win the game.'), findsOneWidget);
+    expect(find.text('Scores never end the game.'), findsOneWidget);
     expect(
       find.text('Each faction knows the sectors around its capital.'),
       findsOneWidget,
@@ -75,6 +76,16 @@ void main() {
     );
     expect(
       find.text('Only completing every core research project ends the game.'),
+      findsOneWidget,
+    );
+    await _selectDropdownOption(
+      tester,
+      currentLabel: 'No Score Limit',
+      optionLabel: 'Quick Score',
+    );
+    expect(
+      find.text(
+          'Highest score wins when turn 20 begins if no faction wins earlier.'),
       findsOneWidget,
     );
     await _selectDropdownOption(
@@ -157,6 +168,7 @@ void main() {
     expect(gameScreen.initialGame.units.length, 4);
     expect(gameScreen.initialGame.victoryCondition,
         OpenDeadlockGame.victoryConditionScience);
+    expect(gameScreen.initialGame.scoreTurnLimit, 20);
     expect(
       gameScreen.initialGame.factionById('humans')!.resources.toJson(),
       <String, dynamic>{
