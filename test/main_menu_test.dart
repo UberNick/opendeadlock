@@ -8,6 +8,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('main menu continues the latest local save', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+    final store = GameSaveStore(preferences);
+    final olderGame = OpenDeadlockGame.sample(sessionId: 'menu-continue-old');
+    final latestGame = OpenDeadlockGame.sample(sessionId: 'menu-continue-new')
+        .applyCommand(const EndTurnCommand(factionId: 'humans'));
+
+    await store.saveGame(
+      olderGame,
+      slotId: 'older-slot',
+      name: 'Older Slot',
+      updatedAt: DateTime.utc(2026, 6, 28, 3, 10),
+    );
+    await store.saveGame(
+      latestGame,
+      slotId: 'latest-slot',
+      name: 'Latest Slot',
+      updatedAt: DateTime.utc(2026, 6, 28, 4, 10),
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue'), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byTooltip('Sync'), findsOneWidget);
+    expect(find.text('Turn 2'), findsWidgets);
+    expect(find.textContaining('Human Assembly'), findsWidgets);
+  });
+
+  testWidgets('main menu reports when continue has no local save',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('No local save found'), findsOneWidget);
+  });
+
   testWidgets('main menu joins a game from an invite code', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final invite = GameCodec.encodeShareCode(

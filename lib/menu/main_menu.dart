@@ -53,6 +53,11 @@ class _MainMenuState extends State<MainMenu> {
                           Column(
                             children: [
                               _MenuButton(
+                                label: 'Continue',
+                                onPressed: _continueLatestGame,
+                              ),
+                              const SizedBox(height: 5),
+                              _MenuButton(
                                 label: 'Quick Start',
                                 onPressed: () {
                                   Navigator.push(
@@ -158,6 +163,38 @@ class _MainMenuState extends State<MainMenu> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not join game: $error')),
+      );
+    }
+  }
+
+  Future<void> _continueLatestGame() async {
+    try {
+      final store = await GameSaveStore.load();
+      final game = await store.loadLatestGame();
+      if (!mounted) {
+        return;
+      }
+      if (game == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No local save found')),
+        );
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GameScreen(
+            initialGame: game,
+            resumeLatestSave: false,
+          ),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not continue local save: $error')),
       );
     }
   }
