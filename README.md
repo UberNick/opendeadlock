@@ -13,6 +13,12 @@ mobile.
 These commands bring up the playable prototype from PR #2 at a predictable local
 URL. They are written for a fresh checkout of Nick's upstream repository.
 
+Review snapshot:
+
+* Pull request: https://github.com/UberNick/opendeadlock/pull/2
+* Review branch: `hashkanna:kanna/playable-prototype`
+* Local review URL: `http://127.0.0.1:8080/`
+
 ### Requirements
 
 * Flutter SDK: https://docs.flutter.dev/get-started/install
@@ -48,7 +54,8 @@ http://127.0.0.1:8080/
 ```
 
 Flutter usually opens Chrome automatically, but the URL above is the stable local
-address for this review session.
+address for this review session. Keep the Flutter terminal process running while
+reviewing the app; press `Ctrl-C` in that terminal when you are done.
 
 If you do not have GitHub CLI, fetch the pull request ref directly:
 
@@ -73,6 +80,9 @@ git switch -c review-kanna-playable-prototype FETCH_HEAD
 flutter pub get
 flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
 ```
+
+Use this path if `gh pr checkout 2` is unavailable or GitHub CLI is not logged
+in.
 
 If port `8080` is already in use, use another port:
 
