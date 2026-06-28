@@ -3229,6 +3229,7 @@ class _MapTileButton extends StatelessWidget {
         : actionHint == _TileActionHint.none
             ? 1.0
             : 2.0;
+    final textureAsset = isKnown ? _terrainTextureAssetFor(tile.terrain) : null;
 
     final tileButton = InkWell(
       onTap: onTap,
@@ -3241,6 +3242,16 @@ class _MapTileButton extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
+            if (textureAsset != null)
+              Positioned.fill(
+                child: Image.asset(
+                  textureAsset,
+                  key: ValueKey<String>('terrain-texture-${tile.x}-${tile.y}'),
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  excludeFromSemantics: true,
+                ),
+              ),
             Positioned.fill(
               child: CustomPaint(
                 key: ValueKey<String>('terrain-${tile.x}-${tile.y}'),
@@ -3252,6 +3263,7 @@ class _MapTileButton extends StatelessWidget {
                   ownerColor: ownerColor,
                   overlayMode: overlayMode,
                   isSelected: isSelected,
+                  hasTexture: textureAsset != null,
                 ),
               ),
             ),
@@ -3544,6 +3556,25 @@ class _MapTileButton extends StatelessWidget {
     }
     return '${terrain[0].toUpperCase()}${terrain.substring(1)}';
   }
+
+  String? _terrainTextureAssetFor(String terrain) {
+    if (terrain == 'plains') {
+      return 'assets/images/terrain/plains.png';
+    }
+    if (terrain == 'forest') {
+      return 'assets/images/terrain/forest.png';
+    }
+    if (terrain == 'ridge') {
+      return 'assets/images/terrain/ridge.png';
+    }
+    if (terrain == 'water') {
+      return 'assets/images/terrain/water.png';
+    }
+    if (terrain == 'ruins') {
+      return 'assets/images/terrain/ruins.png';
+    }
+    return null;
+  }
 }
 
 class _TerrainTilePainter extends CustomPainter {
@@ -3555,6 +3586,7 @@ class _TerrainTilePainter extends CustomPainter {
     required this.ownerColor,
     required this.overlayMode,
     required this.isSelected,
+    required this.hasTexture,
   });
 
   final String terrain;
@@ -3564,6 +3596,7 @@ class _TerrainTilePainter extends CustomPainter {
   final Color? ownerColor;
   final _MapOverlayMode overlayMode;
   final bool isSelected;
+  final bool hasTexture;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -3574,7 +3607,13 @@ class _TerrainTilePainter extends CustomPainter {
     final accentColor =
         isKnown ? _terrainAccentColor(terrain) : const Color(0xFF151A1F);
 
-    canvas.drawRect(rect, Paint()..color = baseColor);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = hasTexture && isKnown
+            ? baseColor.withValues(alpha: 0.28)
+            : baseColor,
+    );
     _drawShading(canvas, size, baseColor);
     if (isKnown) {
       _drawTerrainPattern(canvas, size, terrain, accentColor);
@@ -3603,7 +3642,8 @@ class _TerrainTilePainter extends CustomPainter {
         oldDelegate.isVisible != isVisible ||
         oldDelegate.ownerColor != ownerColor ||
         oldDelegate.overlayMode != overlayMode ||
-        oldDelegate.isSelected != isSelected;
+        oldDelegate.isSelected != isSelected ||
+        oldDelegate.hasTexture != hasTexture;
   }
 
   static Color _terrainBaseColor(String terrain) {

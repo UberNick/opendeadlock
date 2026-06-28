@@ -23,4 +23,5 @@ flutter:
   uses-material-design: true
   assets:
      - assets/images/
+     - assets/images/terrain/
      - docs/reference/legacy-screenshots/nick-2026-06-27/

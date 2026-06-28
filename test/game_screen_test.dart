@@ -299,6 +299,8 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey<String>('terrain-2-2')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('terrain-texture-2-2')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey<String>('terrain-badge-2-2')),
         findsOneWidget);
     expect(find.byTooltip('Forest'), findsWidgets);
