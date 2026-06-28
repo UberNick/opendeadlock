@@ -2403,6 +2403,64 @@ void main() {
     expect(find.text('AI Orders'), findsNothing);
   });
 
+  testWidgets('computer AI plan explains diplomacy reasons', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final sample = OpenDeadlockGame.sample(sessionId: 'ai-plan-reasons');
+    final traderGame = sample.copyWith(
+      activeFactionId: 'rebels',
+      diplomacy: const <DiplomacyRelation>[
+        DiplomacyRelation(
+          factionAId: 'humans',
+          factionBId: 'rebels',
+          status: OpenDeadlockGame.diplomacyStatusPeace,
+        ),
+      ],
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'rebels') {
+          return faction;
+        }
+        return faction.copyWith(
+          aiPersonality: Faction.aiPersonalityTrader,
+          resources: faction.resources.copyWith(credits: 8),
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != 'rebels') {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: traderGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text('AI Orders'),
+      find.byType(ListView),
+      const Offset(0, -420),
+      maxIteration: 10,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.text('Diplomacy with Human Assembly: Alliance'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Trader profile expects +2 credits/turn and shared map intel.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('game screen can load an invite from typed sync code',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

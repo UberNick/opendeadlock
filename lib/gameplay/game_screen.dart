@@ -6776,6 +6776,7 @@ class _ComputerOrdersDetail extends StatelessWidget {
                 factionName: faction.name,
                 category: _aiPlanCategoryFor(game, entry.value),
                 summary: _commandSummaryFor(game, entry.value),
+                reason: _aiPlanReasonFor(game, entry.value),
               );
             }),
           if (plannedCommands.length > 6)
@@ -6866,12 +6867,14 @@ class _ComputerOrderLine extends StatelessWidget {
     required this.factionName,
     required this.category,
     required this.summary,
+    required this.reason,
   }) : super(key: key);
 
   final int index;
   final String factionName;
   final String category;
   final String summary;
+  final String reason;
 
   @override
   Widget build(BuildContext context) {
@@ -6906,6 +6909,16 @@ class _ComputerOrderLine extends StatelessWidget {
                   summary,
                   style: const TextStyle(color: Color(0xFFE9EEF2)),
                 ),
+                if (reason.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    reason,
+                    style: const TextStyle(
+                      color: Color(0xFFB8C6D1),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 2),
                 Wrap(
                   spacing: 6,
@@ -7114,6 +7127,129 @@ String? _unitOwnerIdFor(OpenDeadlockGame game, String unitId) {
     }
   }
   return null;
+}
+
+String _aiPlanReasonFor(OpenDeadlockGame game, GameCommand command) {
+  final faction = game.factionById(command.factionId);
+  final profile = faction == null
+      ? 'AI'
+      : Faction.aiPersonalityLabelFor(faction.aiPersonality);
+
+  if (command is SetDiplomacyStatusCommand) {
+    return _diplomacyPlanReasonFor(game, command, profile);
+  }
+  if (command is SetResearchProjectCommand) {
+    return 'Research effect: ${OpenDeadlockGame.researchDescriptionFor(command.researchProject)}';
+  }
+  if (command is FundResearchCommand) {
+    final faction = game.factionById(command.factionId);
+    final project = faction?.researchProject ?? 'current project';
+    return 'Uses credits to close the $project research gap.';
+  }
+  if (command is SetFactionTaxPolicyCommand) {
+    return 'Policy effect: ${Faction.taxPolicyDescriptionFor(command.taxPolicy)}';
+  }
+  if (command is SetColonyConstructionCommand) {
+    return 'Build target: ${OpenDeadlockGame.constructionProducesDescriptionFor(command.construction)}.';
+  }
+  if (command is RushConstructionCommand) {
+    final cost = OpenDeadlockGame.rushConstructionCostFor(command.industry);
+    return 'Spends $cost credits to add ${command.industry} industry now.';
+  }
+  if (command is SetColonyFocusCommand) {
+    return 'Focus effect: ${OpenDeadlockGame.colonyFocusDescriptionFor(command.focus)}';
+  }
+  if (command is SetColonySectorAssignmentCommand) {
+    final tile = game.tileAt(command.x, command.y);
+    return command.assigned
+        ? 'Works ${_tileYieldLabel(tile.yields)} before the next turn.'
+        : 'Frees this worked sector for reassignment.';
+  }
+  if (command is ScanFactionIntelCommand) {
+    final revealable = game.intelScanRevealableSectorCountFor(
+      command.factionId,
+      command.targetFactionId,
+    );
+    return 'Reveals $revealable hidden sector(s) before tactical planning.';
+  }
+  if (command is SabotageColonyCommand) {
+    final target =
+        game.sabotageTargetFor(command.factionId, command.targetFactionId);
+    if (target == null) {
+      return 'Looks for visible enemy construction to disrupt.';
+    }
+    return 'Targets ${target.colonyName} for ${target.damage} stored industry damage.';
+  }
+  if (command is MoveUnitCommand) {
+    if (_aiPlanCategoryFor(game, command) == 'Combat') {
+      return 'Attacks an adjacent wartime target.';
+    }
+    return 'Moves toward expansion, defense, or known wartime contact.';
+  }
+  if (command is RecoverUnitCommand) {
+    return 'Restores health instead of taking a low-value action.';
+  }
+  if (command is FoundColonyCommand) {
+    return 'Claims a viable frontier site for expansion.';
+  }
+  return '';
+}
+
+String _diplomacyPlanReasonFor(
+  OpenDeadlockGame game,
+  SetDiplomacyStatusCommand command,
+  String profile,
+) {
+  final currentStatus = game.diplomacyStatusBetween(
+    command.factionId,
+    command.targetFactionId,
+  );
+  final currentTrade =
+      game.treatyTradeCreditsFor(command.factionId, command.targetFactionId);
+  final projectedTrade = _projectedTradeCreditsForStatus(
+    game,
+    command.factionId,
+    command.status,
+  );
+  final tradeDelta = projectedTrade - currentTrade;
+
+  if (command.status == OpenDeadlockGame.diplomacyStatusAlliance) {
+    if (tradeDelta > 0) {
+      return '$profile profile expects +$tradeDelta credits/turn and shared map intel.';
+    }
+    return '$profile profile wants shared map intel.';
+  }
+  if (command.status == OpenDeadlockGame.diplomacyStatusPeace &&
+      currentStatus == OpenDeadlockGame.diplomacyStatusWar) {
+    if (tradeDelta > 0) {
+      return '$profile profile lowers war pressure and adds +$tradeDelta credits/turn.';
+    }
+    return '$profile profile lowers war pressure.';
+  }
+  if (command.status == OpenDeadlockGame.diplomacyStatusWar) {
+    final strengthDelta = game.militaryStrengthFor(command.factionId) -
+        game.militaryStrengthFor(command.targetFactionId);
+    if (strengthDelta > 0) {
+      return '$profile profile sees +$strengthDelta military strength before attacking.';
+    }
+    return '$profile profile is willing to reopen hostilities.';
+  }
+  return '$profile profile changes relations from '
+      '${OpenDeadlockGame.diplomacyStatusLabelFor(currentStatus)} to '
+      '${OpenDeadlockGame.diplomacyStatusLabelFor(command.status)}.';
+}
+
+int _projectedTradeCreditsForStatus(
+  OpenDeadlockGame game,
+  String factionId,
+  String status,
+) {
+  final colonyCount = game.worldSummaryFor(factionId).colonyCount;
+  return colonyCount * game.tradeCreditsPerColonyForStatus(status);
+}
+
+String _tileYieldLabel(TileYield yields) {
+  return '${yields.food} food / ${yields.industry} industry / ${yields.research} research';
 }
 
 String _commandSummaryFor(OpenDeadlockGame game, GameCommand command) {
