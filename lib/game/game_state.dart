@@ -4770,6 +4770,9 @@ class OpenDeadlockGame {
         planningColony,
         tile,
         faction,
+        hasMaintenanceShortfall: planningGame
+            .colonyProductionFor(planningColony)
+            .hasMaintenanceShortfall,
         isThreatened: planningGame._isColonyThreatened(planningColony),
         isSabotageExposed:
             planningGame._isColonySabotageExposed(planningColony),
@@ -6085,6 +6088,7 @@ class OpenDeadlockGame {
     Colony colony,
     PlanetTile tile,
     Faction? faction, {
+    bool hasMaintenanceShortfall = false,
     bool isThreatened = false,
     bool isSabotageExposed = false,
   }) {
@@ -6111,6 +6115,9 @@ class OpenDeadlockGame {
       if (residentialConstruction != null) {
         candidates.add(residentialConstruction);
       }
+    }
+    if (hasMaintenanceShortfall) {
+      candidates.addAll(_upkeepRecoveryConstructionPriorities);
     }
     if (faction != null) {
       candidates.addAll(_personalityConstructionPrioritiesFor(faction));
@@ -6174,6 +6181,12 @@ class OpenDeadlockGame {
     }
     return null;
   }
+
+  static const List<String> _upkeepRecoveryConstructionPriorities = <String>[
+    'Colony Hub',
+    'Housing',
+    'Scout Patrol',
+  ];
 
   static List<String> _personalityConstructionPrioritiesFor(Faction faction) {
     if (faction.aiPersonality == Faction.aiPersonalityConqueror) {

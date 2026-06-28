@@ -4767,6 +4767,67 @@ void main() {
     expect(constructionCommand.construction, 'Apartment Complex');
   });
 
+  test('computer colonies avoid new upkeep during maintenance shortfalls', () {
+    final sample = OpenDeadlockGame.sample();
+    final strained = sample.copyWith(
+      activeFactionId: 'rebels',
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'rebels') {
+          return faction;
+        }
+        return faction.copyWith(
+          raceId: 'maug',
+          difficulty: Faction.difficultyEasy,
+          resources: faction.resources.copyWith(credits: 4),
+          taxPolicy: Faction.taxPolicyHigh,
+          aiPersonality: Faction.aiPersonalityResearcher,
+          traitIds: const <String>['scholars'],
+        );
+      }).toList(),
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'redoubt') {
+          return colony;
+        }
+        return colony.copyWith(
+          morale: 40,
+          construction: 'Scout Patrol',
+          completedBuildings: const <String>[
+            'Apartment Complex',
+            'Luxury Housing',
+            'Farm Dome',
+            'Factory',
+            'Research Lab',
+            'Militia Post',
+            'Barracks',
+          ],
+          focus: OpenDeadlockGame.colonyFocusBalanced,
+        );
+      }).toList(),
+      units: sample.units.map((unit) {
+        if (unit.ownerId != 'rebels') {
+          return unit;
+        }
+        return unit.copyWith(movesRemaining: 0);
+      }).toList(),
+    );
+    final projection = strained.colonyProductionFor(
+      strained.colonyById('redoubt'),
+    );
+    final commands = strained.planComputerCommandsFor('rebels');
+    final constructionCommand =
+        commands.whereType<SetColonyConstructionCommand>().single;
+
+    expect(projection.foodBalance, isNot(lessThan(0)));
+    expect(projection.hasMaintenanceShortfall, isTrue);
+    expect(constructionCommand.factionId, 'rebels');
+    expect(constructionCommand.colonyId, 'redoubt');
+    expect(constructionCommand.construction, 'Colony Hub');
+    expect(
+      OpenDeadlockGame.constructionUpkeepFor(constructionCommand.construction),
+      0,
+    );
+  });
+
   test('militarist computer colonies build infantry after barracks', () {
     final sample = OpenDeadlockGame.sample();
     final militarist = sample.copyWith(
