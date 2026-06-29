@@ -3954,6 +3954,14 @@ void main() {
     expect(find.text('Industrial Automation - Next'), findsOneWidget);
     expect(find.text('Future Studies - Repeatable'), findsOneWidget);
     expect(
+      find.byKey(
+        const ValueKey<String>(
+          'research-catalog-select-Industrial Automation',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
       find.text('16 research / 48 credits from empty'),
       findsOneWidget,
     );
@@ -3971,6 +3979,20 @@ void main() {
           'Converts research into credits after the core tree is complete.'),
       findsWidgets,
     );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'research-catalog-select-Industrial Automation',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Industrial Automation - Current'), findsOneWidget);
+    expect(find.text('Defense Grid - Next'), findsOneWidget);
+    expect(find.text('Industrial Automation 7/12'), findsOneWidget);
   });
 
   testWidgets('game screen can run an active computer faction turn',

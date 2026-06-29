@@ -9333,7 +9333,11 @@ class _ResearchDetail extends StatelessWidget {
             (item) => _ResearchRoadmapRow(item: item),
           ),
           const SizedBox(height: 8),
-          _ResearchCatalogDetail(faction: faction),
+          _ResearchCatalogDetail(
+            faction: faction,
+            canEdit: canEdit,
+            onResearchChanged: onResearchChanged,
+          ),
           if (canEdit) ...[
             const SizedBox(height: 8),
             _DetailRow(
@@ -9409,9 +9413,13 @@ class _ResearchCatalogDetail extends StatelessWidget {
   const _ResearchCatalogDetail({
     Key? key,
     required this.faction,
+    required this.canEdit,
+    required this.onResearchChanged,
   }) : super(key: key);
 
   final Faction faction;
+  final bool canEdit;
+  final void Function(String researchProject) onResearchChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -9472,7 +9480,13 @@ class _ResearchCatalogDetail extends StatelessWidget {
               ),
             ),
             children: [
-              ...items.map((item) => _ResearchCatalogRow(item: item)),
+              ...items.map(
+                (item) => _ResearchCatalogRow(
+                  item: item,
+                  canEdit: canEdit,
+                  onResearchChanged: onResearchChanged,
+                ),
+              ),
             ],
           ),
         ),
@@ -9527,13 +9541,18 @@ class _ResearchCatalogRow extends StatelessWidget {
   const _ResearchCatalogRow({
     Key? key,
     required this.item,
+    required this.canEdit,
+    required this.onResearchChanged,
   }) : super(key: key);
 
   final _ResearchCatalogItem item;
+  final bool canEdit;
+  final void Function(String researchProject) onResearchChanged;
 
   @override
   Widget build(BuildContext context) {
     final color = _statusColor();
+    final canSelect = canEdit && item.status == _ResearchCatalogStatus.next;
     return Padding(
       padding: const EdgeInsets.only(top: 7),
       child: Row(
@@ -9576,6 +9595,15 @@ class _ResearchCatalogRow extends StatelessWidget {
               ],
             ),
           ),
+          if (canSelect) ...[
+            const SizedBox(width: 8),
+            TextButton.icon(
+              key: ValueKey<String>('research-catalog-select-${item.project}'),
+              icon: const Icon(Icons.science, size: 15),
+              label: const Text('Research'),
+              onPressed: () => onResearchChanged(item.project),
+            ),
+          ],
         ],
       ),
     );
