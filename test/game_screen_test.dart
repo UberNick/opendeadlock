@@ -650,6 +650,21 @@ void main() {
     expect(find.text('Research labs, factories'), findsOneWidget);
     expect(find.text('Research Priorities'), findsOneWidget);
     expect(find.text('Xenoarchaeology, Industrial Automation'), findsOneWidget);
+    expect(find.text('Diplomacy Bias'), findsOneWidget);
+    expect(
+      find.text('Avoids distractions while funding science'),
+      findsOneWidget,
+    );
+    expect(find.text('Economy Bias'), findsOneWidget);
+    expect(
+      find.text('Funds research earlier and favors science focus'),
+      findsOneWidget,
+    );
+    expect(find.text('Tactical Bias'), findsOneWidget);
+    expect(
+      find.text('Defends research tempo and sabotage exposure'),
+      findsOneWidget,
+    );
     expect(
       find.text(
           'Prioritizes research labs, science focus, and research projects.'),
@@ -1396,14 +1411,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.textContaining('Balanced - No tax pressure.'),
-      find.byType(ListView),
-      const Offset(0, -260),
-      maxIteration: 8,
-    );
+    for (var i = 0; i < 12; i += 1) {
+      if (find
+          .textContaining('Balanced - No tax pressure.')
+          .evaluate()
+          .isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(ListView).last, const Offset(0, -260));
+      await tester.pumpAndSettle();
+    }
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(
+      find.textContaining('Balanced - No tax pressure.').last,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Balanced - No tax pressure.').last);
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('High - +3 credits, -2 morale.').last);
@@ -1413,12 +1436,13 @@ void main() {
     expect(
         find.textContaining('High - +3 credits, -2 morale.'), findsOneWidget);
 
-    await tester.dragUntilVisible(
-      find.text('7 food / 7 ind / 3 res / 12 cred'),
-      find.byType(ListView),
-      const Offset(0, 360),
-      maxIteration: 8,
-    );
+    for (var i = 0; i < 12; i += 1) {
+      if (find.text('7 food / 7 ind / 3 res / 12 cred').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(ListView).last, const Offset(0, 360));
+      await tester.pumpAndSettle();
+    }
     await tester.pumpAndSettle();
 
     expect(find.text('7 food / 7 ind / 3 res / 12 cred'), findsOneWidget);

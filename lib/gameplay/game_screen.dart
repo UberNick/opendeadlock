@@ -5037,6 +5037,18 @@ class _FactionTraitDetail extends StatelessWidget {
             value:
                 _personalityResearchPrioritySummaryFor(faction.aiPersonality),
           ),
+          _DetailRow(
+            label: 'Diplomacy Bias',
+            value: _personalityDiplomacyBiasFor(faction.aiPersonality),
+          ),
+          _DetailRow(
+            label: 'Economy Bias',
+            value: _personalityEconomyBiasFor(faction.aiPersonality),
+          ),
+          _DetailRow(
+            label: 'Tactical Bias',
+            value: _personalityTacticalBiasFor(faction.aiPersonality),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Text(
@@ -5113,6 +5125,54 @@ String _personalityResearchPrioritySummaryFor(String aiPersonality) {
     return 'Hydroponics, Industrial Automation, Future Studies';
   }
   return 'Adapts to race, traits, and unfinished projects';
+}
+
+String _personalityDiplomacyBiasFor(String aiPersonality) {
+  if (aiPersonality == Faction.aiPersonalityConqueror) {
+    return 'Breaks peace with smaller military advantage';
+  }
+  if (aiPersonality == Faction.aiPersonalityTrader) {
+    return 'Seeks peace and trade alliances when credits are tight';
+  }
+  if (aiPersonality == Faction.aiPersonalityExpansionist) {
+    return 'Fights when expansion lanes are blocked';
+  }
+  if (aiPersonality == Faction.aiPersonalityResearcher) {
+    return 'Avoids distractions while funding science';
+  }
+  return 'Responds to pressure, threats, and opportunity';
+}
+
+String _personalityEconomyBiasFor(String aiPersonality) {
+  if (aiPersonality == Faction.aiPersonalityConqueror) {
+    return 'Works industry sectors and military infrastructure';
+  }
+  if (aiPersonality == Faction.aiPersonalityExpansionist) {
+    return 'Works food sectors and accepts lower colony-site scores';
+  }
+  if (aiPersonality == Faction.aiPersonalityResearcher) {
+    return 'Funds research earlier and favors science focus';
+  }
+  if (aiPersonality == Faction.aiPersonalityTrader) {
+    return 'Uses revenue focus and tax relief to protect morale';
+  }
+  return 'Balances shortages, morale, and production needs';
+}
+
+String _personalityTacticalBiasFor(String aiPersonality) {
+  if (aiPersonality == Faction.aiPersonalityConqueror) {
+    return 'Prioritizes combat units and offensive targets';
+  }
+  if (aiPersonality == Faction.aiPersonalityExpansionist) {
+    return 'Prioritizes scouts, colony hubs, and claimable sectors';
+  }
+  if (aiPersonality == Faction.aiPersonalityResearcher) {
+    return 'Defends research tempo and sabotage exposure';
+  }
+  if (aiPersonality == Faction.aiPersonalityTrader) {
+    return 'Protects trade economy before escalating fights';
+  }
+  return 'Chooses targets from local threat and reward scores';
 }
 
 String _raceEffectSummaryFor(RaceProfile race) {
