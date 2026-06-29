@@ -4977,6 +4977,10 @@ void main() {
     expect(find.text('Tarth Legion, Trade Compact'), findsOneWidget);
     expect(find.text('Package Flow'), findsOneWidget);
     expect(find.text('Share invites or import remote orders'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('sync-save-local')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('sync-load-local')), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-apply-orders')),
         findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-import-orders-file')),
@@ -6156,7 +6160,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _tapSyncMenuItem(tester, 'Save Local');
+    final saveLocal = find.byKey(const ValueKey<String>('sync-save-local'));
+    await _scrollSidePanelUntilVisible(tester, saveLocal);
+    await tester.ensureVisible(saveLocal);
+    await tester.pumpAndSettle();
+    expect(saveLocal, findsOneWidget);
+    await tester.tap(saveLocal);
+    await tester.pumpAndSettle();
 
     expect(find.text('Save Game'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Named Test Slot');
@@ -6169,7 +6179,13 @@ void main() {
     expect(savedSlots.single.slotId.startsWith(GameSaveStore.manualSlotPrefix),
         isTrue);
 
-    await _tapSyncMenuItem(tester, 'Load Local');
+    final loadLocal = find.byKey(const ValueKey<String>('sync-load-local'));
+    await _scrollSidePanelUntilVisible(tester, loadLocal);
+    await tester.ensureVisible(loadLocal);
+    await tester.pumpAndSettle();
+    expect(loadLocal, findsOneWidget);
+    await tester.tap(loadLocal);
+    await tester.pumpAndSettle();
 
     expect(find.text('Load Game'), findsOneWidget);
     expect(find.text('Named Test Slot'), findsOneWidget);

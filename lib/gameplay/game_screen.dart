@@ -429,6 +429,8 @@ class _GameScreenState extends State<GameScreen> {
                         undoable: true,
                       );
                     },
+                    onSaveGame: _saveGameLocally,
+                    onLoadSavedGame: _loadSavedGame,
                     onCopySnapshot: _copySnapshotToClipboard,
                     onLoadSnapshot: _loadSnapshotFromClipboard,
                     onExportSnapshotFile: _exportSnapshotToFile,
@@ -4312,6 +4314,8 @@ class _SelectionPanel extends StatelessWidget {
     required this.onDiplomacyChanged,
     required this.onIntelScan,
     required this.onSabotage,
+    required this.onSaveGame,
+    required this.onLoadSavedGame,
     required this.onCopySnapshot,
     required this.onLoadSnapshot,
     required this.onExportSnapshotFile,
@@ -4365,6 +4369,8 @@ class _SelectionPanel extends StatelessWidget {
   final void Function(String targetFactionId, String status) onDiplomacyChanged;
   final void Function(String targetFactionId) onIntelScan;
   final void Function(String targetFactionId) onSabotage;
+  final Future<void> Function() onSaveGame;
+  final Future<void> Function() onLoadSavedGame;
   final Future<void> Function() onCopySnapshot;
   final Future<void> Function() onLoadSnapshot;
   final Future<void> Function() onExportSnapshotFile;
@@ -4607,6 +4613,8 @@ class _SelectionPanel extends StatelessWidget {
             orderExportBaseCommandCount: orderExportBaseCommandCount,
             lastSyncStatus: lastSyncStatus,
             syncLedgerEntries: syncLedgerEntries,
+            onSaveGame: onSaveGame,
+            onLoadSavedGame: onLoadSavedGame,
             onCopySnapshot: onCopySnapshot,
             onLoadSnapshot: onLoadSnapshot,
             onExportSnapshotFile: onExportSnapshotFile,
@@ -10375,6 +10383,8 @@ class _SyncStatusDetail extends StatelessWidget {
     required this.orderExportBaseCommandCount,
     required this.lastSyncStatus,
     required this.syncLedgerEntries,
+    required this.onSaveGame,
+    required this.onLoadSavedGame,
     required this.onCopySnapshot,
     required this.onLoadSnapshot,
     required this.onExportSnapshotFile,
@@ -10392,6 +10402,8 @@ class _SyncStatusDetail extends StatelessWidget {
   final int orderExportBaseCommandCount;
   final String? lastSyncStatus;
   final List<_SyncLedgerEntry> syncLedgerEntries;
+  final Future<void> Function() onSaveGame;
+  final Future<void> Function() onLoadSavedGame;
   final Future<void> Function() onCopySnapshot;
   final Future<void> Function() onLoadSnapshot;
   final Future<void> Function() onExportSnapshotFile;
@@ -10513,6 +10525,40 @@ class _SyncStatusDetail extends StatelessWidget {
           ),
           _DetailRow(label: 'Commands', value: '${game.commandHistory.length}'),
           _DetailRow(label: 'State', value: fingerprint),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-save-local'),
+                icon: const Icon(Icons.save, size: 18),
+                label: const Text('Save Local'),
+                onPressed: () {
+                  onSaveGame();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-load-local'),
+                icon: const Icon(Icons.folder_open, size: 18),
+                label: const Text('Load Local'),
+                onPressed: latestSaveSlot == null
+                    ? null
+                    : () {
+                        onLoadSavedGame();
+                      },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  disabledForegroundColor: const Color(0xFF7B8792),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
