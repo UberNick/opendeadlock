@@ -162,6 +162,39 @@ void main() {
     expect(find.textContaining('Human Assembly'), findsWidgets);
   });
 
+  testWidgets('main menu copies the local review command', (tester) async {
+    final clipboardWrites = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final arguments = call.arguments as Map<dynamic, dynamic>;
+          clipboardWrites.add(arguments['text'] as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Review'));
+    await tester.pumpAndSettle();
+
+    expect(clipboardWrites, <String>[localReviewCommand]);
+    expect(find.text('Copied local review command'), findsOneWidget);
+  });
+
   testWidgets('developer menu opens legacy reference gallery', (tester) async {
     final clipboardWrites = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

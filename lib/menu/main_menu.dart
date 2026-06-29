@@ -9,6 +9,9 @@ import '../gameplay/game_setup_screen.dart';
 import '../gameplay/game_screen.dart';
 import 'dev_menu.dart';
 
+const String localReviewCommand =
+    'flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080';
+
 class MainMenu extends StatefulWidget {
   const MainMenu({
     Key? key,
@@ -107,6 +110,11 @@ class _MainMenuState extends State<MainMenu> {
                                   );
                                 },
                               ),
+                              const SizedBox(height: 5),
+                              _MenuButton(
+                                label: 'Copy Review',
+                                onPressed: _copyLocalReviewCommand,
+                              ),
                             ],
                           ),
                           const SizedBox(width: 20),
@@ -197,6 +205,18 @@ class _MainMenuState extends State<MainMenu> {
         SnackBar(content: Text('Could not continue local save: $error')),
       );
     }
+  }
+
+  Future<void> _copyLocalReviewCommand() async {
+    await Clipboard.setData(
+      const ClipboardData(text: localReviewCommand),
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Copied local review command')),
+    );
   }
 
   Future<void> _loadSavedGameFromMenu() async {
