@@ -176,15 +176,40 @@ void main() {
     expect(find.text('Legacy References'), findsOneWidget);
     expect(find.text('Gameplay Screen'), findsWidgets);
     expect(find.text('Playing_Screen.png'), findsOneWidget);
+    expect(find.text('1 of 18'), findsOneWidget);
     expect(
       find.text('Gameplay map, command density, and side-panel layout'),
       findsOneWidget,
     );
 
+    await tester
+        .tap(find.byKey(const ValueKey<String>('legacy-reference-next')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Full Gameplay Screen'), findsWidgets);
+    expect(find.text('Playing_Full_Screen.png'), findsOneWidget);
+    expect(find.text('2 of 18'), findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('legacy-reference-previous')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Playing_Screen.png'), findsOneWidget);
+    expect(find.text('1 of 18'), findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('legacy-reference-previous')));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.text('Inline_Screenshot_2026-06-27_18-08-27.png'), findsOneWidget);
+    expect(find.text('18 of 18'), findsOneWidget);
+
     await tester.tap(find.text('Order Screen'));
     await tester.pumpAndSettle();
 
     expect(find.text('Order_Screen.png'), findsOneWidget);
+    expect(find.text('3 of 18'), findsOneWidget);
     expect(
       find.text('Turn orders, confirmation flow, and control grouping'),
       findsOneWidget,

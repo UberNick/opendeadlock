@@ -138,9 +138,23 @@ class _LegacyReferenceScreenState extends State<LegacyReferenceScreen> {
 
   int selectedIndex = 0;
 
+  void _selectPrevious() {
+    setState(() {
+      selectedIndex =
+          (selectedIndex - 1 + references.length) % references.length;
+    });
+  }
+
+  void _selectNext() {
+    setState(() {
+      selectedIndex = (selectedIndex + 1) % references.length;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final selected = references[selectedIndex];
+    final positionLabel = '${selectedIndex + 1} of ${references.length}';
 
     return Scaffold(
       backgroundColor: const Color(0xFF101418),
@@ -161,7 +175,12 @@ class _LegacyReferenceScreenState extends State<LegacyReferenceScreen> {
               });
             },
           );
-          final preview = _ReferencePreview(reference: selected);
+          final preview = _ReferencePreview(
+            reference: selected,
+            positionLabel: positionLabel,
+            onPrevious: _selectPrevious,
+            onNext: _selectNext,
+          );
 
           if (compact) {
             return Column(
@@ -283,27 +302,75 @@ class _ReferencePreview extends StatelessWidget {
   const _ReferencePreview({
     Key? key,
     required this.reference,
+    required this.positionLabel,
+    required this.onPrevious,
+    required this.onNext,
   }) : super(key: key);
 
   final LegacyReferenceImage reference;
+  final String positionLabel;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          reference.title,
-          style: const TextStyle(
-            color: Color(0xFFF4F7FA),
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                reference.title,
+                style: const TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              positionLabel,
+              style: const TextStyle(
+                color: Color(0xFFB9C5CE),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         _DetailRow(label: 'File', value: reference.fileName),
         _DetailRow(label: 'Use', value: reference.referenceUse),
         _DetailRow(label: 'Size', value: reference.dimensions),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              key: const ValueKey<String>('legacy-reference-previous'),
+              icon: const Icon(Icons.chevron_left, size: 18),
+              label: const Text('Previous'),
+              onPressed: onPrevious,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFE9EEF2),
+                side: const BorderSide(color: Color(0xFF55616C)),
+              ),
+            ),
+            OutlinedButton.icon(
+              key: const ValueKey<String>('legacy-reference-next'),
+              icon: const Icon(Icons.chevron_right, size: 18),
+              label: const Text('Next'),
+              onPressed: onNext,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFE9EEF2),
+                side: const BorderSide(color: Color(0xFF55616C)),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 14),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
