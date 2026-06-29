@@ -10677,11 +10677,24 @@ class _PendingOrdersDetail extends StatelessWidget {
           ),
           if (pendingRecords.isNotEmpty) ...[
             const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('pending-orders-export-top'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Export Pending Orders'),
+                onPressed: () {
+                  onExportOrdersFile();
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
+                  key: const ValueKey<String>('pending-orders-copy'),
                   icon: const Icon(Icons.ios_share, size: 18),
                   label: const Text('Copy Orders'),
                   onPressed: () {
@@ -10693,6 +10706,7 @@ class _PendingOrdersDetail extends StatelessWidget {
                   ),
                 ),
                 OutlinedButton.icon(
+                  key: const ValueKey<String>('pending-orders-export-file'),
                   icon: const Icon(Icons.save_alt, size: 18),
                   label: const Text('Export Orders File'),
                   onPressed: () {
@@ -10709,6 +10723,7 @@ class _PendingOrdersDetail extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
+                key: const ValueKey<String>('pending-orders-undo-last'),
                 icon: const Icon(Icons.undo, size: 18),
                 label: const Text('Undo Last Order'),
                 onPressed: canUndoLastOrder ? onUndoLastOrder : null,

@@ -5332,20 +5332,21 @@ void main() {
           matching: find.text('New Haven: build Factory'),
         ),
         findsNothing);
-    expect(find.widgetWithText(OutlinedButton, 'Copy Orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('pending-orders-copy')),
+        findsOneWidget);
     expect(
       find.widgetWithText(OutlinedButton, 'Export Orders File'),
       findsOneWidget,
     );
 
     await tester.scrollUntilVisible(
-      find.widgetWithText(OutlinedButton, 'Copy Orders'),
+      find.byKey(const ValueKey<String>('pending-orders-copy')),
       160,
       scrollable: find.byType(Scrollable).last,
       maxScrolls: 4,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Copy Orders'));
+    await tester.tap(find.byKey(const ValueKey<String>('pending-orders-copy')));
     await tester.pumpAndSettle();
 
     expect(
@@ -5401,6 +5402,22 @@ void main() {
     expect(package.exportedByFactionId, 'humans');
     expect(command.colonyId, 'new-haven');
     expect(command.focus, OpenDeadlockGame.colonyFocusIndustry);
+
+    for (var i = 0; i < 40; i += 1) {
+      if (find.text('0 pending').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 420));
+      await tester.pumpAndSettle();
+    }
+    for (var i = 0; i < 80; i += 1) {
+      if (find.text('0 pending').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
+    await tester.pumpAndSettle();
 
     expect(find.text('0 pending'), findsOneWidget);
     expect(find.text('No orders since the sync baseline.'), findsOneWidget);
@@ -5586,6 +5603,23 @@ void main() {
 
     expect(find.text('1 pending'), findsOneWidget);
     expect(
+      find.byKey(const ValueKey<String>('pending-orders-export-top')),
+      findsOneWidget,
+    );
+    expect(find.text('Export Pending Orders'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('pending-orders-copy')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('pending-orders-export-file')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('pending-orders-undo-last')),
+      findsOneWidget,
+    );
+    expect(
       find.widgetWithText(OutlinedButton, 'Export Orders File'),
       findsOneWidget,
     );
@@ -5619,10 +5653,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.ensureVisible(
-      find.widgetWithText(OutlinedButton, 'Export Orders File'),
+      find.byKey(const ValueKey<String>('pending-orders-export-top')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Export Orders File'));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('pending-orders-export-top')),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -5952,7 +5988,13 @@ Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {
 Future<void> _tapSyncMenuItem(WidgetTester tester, String label) async {
   await tester.tap(find.byTooltip('Sync'));
   await tester.pumpAndSettle();
-  await tester.tap(find.text(label).last);
+  final menuItem = find.ancestor(
+    of: find.text(label),
+    matching: find.byWidgetPredicate(
+      (widget) => widget.runtimeType.toString().startsWith('PopupMenuItem'),
+    ),
+  );
+  await tester.tap(menuItem.last);
   await tester.pumpAndSettle();
 }
 
