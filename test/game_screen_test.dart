@@ -1690,8 +1690,18 @@ void main() {
           'pop ${projection.populationChange > 0 ? '+' : ''}${projection.populationChange}'),
       findsWidgets,
     );
+    expect(
+      find.byKey(const ValueKey<String>('turn-forecast-review-first')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('turn-forecast-row-new-haven')),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.widgetWithText(TextButton, 'New Haven').last);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('turn-forecast-review-first')),
+    );
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

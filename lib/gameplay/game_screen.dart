@@ -5515,6 +5515,7 @@ class _TurnForecastDetail extends StatelessWidget {
       morale: morale,
       warnings: warnings,
     );
+    final firstHighlight = highlights.isEmpty ? null : highlights.first;
 
     return Container(
       key: const ValueKey<String>('turn-forecast'),
@@ -5576,10 +5577,23 @@ class _TurnForecastDetail extends StatelessWidget {
                     'colonies change',
                   ),
           ),
+          if (firstHighlight != null) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('turn-forecast-review-first'),
+                icon: const Icon(Icons.manage_search, size: 16),
+                label: Text('Review ${firstHighlight.colony.name}'),
+                onPressed: () => onSelectColony(firstHighlight.colony),
+              ),
+            ),
+          ],
           if (highlights.isNotEmpty) ...[
             const SizedBox(height: 8),
             ...highlights.map(
               (item) => _TurnForecastRow(
+                key: ValueKey<String>('turn-forecast-row-${item.colony.id}'),
                 item: item,
                 onSelect: () => onSelectColony(item.colony),
               ),
