@@ -405,7 +405,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Survey Team'), findsOneWidget);
+    expect(find.text('Survey Team'), findsWidgets);
   });
 
   testWidgets('map unit markers distinguish unit types', (tester) async {
@@ -478,7 +478,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Human Armor'), findsOneWidget);
+    expect(find.text('Human Armor'), findsWidgets);
     expect(find.text('Armor'), findsWidgets);
   });
 
@@ -2324,6 +2324,62 @@ void main() {
     expect(find.text('1 logged'), findsOneWidget);
   });
 
+  testWidgets('game screen summarizes and selects active units',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final sample = OpenDeadlockGame.sample(sessionId: 'unit-roster-ui');
+    final rosterGame = sample.copyWith(
+      units: <Unit>[
+        sample.unitById('human-scout').copyWith(health: 3),
+        const Unit(
+          id: 'human-infantry',
+          name: 'Assembly Infantry',
+          ownerId: 'humans',
+          type: 'infantry',
+          x: 2,
+          y: 2,
+          movesRemaining: 1,
+          health: 8,
+        ),
+        sample.unitById('rebel-scout'),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: rosterGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey<String>('unit-roster')), findsOneWidget);
+    expect(find.text('Unit Roster'), findsOneWidget);
+    expect(find.text('2 total'), findsOneWidget);
+    expect(find.text('2 ready / 1 wounded'), findsOneWidget);
+    expect(find.text('Scout | HP 3/5 | Moves 2/2'), findsOneWidget);
+    expect(find.text('Infantry | HP 8/8 | Moves 1/1'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Assembly Infantry'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unit'), findsOneWidget);
+    expect(find.text('Assembly Infantry'), findsWidgets);
+    expect(find.text('Type'), findsOneWidget);
+    expect(find.text('Infantry'), findsOneWidget);
+    expect(find.text('8/8'), findsOneWidget);
+  });
+
   testWidgets('game screen shows recent battle log details', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 2200);
@@ -3388,6 +3444,12 @@ void main() {
   testWidgets('game screen can cancel an order package review', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final initial = OpenDeadlockGame.sample(sessionId: 'cancel-orders');
+    final initialColony = initial.colonyById('new-haven');
+    final initialBuildCost =
+        OpenDeadlockGame.buildCostFor(initialColony.construction);
+    final initialProjection = initial.colonyProductionFor(initialColony);
+    final initialProgressLabel =
+        '${initialColony.storedIndustry}/$initialBuildCost industry stored (+${initialProjection.constructionWork})';
     final updated = initial.applyCommand(
       const SetColonyConstructionCommand(
         factionId: 'humans',
@@ -3422,7 +3484,16 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Review Orders'), findsNothing);
     expect(find.text('Applied 1 new order from Human Assembly'), findsNothing);
-    expect(find.text('Colony Hub'), findsOneWidget);
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey<String>('terrain-2-2'))),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('New Haven'), findsOneWidget);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text(initialProgressLabel),
+    );
+    expect(find.text(initialProgressLabel), findsOneWidget);
   });
 
   testWidgets('game screen can undo the last pending local order',

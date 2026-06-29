@@ -325,6 +325,13 @@ class _GameScreenState extends State<GameScreen> {
                         selectedUnitId = null;
                       });
                     },
+                    onSelectUnit: (unit) {
+                      setState(() {
+                        selectedX = unit.x;
+                        selectedY = unit.y;
+                        selectedUnitId = unit.id;
+                      });
+                    },
                     onResearchChanged: (researchProject) {
                       _replaceGame(
                         game.applyCommand(
@@ -4247,6 +4254,7 @@ class _SelectionPanel extends StatelessWidget {
     required this.onReleaseAllSectors,
     required this.onSectorAssignmentChanged,
     required this.onSelectColony,
+    required this.onSelectUnit,
     required this.onResearchChanged,
     required this.onFundResearch,
     required this.onFactionControlChanged,
@@ -4289,6 +4297,7 @@ class _SelectionPanel extends StatelessWidget {
   final void Function(String colonyId, PlanetTile tile, bool assigned)
       onSectorAssignmentChanged;
   final void Function(Colony colony) onSelectColony;
+  final void Function(Unit unit) onSelectUnit;
   final void Function(String researchProject) onResearchChanged;
   final void Function(int research) onFundResearch;
   final void Function(String factionId, String controlMode)
@@ -4319,6 +4328,9 @@ class _SelectionPanel extends StatelessWidget {
         isExplored ? game.assignedColonyForSector(tile.x, tile.y) : null;
     final activeColonies = game.colonies
         .where((currentColony) => currentColony.ownerId == game.activeFactionId)
+        .toList(growable: false);
+    final activeUnits = game.units
+        .where((currentUnit) => currentUnit.ownerId == game.activeFactionId)
         .toList(growable: false);
     final preferredColony = isExplored &&
             canIssueLocalOrders &&
@@ -4382,6 +4394,15 @@ class _SelectionPanel extends StatelessWidget {
               canRecover: _canRecoverUnit(unit!),
               onFoundColony: () => onFoundColony(unit!),
               onRecover: () => onRecoverUnit(unit!),
+            ),
+          ],
+          if (activeUnits.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            _UnitRosterDetail(
+              units: activeUnits,
+              selectedUnitId:
+                  unit?.ownerId == game.activeFactionId ? unit?.id : null,
+              onSelectUnit: onSelectUnit,
             ),
           ],
           const SizedBox(height: 18),
@@ -10609,6 +10630,164 @@ class _EmptySector extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _UnitRosterDetail extends StatelessWidget {
+  const _UnitRosterDetail({
+    Key? key,
+    required this.units,
+    required this.selectedUnitId,
+    required this.onSelectUnit,
+  }) : super(key: key);
+
+  final List<Unit> units;
+  final String? selectedUnitId;
+  final void Function(Unit unit) onSelectUnit;
+
+  @override
+  Widget build(BuildContext context) {
+    final readyCount = units.where((unit) => unit.movesRemaining > 0).length;
+    final woundedCount = units
+        .where((unit) => unit.health < OpenDeadlockGame.maxHealthFor(unit.type))
+        .length;
+
+    return Container(
+      key: const ValueKey<String>('unit-roster'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.groups_2, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Unit Roster',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                '${units.length} total',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Readiness',
+            value: '$readyCount ready / $woundedCount wounded',
+          ),
+          const SizedBox(height: 4),
+          ...units.map(
+            (unit) => _UnitRosterRow(
+              unit: unit,
+              isSelected: unit.id == selectedUnitId,
+              onSelect: () => onSelectUnit(unit),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnitRosterRow extends StatelessWidget {
+  const _UnitRosterRow({
+    Key? key,
+    required this.unit,
+    required this.isSelected,
+    required this.onSelect,
+  }) : super(key: key);
+
+  final Unit unit;
+  final bool isSelected;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHealth = OpenDeadlockGame.maxHealthFor(unit.type);
+    final maxMoves = OpenDeadlockGame.maxMovesFor(unit.type);
+    final wounded = unit.health < maxHealth;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 8),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0xFF31404C)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: Icon(
+                      isSelected ? Icons.my_location : Icons.navigation,
+                      size: 16,
+                    ),
+                    label: Text(
+                      unit.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onPressed: onSelect,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFCCD6A6),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      alignment: Alignment.centerLeft,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${unit.x + 1}, ${unit.y + 1}',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            '${_unitTypeLabel(unit.type)} | HP ${unit.health}/$maxHealth | Moves ${unit.movesRemaining}/$maxMoves',
+            style: TextStyle(
+              color:
+                  wounded ? const Color(0xFFF2C38B) : const Color(0xFFB9C5CE),
+              fontSize: 12,
+              fontWeight: wounded ? FontWeight.w700 : FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _unitTypeLabel(String value) {
+    if (value.isEmpty) {
+      return value;
+    }
+    return value.substring(0, 1).toUpperCase() + value.substring(1);
   }
 }
 
