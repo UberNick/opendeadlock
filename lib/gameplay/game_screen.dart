@@ -14609,6 +14609,26 @@ class _CombatReadinessDetail extends StatelessWidget {
           ),
           if (primaryEnemyUnit != null || primaryEnemyColony != null) ...[
             const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>(
+                  'combat-readiness-review-first',
+                ),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Review First Threat'),
+                onPressed: primaryEnemyUnit != null
+                    ? () => onSelectSector(
+                          primaryEnemyUnit.x,
+                          primaryEnemyUnit.y,
+                        )
+                    : () => onSelectSector(
+                          primaryEnemyColony!.x,
+                          primaryEnemyColony.y,
+                        ),
+              ),
+            ),
+            const SizedBox(height: 4),
             Wrap(
               spacing: 8,
               runSpacing: 4,

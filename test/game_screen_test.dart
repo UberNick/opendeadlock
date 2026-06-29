@@ -3425,6 +3425,13 @@ void main() {
     expect(find.text('1 logged'), findsOneWidget);
     expect(
       find.byKey(
+        const ValueKey<String>('combat-readiness-review-first'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Review First Threat'), findsOneWidget);
+    expect(
+      find.byKey(
         const ValueKey<String>('combat-readiness-view-enemy-unit'),
       ),
       findsOneWidget,
@@ -3436,17 +3443,17 @@ void main() {
       findsOneWidget,
     );
 
-    final enemyUnitButton = find.byKey(
-      const ValueKey<String>('combat-readiness-view-enemy-unit'),
+    final firstThreatButton = find.byKey(
+      const ValueKey<String>('combat-readiness-review-first'),
     );
     final enemyColonyButton = find.byKey(
       const ValueKey<String>('combat-readiness-view-enemy-colony'),
     );
 
-    await tester.ensureVisible(enemyUnitButton);
+    await tester.ensureVisible(firstThreatButton);
     await tester.pumpAndSettle();
 
-    await tester.tap(enemyUnitButton);
+    await tester.tap(firstThreatButton);
     await tester.pumpAndSettle();
 
     await _scrollSidePanelUntilVisible(
