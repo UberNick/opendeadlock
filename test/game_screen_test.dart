@@ -2293,16 +2293,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var scroll = 0;
-        scroll < 18 &&
-            find
-                .byKey(const ValueKey<String>('combat-readiness'))
-                .evaluate()
-                .isEmpty;
-        scroll += 1) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -480));
-      await tester.pumpAndSettle();
-    }
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('combat-readiness')),
+      delta: const Offset(0, -480),
+      maxScrolls: 32,
+    );
 
     expect(tester.takeException(), isNull);
     expect(
@@ -2913,6 +2909,80 @@ void main() {
     );
   });
 
+  testWidgets('game screen shows research catalog', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final sample = OpenDeadlockGame.sample(sessionId: 'research-catalog-ui');
+    final game = sample.copyWith(
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'humans') {
+          return faction;
+        }
+        return faction.copyWith(
+          researchProject: 'Defense Grid',
+          completedResearch: <String>['Hydroponics'],
+          resources: faction.resources.copyWith(research: 7),
+        );
+      }).toList(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Research Catalog'),
+      delta: const Offset(0, -260),
+    );
+    await tester.ensureVisible(find.text('Research Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Research Catalog'), findsOneWidget);
+    expect(
+      find.textContaining('2 next / 1 current / 1 complete / 1 repeatable'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Research Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Defense Grid - Current'), findsOneWidget);
+    expect(find.text('Hydroponics - Complete'), findsOneWidget);
+    expect(find.text('Industrial Automation - Next'), findsOneWidget);
+    expect(find.text('Future Studies - Repeatable'), findsOneWidget);
+    expect(
+      find.text('16 research / 48 credits from empty'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+          '+2 defense and +3 sabotage protection for controlled colonies.'),
+      findsWidgets,
+    );
+    expect(
+      find.text('10 research / 30 credits from empty'),
+      findsWidgets,
+    );
+    expect(
+      find.text(
+          'Converts research into credits after the core tree is complete.'),
+      findsWidgets,
+    );
+  });
+
   testWidgets('game screen can run an active computer faction turn',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -3341,7 +3411,7 @@ void main() {
       find.text('Last Sync'),
       find.byType(Scrollable).last,
       const Offset(0, -420),
-      maxIteration: 18,
+      maxIteration: 32,
     );
     await tester.pumpAndSettle();
 

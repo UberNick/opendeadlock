@@ -7504,6 +7504,8 @@ class _ResearchDetail extends StatelessWidget {
           ..._researchRoadmapFor(faction).map(
             (item) => _ResearchRoadmapRow(item: item),
           ),
+          const SizedBox(height: 8),
+          _ResearchCatalogDetail(faction: faction),
           if (canEdit) ...[
             const SizedBox(height: 8),
             _DetailRow(
@@ -7572,6 +7574,222 @@ class _ResearchDetail extends StatelessWidget {
       }
     }
     return items;
+  }
+}
+
+class _ResearchCatalogDetail extends StatelessWidget {
+  const _ResearchCatalogDetail({
+    Key? key,
+    required this.faction,
+  }) : super(key: key);
+
+  final Faction faction;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = OpenDeadlockGame.researchOptions
+        .map((project) => _ResearchCatalogItem.forProject(faction, project))
+        .toList(growable: false);
+    final nextCount = items
+        .where((item) => item.status == _ResearchCatalogStatus.next)
+        .length;
+    final currentCount = items
+        .where((item) => item.status == _ResearchCatalogStatus.current)
+        .length;
+    final completeCount = items
+        .where((item) => item.status == _ResearchCatalogStatus.complete)
+        .length;
+    final repeatableCount = items
+        .where((item) => item.status == _ResearchCatalogStatus.repeatable)
+        .length;
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0xFF31404C)),
+        ),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: Material(
+          type: MaterialType.transparency,
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: 2),
+            collapsedIconColor: const Color(0xFFE9EEF2),
+            iconColor: const Color(0xFFE9EEF2),
+            title: const Row(
+              children: [
+                Icon(Icons.science, color: Color(0xFFE9EEF2), size: 17),
+                SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Research Catalog',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFFF4F7FA),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Text(
+              'Options: $nextCount next / $currentCount current / '
+              '$completeCount complete / $repeatableCount repeatable',
+              style: const TextStyle(
+                color: Color(0xFFB9C5CE),
+                fontSize: 12,
+              ),
+            ),
+            children: [
+              ...items.map((item) => _ResearchCatalogRow(item: item)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _ResearchCatalogStatus { next, current, complete, repeatable }
+
+class _ResearchCatalogItem {
+  const _ResearchCatalogItem({
+    required this.project,
+    required this.status,
+    required this.cost,
+    required this.fullFundCost,
+    required this.description,
+  });
+
+  final String project;
+  final _ResearchCatalogStatus status;
+  final int cost;
+  final int fullFundCost;
+  final String description;
+
+  static _ResearchCatalogItem forProject(Faction faction, String project) {
+    final cost = OpenDeadlockGame.researchCostFor(project);
+    return _ResearchCatalogItem(
+      project: project,
+      status: _statusFor(faction, project),
+      cost: cost,
+      fullFundCost: OpenDeadlockGame.fundResearchCostFor(cost),
+      description: OpenDeadlockGame.researchDescriptionFor(project),
+    );
+  }
+
+  static _ResearchCatalogStatus _statusFor(Faction faction, String project) {
+    if (faction.researchProject == project) {
+      return _ResearchCatalogStatus.current;
+    }
+    if (OpenDeadlockGame.isCompletedResearch(faction, project)) {
+      return _ResearchCatalogStatus.complete;
+    }
+    if (OpenDeadlockGame.isRepeatableResearch(project)) {
+      return _ResearchCatalogStatus.repeatable;
+    }
+    return _ResearchCatalogStatus.next;
+  }
+}
+
+class _ResearchCatalogRow extends StatelessWidget {
+  const _ResearchCatalogRow({
+    Key? key,
+    required this.item,
+  }) : super(key: key);
+
+  final _ResearchCatalogItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor();
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(_statusIcon(), color: color, size: 14),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${item.project} - ${_statusLabel()}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${item.cost} research / ${item.fullFundCost} credits from empty',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  item.description,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF9FB0BE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor() {
+    if (item.status == _ResearchCatalogStatus.current) {
+      return const Color(0xFFCCD6A6);
+    }
+    if (item.status == _ResearchCatalogStatus.complete) {
+      return const Color(0xFF82CBA8);
+    }
+    if (item.status == _ResearchCatalogStatus.repeatable) {
+      return const Color(0xFFB7A6D6);
+    }
+    return const Color(0xFFE9EEF2);
+  }
+
+  IconData _statusIcon() {
+    if (item.status == _ResearchCatalogStatus.current) {
+      return Icons.play_circle;
+    }
+    if (item.status == _ResearchCatalogStatus.complete) {
+      return Icons.check_circle;
+    }
+    if (item.status == _ResearchCatalogStatus.repeatable) {
+      return Icons.all_inclusive;
+    }
+    return Icons.radio_button_unchecked;
+  }
+
+  String _statusLabel() {
+    if (item.status == _ResearchCatalogStatus.current) {
+      return 'Current';
+    }
+    if (item.status == _ResearchCatalogStatus.complete) {
+      return 'Complete';
+    }
+    if (item.status == _ResearchCatalogStatus.repeatable) {
+      return 'Repeatable';
+    }
+    return 'Next';
   }
 }
 
