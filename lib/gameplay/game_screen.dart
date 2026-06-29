@@ -8020,6 +8020,13 @@ class _ReplayTimelineDetail extends StatelessWidget {
     final recentStart = records.length > 6 ? records.length - 6 : 0;
     final recentRecords = records.skip(recentStart).toList();
     final lastRecord = records.isEmpty ? null : records.last;
+    final commandFingerprint = GameCodec.fingerprintCommands(
+      records.map((record) => record.command),
+    );
+    final stateFingerprint = GameCodec.fingerprintGame(game);
+    final replayWindow = records.isEmpty
+        ? 'No commands'
+        : 'Commands ${recentStart + 1}-${records.length}';
 
     return Container(
       key: const ValueKey<String>('replay-timeline'),
@@ -8064,6 +8071,19 @@ class _ReplayTimelineDetail extends StatelessWidget {
             value: lastRecord == null
                 ? 'No commands recorded'
                 : _factionNameFor(game, lastRecord.factionId),
+          ),
+          _DetailRow(label: 'Replay Window', value: replayWindow),
+          _DetailRow(
+            label: 'Command Hash',
+            value: _shortFingerprint(commandFingerprint),
+          ),
+          _DetailRow(
+            label: 'State Hash',
+            value: _shortFingerprint(stateFingerprint),
+          ),
+          const _DetailRow(
+            label: 'Audit',
+            value: 'Snapshot + command log',
           ),
           if (records.isEmpty)
             const Padding(

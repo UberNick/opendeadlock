@@ -3642,9 +3642,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final commandFingerprint = GameCodec.fingerprintCommands(
+      replayGame.commandHistory.map((record) => record.command),
+    );
+    final stateFingerprint = GameCodec.fingerprintGame(replayGame);
+
     expect(find.text('Replay Timeline'), findsOneWidget);
     expect(find.text('2 commands'), findsOneWidget);
     expect(find.text('Last Actor'), findsOneWidget);
+    expect(find.text('Replay Window'), findsOneWidget);
+    expect(find.text('Commands 1-2'), findsOneWidget);
+    expect(find.text('Command Hash'), findsOneWidget);
+    expect(find.text(_shortFingerprintForTest(commandFingerprint)),
+        findsOneWidget);
+    expect(find.text('State Hash'), findsOneWidget);
+    expect(find.text(_shortFingerprintForTest(stateFingerprint)), findsWidgets);
+    expect(find.text('Audit'), findsOneWidget);
+    expect(find.text('Snapshot + command log'), findsOneWidget);
     expect(find.text('Human Assembly'), findsWidgets);
     expect(find.text('New Haven: build Factory'), findsWidgets);
     expect(find.text('New Haven: focus Research'), findsWidgets);
@@ -4160,6 +4174,16 @@ OpenDeadlockGame _maintenanceShortfallGame() {
       );
     }).toList(),
   );
+}
+
+String _shortFingerprintForTest(String fingerprint) {
+  if (fingerprint.isEmpty) {
+    return 'Unavailable';
+  }
+  if (fingerprint.length <= 16) {
+    return fingerprint;
+  }
+  return '${fingerprint.substring(0, 8)}...${fingerprint.substring(fingerprint.length - 5)}';
 }
 
 class _FakeFileSelector extends Fake
