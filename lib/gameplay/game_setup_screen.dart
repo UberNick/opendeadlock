@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../game/game_codec.dart';
 import '../game/game_setup.dart';
 import '../game/game_state.dart';
+import '../menu/legacy_reference_screen.dart';
 import 'game_screen.dart';
 
 class GameSetupScreen extends StatefulWidget {
@@ -100,6 +101,13 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
+                    IconButton(
+                      key: const ValueKey<String>('setup-legacy-references'),
+                      tooltip: 'Legacy References',
+                      color: Colors.white,
+                      icon: const Icon(Icons.image_search),
+                      onPressed: _openLegacyReferences,
                     ),
                   ],
                 ),
@@ -598,6 +606,15 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
           initialGame: setup.buildGame(sessionId: GameCodec.createSessionId()),
           resumeLatestSave: false,
         ),
+      ),
+    );
+  }
+
+  void _openLegacyReferences() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LegacyReferenceScreen(),
       ),
     );
   }

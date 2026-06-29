@@ -261,6 +261,27 @@ void main() {
     expect(gameScreen.initialGame.factionById('traders')!.isRemote, isTrue);
     expect(gameScreen.initialGame.factions.length, 3);
   });
+
+  testWidgets('setup screen can open legacy references', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: GameSetupScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('setup-legacy-references')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Legacy References'), findsOneWidget);
+    expect(find.text('Gameplay Screen'), findsWidgets);
+    expect(find.text('Full Gameplay Screen'), findsOneWidget);
+  });
 }
 
 Future<void> _selectDropdownOption(
