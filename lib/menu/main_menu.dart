@@ -11,6 +11,7 @@ import 'dev_menu.dart';
 
 const String localReviewCommand =
     'flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080';
+const String localReviewUrl = 'http://127.0.0.1:8080/';
 
 class MainMenu extends StatefulWidget {
   const MainMenu({
@@ -115,6 +116,11 @@ class _MainMenuState extends State<MainMenu> {
                                 label: 'Copy Review',
                                 onPressed: _copyLocalReviewCommand,
                               ),
+                              const SizedBox(height: 5),
+                              _MenuButton(
+                                label: 'Review Guide',
+                                onPressed: _showLocalReviewGuide,
+                              ),
                             ],
                           ),
                           const SizedBox(width: 20),
@@ -216,6 +222,57 @@ class _MainMenuState extends State<MainMenu> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Copied local review command')),
+    );
+  }
+
+  void _showLocalReviewGuide() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Local Review Guide'),
+        content: const SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ReviewGuideRow(
+                label: 'URL',
+                value: localReviewUrl,
+              ),
+              SizedBox(height: 10),
+              _ReviewGuideRow(
+                label: 'Command',
+                value: localReviewCommand,
+              ),
+              SizedBox(height: 10),
+              Text('First clicks'),
+              SizedBox(height: 4),
+              Text('Quick Start: playable map'),
+              Text('New Game: setup and rules'),
+              Text('Developer Menu: legacy screenshots'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Clipboard.setData(
+                const ClipboardData(text: localReviewCommand),
+              );
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Copied local review command')),
+              );
+            },
+            child: const Text('Copy Command'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -332,6 +389,31 @@ class _MainMenuState extends State<MainMenu> {
           },
         );
       },
+    );
+  }
+}
+
+class _ReviewGuideRow extends StatelessWidget {
+  const _ReviewGuideRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 2),
+        SelectableText(value),
+      ],
     );
   }
 }

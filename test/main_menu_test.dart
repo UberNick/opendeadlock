@@ -195,6 +195,53 @@ void main() {
     expect(find.text('Copied local review command'), findsOneWidget);
   });
 
+  testWidgets('main menu shows the local review guide', (tester) async {
+    final clipboardWrites = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final arguments = call.arguments as Map<dynamic, dynamic>;
+          clipboardWrites.add(arguments['text'] as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Review Guide'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Local Review Guide'), findsOneWidget);
+    expect(find.text('URL'), findsOneWidget);
+    expect(find.text(localReviewUrl), findsOneWidget);
+    expect(find.text('Command'), findsOneWidget);
+    expect(find.text(localReviewCommand), findsWidgets);
+    expect(find.text('First clicks'), findsOneWidget);
+    expect(find.text('Quick Start: playable map'), findsOneWidget);
+    expect(find.text('New Game: setup and rules'), findsOneWidget);
+    expect(find.text('Developer Menu: legacy screenshots'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Command'));
+    await tester.pumpAndSettle();
+
+    expect(clipboardWrites, <String>[localReviewCommand]);
+    expect(find.text('Copied local review command'), findsOneWidget);
+    expect(find.text('Local Review Guide'), findsNothing);
+  });
+
   testWidgets('developer menu opens legacy reference gallery', (tester) async {
     final clipboardWrites = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
