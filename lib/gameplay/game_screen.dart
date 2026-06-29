@@ -10599,6 +10599,9 @@ class _SyncStatusDetail extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         OutlinedButton.icon(
+                          key: ValueKey<String>(
+                            'sync-copy-invite-${faction.id}',
+                          ),
                           icon: const Icon(Icons.person_add_alt_1, size: 18),
                           label: const Text('Copy Invite'),
                           onPressed: () {
@@ -10610,6 +10613,9 @@ class _SyncStatusDetail extends StatelessWidget {
                           ),
                         ),
                         OutlinedButton.icon(
+                          key: ValueKey<String>(
+                            'sync-save-invite-${faction.id}',
+                          ),
                           icon: const Icon(Icons.save_alt, size: 18),
                           label: const Text('Save Invite'),
                           onPressed: () {

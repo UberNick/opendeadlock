@@ -4708,7 +4708,8 @@ void main() {
     expect(find.text('Waiting for sync'), findsWidgets);
   });
 
-  testWidgets('sync menu copies a single remote player invite', (tester) async {
+  testWidgets('sync panel copies a single remote player invite',
+      (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -4749,13 +4750,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Sync'));
+    final copyInvite =
+        find.byKey(const ValueKey<String>('sync-copy-invite-rebels'));
+    await _scrollSidePanelUntilVisible(
+      tester,
+      copyInvite,
+      maxScrolls: 32,
+    );
+    await tester.ensureVisible(copyInvite);
     await tester.pumpAndSettle();
 
+    expect(copyInvite, findsOneWidget);
     expect(find.text('Copy Invite'), findsOneWidget);
     expect(find.text('Save Invite'), findsOneWidget);
 
-    await tester.tap(find.text('Copy Invite').last);
+    await tester.tap(copyInvite);
     await tester.pumpAndSettle();
 
     expect(find.text('Review Invite'), findsOneWidget);
@@ -4773,9 +4782,9 @@ void main() {
     expect(find.text('Review Invite'), findsNothing);
     expect(clipboardWrites, isEmpty);
 
-    await tester.tap(find.byTooltip('Sync'));
+    await tester.ensureVisible(copyInvite);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Copy Invite').last);
+    await tester.tap(copyInvite);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Invite'));
     await tester.pumpAndSettle();
@@ -6077,10 +6086,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final saveInvite = find.widgetWithText(OutlinedButton, 'Save Invite');
+    final saveInvite =
+        find.byKey(const ValueKey<String>('sync-save-invite-rebels'));
     await _scrollSidePanelUntilVisible(tester, saveInvite);
     await tester.ensureVisible(saveInvite);
     await tester.pumpAndSettle();
+    expect(saveInvite, findsOneWidget);
     await tester.tap(saveInvite);
     await tester.pumpAndSettle();
 
