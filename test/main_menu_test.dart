@@ -4,6 +4,7 @@ import 'package:OpenDeadlock/game/game_state.dart';
 import 'package:OpenDeadlock/menu/dev_menu.dart';
 import 'package:OpenDeadlock/menu/main_menu.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -162,6 +163,24 @@ void main() {
   });
 
   testWidgets('developer menu opens legacy reference gallery', (tester) async {
+    final clipboardWrites = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final arguments = call.arguments as Map<dynamic, dynamic>;
+          clipboardWrites.add(arguments['text'] as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+
     await tester.pumpWidget(
       MaterialApp(
         home: DevMenu(title: 'Developer Menu'),
@@ -214,6 +233,15 @@ void main() {
       find.text('Turn orders, confirmation flow, and control grouping'),
       findsOneWidget,
     );
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('legacy-reference-copy-path')));
+    await tester.pumpAndSettle();
+
+    expect(clipboardWrites, <String>[
+      'docs/reference/legacy-screenshots/nick-2026-06-27/Order_Screen.png',
+    ]);
+    expect(find.text('Copied Order_Screen.png path'), findsOneWidget);
   });
 
   testWidgets('developer menu shows decoder handoff commands', (tester) async {

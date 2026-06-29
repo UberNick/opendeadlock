@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class LegacyReferenceImage {
   const LegacyReferenceImage({
@@ -151,6 +152,18 @@ class _LegacyReferenceScreenState extends State<LegacyReferenceScreen> {
     });
   }
 
+  Future<void> _copySelectedPath() async {
+    final selected = references[selectedIndex];
+    await Clipboard.setData(ClipboardData(text: selected.assetPath));
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Copied ${selected.fileName} path')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final selected = references[selectedIndex];
@@ -180,6 +193,7 @@ class _LegacyReferenceScreenState extends State<LegacyReferenceScreen> {
             positionLabel: positionLabel,
             onPrevious: _selectPrevious,
             onNext: _selectNext,
+            onCopyPath: _copySelectedPath,
           );
 
           if (compact) {
@@ -305,12 +319,14 @@ class _ReferencePreview extends StatelessWidget {
     required this.positionLabel,
     required this.onPrevious,
     required this.onNext,
+    required this.onCopyPath,
   }) : super(key: key);
 
   final LegacyReferenceImage reference;
   final String positionLabel;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
+  final Future<void> Function() onCopyPath;
 
   @override
   Widget build(BuildContext context) {
@@ -364,6 +380,18 @@ class _ReferencePreview extends StatelessWidget {
               icon: const Icon(Icons.chevron_right, size: 18),
               label: const Text('Next'),
               onPressed: onNext,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFE9EEF2),
+                side: const BorderSide(color: Color(0xFF55616C)),
+              ),
+            ),
+            OutlinedButton.icon(
+              key: const ValueKey<String>('legacy-reference-copy-path'),
+              icon: const Icon(Icons.content_copy, size: 18),
+              label: const Text('Copy Path'),
+              onPressed: () {
+                onCopyPath();
+              },
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFE9EEF2),
                 side: const BorderSide(color: Color(0xFF55616C)),
