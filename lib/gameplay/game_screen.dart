@@ -10491,48 +10491,59 @@ class _SyncHandoffChecklistDetail extends StatelessWidget {
       key: const ValueKey<String>('sync-handoff-checklist'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.checklist, color: Color(0xFFD9B66F), size: 18),
-            SizedBox(width: 8),
+            const Icon(Icons.checklist, color: Color(0xFFD9B66F), size: 18),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Handoff Checklist',
+                style: TextStyle(
+                  color: Color(0xFFFFF5D6),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
             Text(
-              'Handoff Checklist',
-              style: TextStyle(
-                color: Color(0xFFFFF5D6),
+              items.length == 1 ? '1 step' : '${items.length} steps',
+              style: const TextStyle(
+                color: Color(0xFF9FB0BE),
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ],
         ),
         const SizedBox(height: 4),
-        ...items.map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 2),
-                  child: Icon(
-                    Icons.radio_button_checked,
-                    size: 12,
-                    color: Color(0xFFCCD6A6),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    item,
-                    style: const TextStyle(
-                      color: Color(0xFFE9EEF2),
-                      fontSize: 12,
+        ...items.asMap().entries.map(
+              (entry) => Padding(
+                key: ValueKey<String>('sync-handoff-item-${entry.key + 1}'),
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.radio_button_checked,
+                        size: 12,
+                        color: Color(0xFFCCD6A6),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        entry.value,
+                        style: const TextStyle(
+                          color: Color(0xFFE9EEF2),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
         const SizedBox(height: 8),
       ],
     );

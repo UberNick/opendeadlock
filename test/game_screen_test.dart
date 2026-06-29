@@ -4872,6 +4872,13 @@ void main() {
     expect(find.byKey(const ValueKey<String>('sync-handoff-checklist')),
         findsOneWidget);
     expect(find.text('Handoff Checklist'), findsOneWidget);
+    expect(find.text('3 steps'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-handoff-item-1')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-handoff-item-2')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-handoff-item-3')),
+        findsOneWidget);
     expect(find.text('Share invites with Tarth Legion, Trade Compact.'),
         findsOneWidget);
     expect(find.text('Issue local orders or end the turn.'), findsOneWidget);
