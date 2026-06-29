@@ -190,4 +190,41 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('developer menu shows decoder handoff commands', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DevMenu(title: 'Developer Menu'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Decoder Tools'), findsOneWidget);
+    expect(find.text('Game folder'), findsOneWidget);
+    expect(find.text('Not selected'), findsOneWidget);
+    expect(find.text('Tool source'), findsOneWidget);
+    expect(find.text('tools/src/decoder'), findsOneWidget);
+    expect(find.text('Output target'), findsOneWidget);
+    expect(find.text('build/decoded-assets'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Decoder Guide'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Decoder Handoff'), findsOneWidget);
+    expect(find.text('Selected game'), findsOneWidget);
+    expect(
+        find.text('Choose the original Deadlock folder first'), findsOneWidget);
+    expect(find.text('Decoder source'), findsOneWidget);
+    expect(
+      find.text(
+        'cmake -S tools/src/decoder -B build/decoder && cmake --build build/decoder',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('compare decoded art against Legacy References'),
+      findsOneWidget,
+    );
+  });
 }
