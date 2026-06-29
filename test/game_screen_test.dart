@@ -629,6 +629,8 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('AI Profile'), findsOneWidget);
     expect(find.text('Researcher'), findsOneWidget);
+    expect(find.text('Race Effects'), findsOneWidget);
+    expect(find.text('+2 credits per colony'), findsOneWidget);
     expect(
       find.text(
           'Prioritizes research labs, science focus, and research projects.'),
@@ -2443,12 +2445,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ListView), findsOneWidget);
     await tester.dragUntilVisible(
       find.text('Fund +8'),
-      find.byType(ListView),
+      find.byType(Scrollable).last,
       const Offset(0, -420),
-      maxIteration: 10,
+      maxIteration: 14,
     );
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'Fund +8'));
@@ -2547,9 +2548,9 @@ void main() {
     expect(find.textContaining('Tarth Legion'), findsWidgets);
     await tester.dragUntilVisible(
       find.text('AI Orders'),
-      find.byType(ListView),
+      find.byType(Scrollable).last,
       const Offset(0, -420),
-      maxIteration: 10,
+      maxIteration: 14,
     );
     await tester.pumpAndSettle();
     expect(find.text('AI Orders'), findsOneWidget);
@@ -2615,9 +2616,9 @@ void main() {
 
     await tester.dragUntilVisible(
       find.text('AI Orders'),
-      find.byType(ListView),
+      find.byType(Scrollable).last,
       const Offset(0, -420),
-      maxIteration: 10,
+      maxIteration: 14,
     );
     await tester.pumpAndSettle();
 

@@ -4829,6 +4829,7 @@ class _FactionTraitDetail extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _DetailRow(label: 'Race', value: race.name),
+          _DetailRow(label: 'Race Effects', value: _raceEffectSummaryFor(race)),
           _DetailRow(
             label: 'AI Profile',
             value: Faction.aiPersonalityLabelFor(faction.aiPersonality),
@@ -4884,6 +4885,53 @@ class _FactionTraitDetail extends StatelessWidget {
       ),
     );
   }
+}
+
+String _raceEffectSummaryFor(RaceProfile race) {
+  final effects = <String>[];
+  _appendSignedRaceEffect(effects, race.foodBonus, 'food per colony');
+  _appendSignedRaceEffect(effects, race.industryBonus, 'industry per colony');
+  _appendSignedRaceEffect(effects, race.researchBonus, 'research per colony');
+  _appendSignedRaceEffect(effects, race.creditBonus, 'credits per colony');
+  _appendSignedRaceEffect(
+    effects,
+    race.constructionBonus,
+    'construction progress per colony',
+  );
+  _appendSignedRaceEffect(
+    effects,
+    race.populationGrowthBonus,
+    'population growth',
+  );
+  _appendSignedRaceEffect(effects, race.attackBonus, 'unit attack');
+  if (race.moraleFloor > 0) {
+    effects.add('morale floor ${race.moraleFloor}');
+  }
+  if (race.revealsMap) {
+    effects.add('reveals full map');
+  }
+  if (race.preferredConstruction != null) {
+    effects.add('prefers ${race.preferredConstruction}');
+  }
+  if (race.preferredResearch != null) {
+    effects.add('prioritizes ${race.preferredResearch}');
+  }
+  if (effects.isEmpty) {
+    return 'No special modifiers';
+  }
+  return effects.join('; ');
+}
+
+void _appendSignedRaceEffect(
+  List<String> effects,
+  int value,
+  String label,
+) {
+  if (value == 0) {
+    return;
+  }
+  final sign = value > 0 ? '+' : '';
+  effects.add('$sign$value $label');
 }
 
 class _TaxPolicyDetail extends StatelessWidget {
