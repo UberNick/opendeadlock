@@ -2574,17 +2574,24 @@ void main() {
     final peaceButton = find.byKey(
       const ValueKey<String>('trade-routes-peace-rebels'),
     );
+    final topTradeButton = find.byKey(
+      const ValueKey<String>('trade-routes-open-top'),
+    );
     expect(find.text('+0 credits / turn from 0 routes'), findsOneWidget);
+    expect(topTradeButton, findsOneWidget);
+    expect(find.text('Open Trade with Tarth Legion'), findsOneWidget);
     expect(peaceButton, findsOneWidget);
 
-    await tester.ensureVisible(peaceButton);
+    await tester.ensureVisible(topTradeButton);
     await tester.pumpAndSettle();
-    await tester.tap(peaceButton);
+    await tester.tap(topTradeButton);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.text('+2 credits / turn from 1 route'), findsOneWidget);
     expect(find.text('Peace +2'), findsOneWidget);
+    expect(topTradeButton, findsOneWidget);
+    expect(find.text('Upgrade Trade with Tarth Legion'), findsOneWidget);
 
     final allianceButton = find.byKey(
       const ValueKey<String>('trade-routes-alliance-rebels'),
@@ -3589,6 +3596,7 @@ void main() {
     await _scrollSidePanelUntilVisible(
       tester,
       find.byKey(const ValueKey<String>('expansion-planner')),
+      maxScrolls: 48,
     );
     await tester.ensureVisible(
       find.byKey(const ValueKey<String>('expansion-planner')),

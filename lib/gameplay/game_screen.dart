@@ -9466,6 +9466,20 @@ class _TradeRoutesDetail extends StatelessWidget {
           OpenDeadlockGame.diplomacyStatusWar;
     }).toList(growable: false)
       ..sort((a, b) => a.name.compareTo(b.name));
+    final upgradeTarget = routes
+        .where(
+          (otherFaction) =>
+              game.diplomacyStatusBetween(faction.id, otherFaction.id) ==
+              OpenDeadlockGame.diplomacyStatusPeace,
+        )
+        .toList(growable: false)
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final topTradeTarget = routes.isEmpty
+        ? (warTargets.isEmpty ? null : warTargets.first)
+        : (upgradeTarget.isEmpty ? null : upgradeTarget.first);
+    final topTradeStatus = routes.isEmpty
+        ? OpenDeadlockGame.diplomacyStatusPeace
+        : OpenDeadlockGame.diplomacyStatusAlliance;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -9495,6 +9509,25 @@ class _TradeRoutesDetail extends StatelessWidget {
             value:
                 '+$totalTrade credits / turn from ${routes.length} $routeLabel',
           ),
+          if (canEdit && topTradeTarget != null) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('trade-routes-open-top'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text(
+                  routes.isEmpty
+                      ? 'Open Trade with ${topTradeTarget.name}'
+                      : 'Upgrade Trade with ${topTradeTarget.name}',
+                ),
+                onPressed: () => onDiplomacyChanged(
+                  topTradeTarget.id,
+                  topTradeStatus,
+                ),
+              ),
+            ),
+          ],
           if (routes.isEmpty) ...[
             const Text(
               'Make peace or alliance treaties to open treaty trade.',
