@@ -4395,6 +4395,12 @@ void main() {
       find.text('Tactical 2 / Research 1 / Economy 4 / Movement 1'),
       findsOneWidget,
     );
+    expect(find.text('5 map shortcuts / 3 abstract orders'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('ai-orders-review-first')),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(TextButton, 'Review Redoubt'), findsWidgets);
     expect(find.text('Research'), findsWidgets);
     expect(find.text('Economy'), findsWidgets);
     expect(find.text('Tactical'), findsWidgets);

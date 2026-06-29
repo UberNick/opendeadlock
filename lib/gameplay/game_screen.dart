@@ -10689,6 +10689,12 @@ class _ComputerOrdersDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final faction = game.activeFaction;
     final plannedCommands = game.planComputerCommandsFor(faction.id);
+    final reviewTargets = plannedCommands
+        .map((command) => _replayTargetFor(game, command))
+        .whereType<_ReplayTarget>()
+        .toList();
+    final firstReviewTarget =
+        reviewTargets.isEmpty ? null : reviewTargets.first;
     final plannedLabel = plannedCommands.length == 1
         ? '1 planned'
         : '${plannedCommands.length} planned';
@@ -10739,6 +10745,25 @@ class _ComputerOrdersDetail extends StatelessWidget {
             label: 'Plan',
             value: _aiPlanBreakdownFor(game, plannedCommands),
           ),
+          _DetailRow(
+            label: 'Reviewable',
+            value: _aiPlanReviewableLabelFor(game, plannedCommands),
+          ),
+          if (firstReviewTarget != null) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('ai-orders-review-first'),
+                icon: const Icon(Icons.manage_search, size: 16),
+                label: Text('Review ${firstReviewTarget.label}'),
+                onPressed: () => onSelectSector(
+                  firstReviewTarget.x,
+                  firstReviewTarget.y,
+                ),
+              ),
+            ),
+          ],
           if (plannedCommands.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 6),
@@ -11377,6 +11402,31 @@ String _aiPlanBreakdownFor(
       .where((category) => counts.containsKey(category))
       .map((category) => '$category ${counts[category]}')
       .join(' / ');
+}
+
+String _aiPlanReviewableLabelFor(
+  OpenDeadlockGame game,
+  List<GameCommand> commands,
+) {
+  if (commands.isEmpty) {
+    return 'No map shortcuts';
+  }
+
+  final reviewableCount = commands
+      .where((command) => _replayTargetFor(game, command) != null)
+      .length;
+  if (reviewableCount == 0) {
+    return _countLabel(commands.length, 'abstract order', 'abstract orders');
+  }
+
+  final abstractCount = commands.length - reviewableCount;
+  final reviewableLabel =
+      _countLabel(reviewableCount, 'map shortcut', 'map shortcuts');
+  if (abstractCount == 0) {
+    return reviewableLabel;
+  }
+  return '$reviewableLabel / '
+      '${_countLabel(abstractCount, 'abstract order', 'abstract orders')}';
 }
 
 String _aiPlanCategoryFor(OpenDeadlockGame game, GameCommand command) {
