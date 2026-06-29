@@ -5996,6 +5996,13 @@ class _FactionScoreRow extends StatelessWidget {
                   ),
                 ),
                 Text(
+                  'Score: Colonies ${score.colonyScore} | Sectors ${score.sectorScore} | Population ${score.populationScore} | Military ${score.militaryScore} | Science ${score.scienceScore} | Reserves ${score.reserveScore}',
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
                   'Profile ${Faction.aiPersonalityLabelFor(faction.aiPersonality)} | Traits ${OpenDeadlockGame.traitSummaryFor(faction)}',
                   style: const TextStyle(
                     color: Color(0xFFB9C5CE),

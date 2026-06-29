@@ -646,11 +646,13 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
+    final game = OpenDeadlockGame.sample(sessionId: 'world-profile-readout');
+    final humanScore = game.factionScoreFor('humans');
+
     await tester.pumpWidget(
       MaterialApp(
         home: GameScreen(
-          initialGame:
-              OpenDeadlockGame.sample(sessionId: 'world-profile-readout'),
+          initialGame: game,
           resumeLatestSave: false,
         ),
       ),
@@ -669,6 +671,12 @@ void main() {
     expect(find.text('World'), findsOneWidget);
     expect(find.text('Human Assembly'), findsWidgets);
     expect(find.text('Tarth Legion'), findsWidgets);
+    expect(
+      find.text(
+        'Score: Colonies ${humanScore.colonyScore} | Sectors ${humanScore.sectorScore} | Population ${humanScore.populationScore} | Military ${humanScore.militaryScore} | Science ${humanScore.scienceScore} | Reserves ${humanScore.reserveScore}',
+      ),
+      findsOneWidget,
+    );
     expect(
       find.text('Profile Adaptive | Traits Scholars, Traders'),
       findsOneWidget,
@@ -2127,9 +2135,9 @@ void main() {
     expect(find.text('Survey Team captured Redoubt'), findsWidgets);
 
     for (var scroll = 0;
-        scroll < 12 && find.text('Tactical Log').evaluate().isEmpty;
+        scroll < 18 && find.text('Tactical Log').evaluate().isEmpty;
         scroll += 1) {
-      await tester.drag(find.byType(ListView), const Offset(0, -420));
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -480));
       await tester.pumpAndSettle();
     }
 
