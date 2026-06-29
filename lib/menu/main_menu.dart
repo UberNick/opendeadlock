@@ -534,16 +534,10 @@ class _JoinGameDialogState extends State<_JoinGameDialog> {
           child: const Text('Cancel'),
         ),
         TextButton.icon(
+          key: const ValueKey<String>('join-game-paste-code'),
           icon: const Icon(Icons.content_paste),
           label: const Text('Paste'),
-          onPressed: () async {
-            final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-            final text = clipboardData?.text;
-            if (text == null) {
-              return;
-            }
-            controller.text = text.trim();
-          },
+          onPressed: _pasteClipboardCode,
         ),
         TextButton.icon(
           icon: const Icon(Icons.folder_open),
@@ -566,6 +560,22 @@ class _JoinGameDialogState extends State<_JoinGameDialog> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _pasteClipboardCode() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = clipboardData?.text?.trim();
+    if (text == null || text.isEmpty) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Clipboard has no invite or snapshot')),
+      );
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

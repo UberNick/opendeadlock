@@ -94,6 +94,92 @@ void main() {
     expect(find.textContaining('Human Assembly'), findsWidgets);
   });
 
+  testWidgets('main menu joins a game from a pasted invite code',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final invite = GameCodec.encodeShareCode(
+      GameCodec.encodeGameInvite(
+        OpenDeadlockGame.sample(sessionId: 'menu-paste-join'),
+        invitedFactionId: 'rebels',
+      ),
+    );
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.getData') {
+          return <String, Object>{'text': '  $invite  '};
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Join Game'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey<String>('join-game-paste-code')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(invite), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Join'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byTooltip('Sync'), findsOneWidget);
+    expect(find.text('Turn 1'), findsWidgets);
+    expect(find.textContaining('Human Assembly'), findsWidgets);
+  });
+
+  testWidgets('main menu reports when clipboard has no invite code',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.getData') {
+          return <String, Object>{'text': '   '};
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Join Game'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey<String>('join-game-paste-code')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Clipboard has no invite or snapshot'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('join-game-paste-code')),
+        findsOneWidget);
+  });
+
   testWidgets('main menu joins a game from an invite file', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final invite = GameCodec.encodeShareCode(
