@@ -279,8 +279,14 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Legacy References'), findsOneWidget);
-    expect(find.text('Gameplay Screen'), findsWidgets);
-    expect(find.text('Full Gameplay Screen'), findsOneWidget);
+    expect(find.text('Planet Setup Screen'), findsWidgets);
+    expect(find.text('Planet_Screen.png'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('legacy-reference-row-Planet_Screen.png'),
+      ),
+      findsOneWidget,
+    );
   });
 }
 

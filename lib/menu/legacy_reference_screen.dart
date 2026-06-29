@@ -19,7 +19,12 @@ class LegacyReferenceImage {
 }
 
 class LegacyReferenceScreen extends StatefulWidget {
-  const LegacyReferenceScreen({Key? key}) : super(key: key);
+  const LegacyReferenceScreen({
+    Key? key,
+    this.initialFileName,
+  }) : super(key: key);
+
+  final String? initialFileName;
 
   @override
   State<LegacyReferenceScreen> createState() => _LegacyReferenceScreenState();
@@ -137,7 +142,18 @@ class _LegacyReferenceScreenState extends State<LegacyReferenceScreen> {
     ),
   ];
 
-  int selectedIndex = 0;
+  late int selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedIndex = references.indexWhere(
+      (reference) => reference.fileName == widget.initialFileName,
+    );
+    if (selectedIndex < 0) {
+      selectedIndex = 0;
+    }
+  }
 
   void _selectPrevious() {
     setState(() {
@@ -217,7 +233,7 @@ class _LegacyReferenceScreenState extends State<LegacyReferenceScreen> {
   }
 }
 
-class _ReferenceList extends StatelessWidget {
+class _ReferenceList extends StatefulWidget {
   const _ReferenceList({
     Key? key,
     required this.references,
@@ -230,20 +246,58 @@ class _ReferenceList extends StatelessWidget {
   final void Function(int index) onSelected;
 
   @override
+  State<_ReferenceList> createState() => _ReferenceListState();
+}
+
+class _ReferenceListState extends State<_ReferenceList> {
+  static const double rowExtent = 68;
+  late final ScrollController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = ScrollController(
+      initialScrollOffset: widget.selectedIndex * rowExtent,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReferenceList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex != oldWidget.selectedIndex &&
+        controller.hasClients) {
+      controller.animateTo(
+        widget.selectedIndex * rowExtent,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFF182027),
       child: ListView.separated(
+        key: const ValueKey<String>('legacy-reference-list'),
+        controller: controller,
         padding: const EdgeInsets.all(12),
-        itemCount: references.length,
+        itemCount: widget.references.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
-          final reference = references[index];
-          final selected = index == selectedIndex;
+          final reference = widget.references[index];
+          final selected = index == widget.selectedIndex;
           return _ReferenceListTile(
+            key: ValueKey<String>('legacy-reference-row-${reference.fileName}'),
             reference: reference,
             selected: selected,
-            onTap: () => onSelected(index),
+            onTap: () => widget.onSelected(index),
           );
         },
       ),

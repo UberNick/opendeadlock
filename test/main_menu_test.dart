@@ -490,6 +490,12 @@ void main() {
     expect(find.text('Playing_Screen.png'), findsOneWidget);
     expect(find.text('1 of 18'), findsOneWidget);
     expect(
+      find.byKey(
+        const ValueKey<String>('legacy-reference-row-Playing_Screen.png'),
+      ),
+      findsOneWidget,
+    );
+    expect(
       find.text('Gameplay map, command density, and side-panel layout'),
       findsOneWidget,
     );
@@ -517,8 +523,11 @@ void main() {
         find.text('Inline_Screenshot_2026-06-27_18-08-27.png'), findsOneWidget);
     expect(find.text('18 of 18'), findsOneWidget);
 
-    await tester.tap(find.text('Order Screen'));
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 3; i += 1) {
+      await tester
+          .tap(find.byKey(const ValueKey<String>('legacy-reference-next')));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Order_Screen.png'), findsOneWidget);
     expect(find.text('3 of 18'), findsOneWidget);

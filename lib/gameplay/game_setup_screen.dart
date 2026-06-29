@@ -614,7 +614,9 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const LegacyReferenceScreen(),
+        builder: (context) => const LegacyReferenceScreen(
+          initialFileName: 'Planet_Screen.png',
+        ),
       ),
     );
   }
