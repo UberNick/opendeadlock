@@ -332,6 +332,7 @@ class _GameScreenState extends State<GameScreen> {
                         selectedUnitId = unit.id;
                       });
                     },
+                    onSelectSector: _handleTileSelected,
                     onResearchChanged: (researchProject) {
                       _replaceGame(
                         game.applyCommand(
@@ -3473,6 +3474,19 @@ class _PlanetMap extends StatelessWidget {
 
 enum _TileActionHint { none, move, attack, assault }
 
+String _unitOrderKeyNameFor(_TileActionHint hint) {
+  if (hint == _TileActionHint.move) {
+    return 'move';
+  }
+  if (hint == _TileActionHint.attack) {
+    return 'attack';
+  }
+  if (hint == _TileActionHint.assault) {
+    return 'assault';
+  }
+  return 'none';
+}
+
 class _MapTileButton extends StatelessWidget {
   const _MapTileButton({
     Key? key,
@@ -4255,6 +4269,7 @@ class _SelectionPanel extends StatelessWidget {
     required this.onSectorAssignmentChanged,
     required this.onSelectColony,
     required this.onSelectUnit,
+    required this.onSelectSector,
     required this.onResearchChanged,
     required this.onFundResearch,
     required this.onFactionControlChanged,
@@ -4298,6 +4313,7 @@ class _SelectionPanel extends StatelessWidget {
       onSectorAssignmentChanged;
   final void Function(Colony colony) onSelectColony;
   final void Function(Unit unit) onSelectUnit;
+  final void Function(int x, int y) onSelectSector;
   final void Function(String researchProject) onResearchChanged;
   final void Function(int research) onFundResearch;
   final void Function(String factionId, String controlMode)
@@ -4400,6 +4416,14 @@ class _SelectionPanel extends StatelessWidget {
               onFoundColony: () => onFoundColony(unit!),
               onRecover: () => onRecoverUnit(unit!),
             ),
+            if (unit!.ownerId == game.activeFactionId) ...[
+              const SizedBox(height: 12),
+              _UnitOrdersDetail(
+                game: game,
+                unit: unit!,
+                onSelectSector: onSelectSector,
+              ),
+            ],
           ],
           if (activeUnits.isNotEmpty) ...[
             const SizedBox(height: 18),
@@ -11123,6 +11147,204 @@ class _EmptySector extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _UnitOrderOption {
+  const _UnitOrderOption({
+    required this.tile,
+    required this.hint,
+    required this.label,
+    required this.description,
+  });
+
+  final PlanetTile tile;
+  final _TileActionHint hint;
+  final String label;
+  final String description;
+}
+
+class _UnitOrdersDetail extends StatelessWidget {
+  const _UnitOrdersDetail({
+    Key? key,
+    required this.game,
+    required this.unit,
+    required this.onSelectSector,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final Unit unit;
+  final void Function(int x, int y) onSelectSector;
+
+  @override
+  Widget build(BuildContext context) {
+    final orders = _availableOrders();
+
+    return Container(
+      key: const ValueKey<String>('unit-orders'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.flag, color: Color(0xFFE9EEF2), size: 19),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Unit Orders',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (orders.isEmpty)
+            Text(
+              unit.movesRemaining <= 0
+                  ? 'No movement remaining.'
+                  : 'No adjacent legal orders.',
+              style: const TextStyle(color: Color(0xFFE9EEF2)),
+            )
+          else
+            ...orders.map(
+              (order) => Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    key: ValueKey<String>(
+                      'unit-order-${_unitOrderKeyNameFor(order.hint)}-${order.tile.x}-${order.tile.y}',
+                    ),
+                    icon: Icon(_iconForOrder(order.hint)),
+                    label: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            order.label,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            order.description,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    onPressed: () => onSelectSector(order.tile.x, order.tile.y),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<_UnitOrderOption> _availableOrders() {
+    if (!game.activeFactionCanIssueLocalOrders ||
+        unit.ownerId != game.activeFactionId ||
+        unit.movesRemaining <= 0) {
+      return const <_UnitOrderOption>[];
+    }
+
+    final orders = <_UnitOrderOption>[];
+    const offsets = <List<int>>[
+      <int>[0, -1],
+      <int>[1, 0],
+      <int>[0, 1],
+      <int>[-1, 0],
+    ];
+
+    for (final offset in offsets) {
+      final x = unit.x + offset[0];
+      final y = unit.y + offset[1];
+      if (x < 0 || y < 0 || x >= game.width || y >= game.height) {
+        continue;
+      }
+      final tile = game.tileAt(x, y);
+      final isKnown = tile.isExploredBy(game.activeFactionId) ||
+          game.isSectorVisibleTo(game.activeFactionId, x, y);
+      if (!isKnown || !OpenDeadlockGame.isTerrainPassable(tile.terrain)) {
+        continue;
+      }
+      final moveCost = OpenDeadlockGame.movementCostForTerrain(tile.terrain);
+      if (unit.movesRemaining < moveCost) {
+        continue;
+      }
+
+      final occupyingUnit = game.visibleUnitAt(game.activeFactionId, x, y);
+      if (occupyingUnit != null && occupyingUnit.id != unit.id) {
+        if (occupyingUnit.ownerId == unit.ownerId ||
+            !game.areAtWar(unit.ownerId, occupyingUnit.ownerId)) {
+          continue;
+        }
+        final preview = game.previewUnitCombat(unit, occupyingUnit);
+        orders.add(
+          _UnitOrderOption(
+            tile: tile,
+            hint: _TileActionHint.attack,
+            label: 'Attack ${occupyingUnit.name}',
+            description:
+                _unitCombatPreviewValueFor(unit, occupyingUnit, preview),
+          ),
+        );
+        continue;
+      }
+
+      final targetColony = game.colonyAt(x, y);
+      if (targetColony != null && targetColony.ownerId != unit.ownerId) {
+        if (!game.areAtWar(unit.ownerId, targetColony.ownerId)) {
+          continue;
+        }
+        final preview = game.previewColonyAssault(unit, targetColony);
+        orders.add(
+          _UnitOrderOption(
+            tile: tile,
+            hint: _TileActionHint.assault,
+            label: 'Assault ${targetColony.name}',
+            description: _colonyAssaultPreviewValueFor(unit, preview),
+          ),
+        );
+        continue;
+      }
+
+      if (!game.canFactionTraverseSector(unit.ownerId, tile)) {
+        continue;
+      }
+      orders.add(
+        _UnitOrderOption(
+          tile: tile,
+          hint: _TileActionHint.move,
+          label: 'Move to ${x + 1}, ${y + 1}',
+          description:
+              '${OpenDeadlockGame.terrainLabelFor(tile.terrain)} / $moveCost move',
+        ),
+      );
+    }
+
+    return orders;
+  }
+
+  IconData _iconForOrder(_TileActionHint hint) {
+    if (hint == _TileActionHint.attack) {
+      return Icons.gps_fixed;
+    }
+    if (hint == _TileActionHint.assault) {
+      return Icons.warning_amber;
+    }
+    return Icons.directions;
   }
 }
 

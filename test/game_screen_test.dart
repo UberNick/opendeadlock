@@ -2202,6 +2202,55 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('selected local unit can use unit order buttons', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'unit-orders-ui'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey<String>('terrain-3-1'))),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('unit-orders')),
+    );
+    await tester
+        .ensureVisible(find.byKey(const ValueKey<String>('unit-orders')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Unit Orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-order-move-4-1')),
+        findsOneWidget);
+    expect(find.text('Move to 5, 2'), findsOneWidget);
+    expect(find.text('Forest / 2 move'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('unit-order-move-4-1')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey<String>('unit-icon-scout-4-1')),
+        findsOneWidget);
+    expect(find.text('Survey Team'), findsWidgets);
+    expect(find.text('No movement remaining.'), findsOneWidget);
+  });
+
   testWidgets('selected local unit shows treaty passage hints', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 720);
@@ -2356,6 +2405,22 @@ void main() {
       find.text('5 vs 5, repelled, you 1/5, 3 pop / 26 morale, critical risk'),
       findsOneWidget,
     );
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('unit-orders')),
+    );
+    await tester
+        .ensureVisible(find.byKey(const ValueKey<String>('unit-orders')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unit Orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-order-attack-2-1')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-order-assault-3-2')),
+        findsOneWidget);
+    expect(find.text('Attack Pact Recon'), findsWidgets);
+    expect(find.text('Assault Redoubt'), findsWidgets);
   });
 
   testWidgets('game screen flags lethal combat previews', (tester) async {
