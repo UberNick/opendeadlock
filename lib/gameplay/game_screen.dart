@@ -4612,7 +4612,11 @@ class _SelectionPanel extends StatelessWidget {
           _TurnChecklistDetail(
             game: game,
             activeColonies: activeColonies,
+            activeUnits: activeUnits,
             orderExportBaseCommandCount: orderExportBaseCommandCount,
+            onSelectColony: onSelectColony,
+            onSelectUnit: onSelectUnit,
+            onFundResearch: onFundResearch,
           ),
           if (activeColonies.isNotEmpty) ...[
             const SizedBox(height: 18),
@@ -5147,16 +5151,32 @@ class _TurnChecklistDetail extends StatelessWidget {
     Key? key,
     required this.game,
     required this.activeColonies,
+    required this.activeUnits,
     required this.orderExportBaseCommandCount,
+    required this.onSelectColony,
+    required this.onSelectUnit,
+    required this.onFundResearch,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
   final List<Colony> activeColonies;
+  final List<Unit> activeUnits;
   final int orderExportBaseCommandCount;
+  final void Function(Colony colony) onSelectColony;
+  final void Function(Unit unit) onSelectUnit;
+  final void Function(int research) onFundResearch;
 
   @override
   Widget build(BuildContext context) {
     final review = _turnReviewSummaryFor(game, orderExportBaseCommandCount);
+    final firstMovableUnit = activeUnits
+        .where((unit) => unit.movesRemaining > 0)
+        .cast<Unit?>()
+        .firstWhere((unit) => unit != null, orElse: () => null);
+    final firstWarningColony = activeColonies
+        .where((colony) => _hasChecklistWarning(colony))
+        .cast<Colony?>()
+        .firstWhere((colony) => colony != null, orElse: () => null);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -5244,9 +5264,39 @@ class _TurnChecklistDetail extends StatelessWidget {
               fundableResearch: review.fundableResearch,
             ),
           ),
+          if (firstMovableUnit != null) ...[
+            _ChecklistActionButton(
+              icon: Icons.near_me,
+              label: 'Review ${firstMovableUnit.name}',
+              onPressed: () => onSelectUnit(firstMovableUnit),
+            ),
+          ],
+          if (firstWarningColony != null) ...[
+            _ChecklistActionButton(
+              icon: Icons.location_city,
+              label: 'Review ${firstWarningColony.name}',
+              onPressed: () => onSelectColony(firstWarningColony),
+            ),
+          ],
+          if (review.fundableResearch > 0) ...[
+            _ChecklistActionButton(
+              icon: Icons.science,
+              label: 'Fund +${review.fundableResearch}',
+              onPressed: () => onFundResearch(review.fundableResearch),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  bool _hasChecklistWarning(Colony colony) {
+    final projection = game.colonyProductionFor(colony);
+    return projection.isStarving ||
+        projection.isRioting ||
+        projection.hasMaintenanceShortfall ||
+        projection.isInUnrest ||
+        projection.moraleChange < 0;
   }
 
   String _stateLabel(int pendingOrderCount) {
@@ -5346,6 +5396,40 @@ class _TurnChecklistDetail extends StatelessWidget {
       return '${faction.researchProject} ready';
     }
     return '${faction.researchProject} $stored/$cost, $remaining left';
+  }
+}
+
+class _ChecklistActionButton extends StatelessWidget {
+  const _ChecklistActionButton({
+    Key? key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  }) : super(key: key);
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 92, top: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          icon: Icon(icon, size: 16),
+          label: Text(label),
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFCCD6A6),
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+      ),
+    );
   }
 }
 

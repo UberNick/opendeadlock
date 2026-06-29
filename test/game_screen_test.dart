@@ -124,6 +124,35 @@ void main() {
     expect(find.text('No builds complete next turn'), findsOneWidget);
     expect(find.text('Hydroponics 0/10, 10 left'), findsOneWidget);
     expect(find.text('1 unit idle | Fund 8 research'), findsOneWidget);
+    expect(
+        find.widgetWithText(TextButton, 'Review Survey Team'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Fund +8'), findsOneWidget);
+
+    await tester.ensureVisible(find.widgetWithText(TextButton, 'Fund +8'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Fund +8'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Hydroponics 8/10, 2 left'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Fund +8'), findsNothing);
+
+    await tester.ensureVisible(
+      find.widgetWithText(TextButton, 'Review Survey Team'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Review Survey Team'));
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Survey Team'),
+      delta: const Offset(0, 420),
+      maxScrolls: 24,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Survey Team'), findsWidgets);
   });
 
   testWidgets('end turn asks for review when checklist has open items',
