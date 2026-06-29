@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:file_selector/file_selector.dart';
 
+import 'comic_viewer_screen.dart';
 import 'legacy_reference_screen.dart';
 
 class DevMenu extends StatefulWidget {
@@ -71,7 +72,7 @@ class _DevMenuState extends State<DevMenu> {
                       ),
                       SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: null,
+                        onPressed: openComicViewer,
                         style: ElevatedButton.styleFrom(
                             minimumSize: Size(125, 35)),
                         child: const Text("View Comic"),
@@ -169,6 +170,15 @@ class _DevMenuState extends State<DevMenu> {
       context,
       MaterialPageRoute(
         builder: (context) => const LegacyReferenceScreen(),
+      ),
+    );
+  }
+
+  void openComicViewer() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ComicViewerScreen(),
       ),
     );
   }

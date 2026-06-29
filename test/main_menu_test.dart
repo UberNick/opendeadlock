@@ -227,4 +227,41 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('developer menu opens opening comic storyboard', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DevMenu(title: 'Developer Menu'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(ElevatedButton, 'View Comic'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'View Comic'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Opening Comic'), findsOneWidget);
+    expect(find.text('Storyboard'), findsOneWidget);
+    expect(find.text('A New World'), findsWidgets);
+    expect(
+        find.text('The colony ships descend over Gallius IV.'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Next'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('First Orders'), findsWidgets);
+    expect(find.text('Scouts fan out while factories wake from cold storage.'),
+        findsOneWidget);
+
+    await tester.tap(find.text('Planetary Conquest').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Planetary Conquest'), findsWidgets);
+    expect(
+      find.text('Treaties, sabotage, science, and armor shape the endgame.'),
+      findsOneWidget,
+    );
+  });
 }
