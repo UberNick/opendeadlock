@@ -1033,6 +1033,80 @@ void main() {
     );
   });
 
+  testWidgets('game screen summarizes session audit', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final game = OpenDeadlockGame.sample(sessionId: 'session-audit-ui');
+    final commandFingerprint = GameCodec.fingerprintCommands(
+      game.commandHistory.map((record) => record.command),
+    );
+    final stateFingerprint = GameCodec.fingerprintGame(game);
+    final localSeats = game.factions.where((faction) => faction.isLocal).length;
+    final computerSeats =
+        game.factions.where((faction) => faction.isComputer).length;
+    final remoteSeats =
+        game.factions.where((faction) => faction.isRemote).length;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('session-audit')),
+      maxScrolls: 56,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('session-audit')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Session Audit'), findsOneWidget);
+    expect(find.text('session-audit-ui'), findsWidgets);
+    expect(find.text('Turn ${game.turn} | ${game.activeFaction.name}'),
+        findsOneWidget);
+    expect(
+      find.text(Faction.controlModeLabelFor(game.activeFaction.controlMode)),
+      findsWidgets,
+    );
+    expect(
+      find.text('$localSeats local / $computerSeats AI / $remoteSeats remote'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(OpenDeadlockGame.victoryConditionLabelFor(
+        game.victoryCondition,
+      )),
+      findsWidgets,
+    );
+    expect(find.text('${game.commandHistory.length} recorded'), findsOneWidget);
+    expect(find.text(_shortFingerprintForTest(commandFingerprint)),
+        findsOneWidget);
+    expect(
+        find.text(_shortFingerprintForTest(stateFingerprint)), findsOneWidget);
+    expect(
+      find.text(GameCodec.turnHandoffLabelFor(
+        turn: game.turn,
+        activeFactionName: game.activeFaction.name,
+        controlMode: game.activeFaction.controlMode,
+      )),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('game screen can assign a sector to colony production',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

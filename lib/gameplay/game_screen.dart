@@ -4631,6 +4631,8 @@ class _SelectionPanel extends StatelessWidget {
           _OpponentIntelDetail(game: game),
           const SizedBox(height: 18),
           _MapIntelDetail(game: game),
+          const SizedBox(height: 18),
+          _SessionAuditDetail(game: game),
         ],
       ),
     );
@@ -8105,6 +8107,107 @@ class _MapIntelDetail extends StatelessWidget {
       }
     }
     return '${OpenDeadlockGame.terrainLabelFor(bestTerrain)} leads ${counts[bestTerrain]}';
+  }
+}
+
+class _SessionAuditDetail extends StatelessWidget {
+  const _SessionAuditDetail({
+    Key? key,
+    required this.game,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final commandFingerprint = GameCodec.fingerprintCommands(
+      game.commandHistory.map((record) => record.command),
+    );
+    final stateFingerprint = GameCodec.fingerprintGame(game);
+    final remoteSeats =
+        game.factions.where((faction) => faction.isRemote).length;
+    final computerSeats =
+        game.factions.where((faction) => faction.isComputer).length;
+    final localSeats = game.factions.where((faction) => faction.isLocal).length;
+
+    return Container(
+      key: const ValueKey<String>('session-audit'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.verified_user,
+                  color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Session Audit',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                _shortSessionId(game.sessionId),
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Turn',
+            value: 'Turn ${game.turn} | ${game.activeFaction.name}',
+          ),
+          _DetailRow(
+            label: 'Seat',
+            value: Faction.controlModeLabelFor(game.activeFaction.controlMode),
+          ),
+          _DetailRow(
+            label: 'Roster',
+            value:
+                '$localSeats local / $computerSeats AI / $remoteSeats remote',
+          ),
+          _DetailRow(
+            label: 'Victory',
+            value: OpenDeadlockGame.victoryConditionLabelFor(
+                game.victoryCondition),
+          ),
+          _DetailRow(
+            label: 'Commands',
+            value: game.commandHistory.length == 1
+                ? '1 recorded'
+                : '${game.commandHistory.length} recorded',
+          ),
+          _DetailRow(
+            label: 'Command Hash',
+            value: _shortFingerprint(commandFingerprint),
+          ),
+          _DetailRow(
+            label: 'State Hash',
+            value: _shortFingerprint(stateFingerprint),
+          ),
+          _DetailRow(
+            label: 'Handoff',
+            value: GameCodec.turnHandoffLabelFor(
+              turn: game.turn,
+              activeFactionName: game.activeFaction.name,
+              controlMode: game.activeFaction.controlMode,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
