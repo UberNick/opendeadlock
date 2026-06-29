@@ -4651,6 +4651,7 @@ class _SelectionPanel extends StatelessWidget {
           _ResourceOverlayDetail(
             game: game,
             overlayMode: mapOverlayMode,
+            onSelectSector: onSelectSector,
           ),
           const SizedBox(height: 18),
           _SessionAuditDetail(game: game),
@@ -8136,10 +8137,12 @@ class _ResourceOverlayDetail extends StatelessWidget {
     Key? key,
     required this.game,
     required this.overlayMode,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
   final _MapOverlayMode overlayMode;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -8225,10 +8228,15 @@ class _ResourceOverlayDetail extends StatelessWidget {
                 : '${_sectorLabel(bestOwnedEmpty)} | ${_tileYieldLabel(bestOwnedEmpty.yields)}',
           ),
           for (var index = 0; index < topTiles.length; index += 1)
-            _DetailRow(
-              label: '#${index + 1}',
-              value:
-                  '${_sectorLabel(topTiles[index])} | ${_overlayValueFor(topTiles[index])} ${_overlayUnitLabel()} | ${_ownershipLabel(topTiles[index])}',
+            _ResourceOverlayTargetRow(
+              rank: index + 1,
+              tile: topTiles[index],
+              value: _overlayValueFor(topTiles[index]),
+              unitLabel: _overlayUnitLabel(),
+              ownerLabel: _ownershipLabel(topTiles[index]),
+              onSelected: () {
+                onSelectSector(topTiles[index].x, topTiles[index].y);
+              },
             ),
         ],
       ),
@@ -8279,6 +8287,69 @@ class _ResourceOverlayDetail extends StatelessWidget {
     }
     final owner = game.factionById(tile.ownerId);
     return owner == null ? 'Rival' : owner.name;
+  }
+}
+
+class _ResourceOverlayTargetRow extends StatelessWidget {
+  const _ResourceOverlayTargetRow({
+    Key? key,
+    required this.rank,
+    required this.tile,
+    required this.value,
+    required this.unitLabel,
+    required this.ownerLabel,
+    required this.onSelected,
+  }) : super(key: key);
+
+  final int rank;
+  final PlanetTile tile;
+  final int value;
+  final String unitLabel;
+  final String ownerLabel;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              '#$rank',
+              style: const TextStyle(
+                color: Color(0xFF9FB0BE),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: ValueKey<String>(
+                  'resource-overlay-target-$rank-${tile.x}-${tile.y}',
+                ),
+                icon: const Icon(Icons.travel_explore, size: 16),
+                label: Text(
+                  'Sector ${tile.x + 1}, ${tile.y + 1} | $value $unitLabel | $ownerLabel',
+                ),
+                onPressed: onSelected,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFCCD6A6),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  alignment: Alignment.centerLeft,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

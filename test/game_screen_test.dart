@@ -690,6 +690,35 @@ void main() {
         findsOneWidget,
       );
     }
+
+    await tester.tap(
+      find.byKey(
+        ValueKey<String>(
+          'resource-overlay-target-1-${topTiles.first.x}-${topTiles.first.y}',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Sector ${topTiles.first.x + 1}, ${topTiles.first.y + 1}'),
+      delta: const Offset(0, 420),
+      maxScrolls: 56,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.text('Sector ${topTiles.first.x + 1}, ${topTiles.first.y + 1}'),
+      findsWidgets,
+    );
+    expect(
+      find.text(
+        '${topTiles.first.yields.food} food / ${topTiles.first.yields.industry} industry / ${topTiles.first.yields.research} research',
+      ),
+      findsWidgets,
+    );
   });
 
   testWidgets('map hides remembered enemy units outside live vision',
