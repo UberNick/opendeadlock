@@ -5471,6 +5471,34 @@ void main() {
       findsOneWidget,
     );
 
+    final pendingOrderButton = find.byKey(
+      const ValueKey<String>('pending-order-review-2'),
+    );
+    expect(pendingOrderButton, findsOneWidget);
+
+    await tester.ensureVisible(pendingOrderButton);
+    await tester.pumpAndSettle();
+    await tester.tap(pendingOrderButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Population'),
+      delta: const Offset(0, 420),
+      maxScrolls: 40,
+    );
+    expect(find.text('New Haven'), findsWidgets);
+    expect(find.text('Population'), findsOneWidget);
+
+    await tester.dragUntilVisible(
+      find.text('Pending Orders'),
+      find.byType(Scrollable).last,
+      const Offset(0, -420),
+      maxIteration: 24,
+    );
+    await tester.pumpAndSettle();
+
     await tester.ensureVisible(
       find.widgetWithText(OutlinedButton, 'Export Orders File'),
     );

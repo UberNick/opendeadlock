@@ -2274,6 +2274,8 @@ class _CopyOrdersPreviewDialog extends StatelessWidget {
                     record: entry.value,
                     factionName: _factionNameFor(game, entry.value.factionId),
                     summary: _commandSummaryFor(game, entry.value.command),
+                    target: null,
+                    onSelectSector: (_, __) {},
                   );
                 }),
               if (pendingRecords.length > 6)
@@ -4593,6 +4595,7 @@ class _SelectionPanel extends StatelessWidget {
             onExportOrdersFile: onExportOrdersFile,
             canUndoLastOrder: canUndoLastOrder,
             onUndoLastOrder: onUndoLastOrder,
+            onSelectSector: onSelectSector,
           ),
           const SizedBox(height: 18),
           _ReplayTimelineDetail(
@@ -10526,6 +10529,7 @@ class _PendingOrdersDetail extends StatelessWidget {
     required this.onExportOrdersFile,
     required this.canUndoLastOrder,
     required this.onUndoLastOrder,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
@@ -10534,6 +10538,7 @@ class _PendingOrdersDetail extends StatelessWidget {
   final Future<void> Function() onExportOrdersFile;
   final bool canUndoLastOrder;
   final VoidCallback onUndoLastOrder;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -10642,6 +10647,8 @@ class _PendingOrdersDetail extends StatelessWidget {
                 record: entry.value,
                 factionName: _factionNameFor(game, entry.value.factionId),
                 summary: _commandSummaryFor(game, entry.value.command),
+                target: _replayTargetFor(game, entry.value.command),
+                onSelectSector: onSelectSector,
               );
             }),
           if (pendingRecords.length > 6)
@@ -11039,12 +11046,16 @@ class _PendingOrderLine extends StatelessWidget {
     required this.record,
     required this.factionName,
     required this.summary,
+    required this.target,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final int index;
   final CommandRecord record;
   final String factionName;
   final String summary;
+  final _ReplayTarget? target;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -11075,10 +11086,30 @@ class _PendingOrderLine extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  summary,
-                  style: const TextStyle(color: Color(0xFFE9EEF2)),
-                ),
+                if (target == null)
+                  Text(
+                    summary,
+                    style: const TextStyle(color: Color(0xFFE9EEF2)),
+                  )
+                else
+                  TextButton(
+                    key: ValueKey<String>('pending-order-review-$index'),
+                    onPressed: () => onSelectSector(target!.x, target!.y),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFE9EEF2),
+                      visualDensity: VisualDensity.compact,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        summary,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 2),
                 Text(
                   'Turn ${record.turn} | $factionName',
@@ -11087,6 +11118,14 @@ class _PendingOrderLine extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
+                if (target != null)
+                  Text(
+                    'Review ${target!.label}',
+                    style: const TextStyle(
+                      color: Color(0xFF9FB0BE),
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
