@@ -13399,7 +13399,17 @@ class _UnitOrdersDetail extends StatelessWidget {
                   : 'No adjacent legal orders.',
               style: const TextStyle(color: Color(0xFFE9EEF2)),
             )
-          else
+          else ...[
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('unit-orders-open-top'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Open Top Order'),
+                onPressed: () =>
+                    onSelectSector(orders.first.tile.x, orders.first.tile.y),
+              ),
+            ),
             ...orders.map(
               (order) => Padding(
                 padding: const EdgeInsets.only(top: 6),
@@ -13433,6 +13443,7 @@ class _UnitOrdersDetail extends StatelessWidget {
                 ),
               ),
             ),
+          ],
         ],
       ),
     );

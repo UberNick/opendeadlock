@@ -3099,8 +3099,11 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Unit Orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('unit-orders-open-top')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey<String>('unit-order-move-4-1')),
         findsOneWidget);
+    expect(find.text('Open Top Order'), findsOneWidget);
     expect(find.text('Move to 5, 2'), findsOneWidget);
     expect(find.text('Forest / 2 move'), findsOneWidget);
 
