@@ -10501,6 +10501,7 @@ class _SyncStatusDetail extends StatelessWidget {
             runSpacing: 6,
             children: [
               OutlinedButton.icon(
+                key: const ValueKey<String>('sync-apply-orders'),
                 icon: const Icon(Icons.playlist_add_check, size: 18),
                 label: const Text('Apply Orders'),
                 onPressed: () {
@@ -10512,6 +10513,7 @@ class _SyncStatusDetail extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
+                key: const ValueKey<String>('sync-import-orders-file'),
                 icon: const Icon(Icons.drive_folder_upload, size: 18),
                 label: const Text('Import Orders File'),
                 onPressed: () {

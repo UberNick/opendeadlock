@@ -4949,6 +4949,10 @@ void main() {
     expect(find.text('Tarth Legion, Trade Compact'), findsOneWidget);
     expect(find.text('Package Flow'), findsOneWidget);
     expect(find.text('Share invites or import remote orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-apply-orders')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-import-orders-file')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-copy-snapshot')),
         findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-save-snapshot-file')),
@@ -5023,9 +5027,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(OutlinedButton, 'Apply Orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-apply-orders')),
+        findsOneWidget);
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Apply Orders'));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('sync-apply-orders')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 6,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('sync-apply-orders')));
     await tester.pumpAndSettle();
 
     expect(
