@@ -4629,6 +4629,7 @@ class _SelectionPanel extends StatelessWidget {
             units: activeUnits,
             onSelectColony: onSelectColony,
             onSelectUnit: onSelectUnit,
+            onDiplomacyChanged: onDiplomacyChanged,
           ),
           const SizedBox(height: 18),
           _VictoryPathsDetail(game: game),
@@ -5635,6 +5636,7 @@ class _StrategicAdvisorDetail extends StatelessWidget {
     required this.units,
     required this.onSelectColony,
     required this.onSelectUnit,
+    required this.onDiplomacyChanged,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
@@ -5642,6 +5644,7 @@ class _StrategicAdvisorDetail extends StatelessWidget {
   final List<Unit> units;
   final void Function(Colony colony) onSelectColony;
   final void Function(Unit unit) onSelectUnit;
+  final void Function(String targetFactionId, String status) onDiplomacyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -5878,8 +5881,10 @@ class _StrategicAdvisorDetail extends StatelessWidget {
         _StrategicAdvisorItem(
           priority: 25,
           icon: Icons.handshake,
-          title: 'Review war with ${faction.name}',
-          detail: 'Peace or alliance can reopen treaty trade',
+          title: 'Offer peace to ${faction.name}',
+          detail: 'Reopen treaty trade before ending the turn',
+          diplomacyTargetId: faction.id,
+          diplomacyStatus: OpenDeadlockGame.diplomacyStatusPeace,
         ),
       );
     }
@@ -5895,6 +5900,11 @@ class _StrategicAdvisorDetail extends StatelessWidget {
     if (unit != null) {
       return () => onSelectUnit(unit);
     }
+    final diplomacyTargetId = item.diplomacyTargetId;
+    final diplomacyStatus = item.diplomacyStatus;
+    if (diplomacyTargetId != null && diplomacyStatus != null) {
+      return () => onDiplomacyChanged(diplomacyTargetId, diplomacyStatus);
+    }
     return null;
   }
 }
@@ -5907,6 +5917,8 @@ class _StrategicAdvisorItem {
     required this.detail,
     this.colony,
     this.unit,
+    this.diplomacyTargetId,
+    this.diplomacyStatus,
   });
 
   final int priority;
@@ -5915,6 +5927,8 @@ class _StrategicAdvisorItem {
   final String detail;
   final Colony? colony;
   final Unit? unit;
+  final String? diplomacyTargetId;
+  final String? diplomacyStatus;
 }
 
 class _StrategicAdvisorRow extends StatelessWidget {

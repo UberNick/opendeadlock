@@ -1617,6 +1617,19 @@ void main() {
     expect(find.text('1 ready / 1 wounded'), findsOneWidget);
     expect(find.text('1 active war'), findsOneWidget);
     expect(find.text('Fund Hydroponics'), findsOneWidget);
+    expect(find.text('Offer peace to Tarth Legion'), findsOneWidget);
+    expect(
+      find.text('Reopen treaty trade before ending the turn'),
+      findsOneWidget,
+    );
+
+    await tester
+        .tap(find.widgetWithText(TextButton, 'Offer peace to Tarth Legion'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('No active wars'), findsOneWidget);
+    expect(find.text('Offer peace to Tarth Legion'), findsNothing);
 
     await tester.tap(find.widgetWithText(TextButton, 'Recover Survey Team'));
     await tester.pumpAndSettle();
