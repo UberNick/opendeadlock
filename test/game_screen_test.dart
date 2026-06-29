@@ -2090,6 +2090,16 @@ void main() {
       0,
       (total, projection) => total + projection.maintenanceShortfall,
     );
+    final researchCost = OpenDeadlockGame.researchCostFor(
+      faction.researchProject,
+    );
+    final remainingResearch = researchCost - faction.resources.research;
+    final affordableResearch = faction.resources.credits ~/
+        OpenDeadlockGame.researchCreditCostPerPoint;
+    final fundableResearch = affordableResearch < remainingResearch
+        ? affordableResearch
+        : remainingResearch;
+    final fundCost = OpenDeadlockGame.fundResearchCostFor(fundableResearch);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -2121,6 +2131,29 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('$maintenanceShortfall credit shortfall'), findsOneWidget);
+    expect(find.text('Fund $fundableResearch of $remainingResearch remaining'),
+        findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('faction-economy-fund-research')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('faction-economy-fund-research')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.text('${faction.resources.credits - fundCost} credits'),
+      findsWidgets,
+    );
+    expect(
+      find.text(
+        '${faction.resources.research + fundableResearch}/$researchCost ${faction.researchProject}',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('game screen shows colony unrest penalties', (tester) async {
@@ -3880,12 +3913,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _scrollSidePanelUntilVisible(tester, find.text('Fund +8'));
-    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'Fund +8'));
+    final fundButton =
+        find.byKey(const ValueKey<String>('research-panel-fund-research'));
+    await _scrollSidePanelUntilVisible(tester, fundButton);
+    await tester.ensureVisible(fundButton);
     await tester.pumpAndSettle();
-    expect(find.text('Fund +8'), findsOneWidget);
+    expect(fundButton, findsOneWidget);
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Fund +8'));
+    await tester.tap(fundButton);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

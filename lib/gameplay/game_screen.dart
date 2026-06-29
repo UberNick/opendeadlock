@@ -4520,7 +4520,12 @@ class _SelectionPanel extends StatelessWidget {
             musicEnabled: musicEnabled,
           ),
           const SizedBox(height: 18),
-          _FactionEconomyDetail(game: game, faction: game.activeFaction),
+          _FactionEconomyDetail(
+            game: game,
+            faction: game.activeFaction,
+            canEdit: canIssueLocalOrders,
+            onFundResearch: onFundResearch,
+          ),
           const SizedBox(height: 18),
           _WorldOverviewDetail(game: game),
           const SizedBox(height: 18),
@@ -7210,10 +7215,14 @@ class _FactionEconomyDetail extends StatelessWidget {
     Key? key,
     required this.game,
     required this.faction,
+    required this.canEdit,
+    required this.onFundResearch,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
   final Faction faction;
+  final bool canEdit;
+  final void Function(int research) onFundResearch;
 
   @override
   Widget build(BuildContext context) {
@@ -7244,6 +7253,8 @@ class _FactionEconomyDetail extends StatelessWidget {
             projection.isInUnrest ||
             projection.isRioting)
         .length;
+    final fundableResearch = _fundableResearchFor(faction);
+    final canFundResearch = canEdit && fundableResearch > 0;
 
     return Container(
       key: const ValueKey<String>('faction-economy'),
@@ -7306,6 +7317,18 @@ class _FactionEconomyDetail extends StatelessWidget {
                 : '$moralePressureCount under pressure',
           ),
           _DetailRow(label: 'Research', value: _researchLabel()),
+          if (canFundResearch) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const ValueKey<String>('faction-economy-fund-research'),
+                icon: const Icon(Icons.lightbulb),
+                label: Text('Fund +$fundableResearch'),
+                onPressed: () => onFundResearch(fundableResearch),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -9352,6 +9375,7 @@ class _ResearchDetail extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
+                  key: const ValueKey<String>('research-panel-fund-research'),
                   icon: const Icon(Icons.lightbulb),
                   label: Text(
                     canFund ? 'Fund +$fundedResearch' : 'Fund Research',
