@@ -1733,12 +1733,33 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Victory Cutscene'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('victory-cutscene-player')),
+        findsOneWidget);
+    expect(find.text('Scene 1/3'), findsOneWidget);
     expect(
       find.text(
         'Human Assembly uplinks the final discovery from every research lab.',
       ),
+      findsWidgets,
+    );
+
+    await tester.tap(find.byTooltip('Next Scene'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scene 2/3'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('cutscene-scene-2')),
       findsOneWidget,
     );
+    expect(
+      find.text('The colony network powers ancient vaults across the planet.'),
+      findsWidgets,
+    );
+
+    await tester.tap(find.byTooltip('Replay Cutscene'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scene 1/3'), findsOneWidget);
   });
 
   testWidgets('game screen shows post-game stats after victory',
@@ -1857,7 +1878,7 @@ void main() {
       find.text(
         'Human Assembly closes the final council tally with the strongest score.',
       ),
-      findsOneWidget,
+      findsWidgets,
     );
     expect(find.text('Victory Type'), findsOneWidget);
     expect(find.text('Score'), findsWidgets);

@@ -4578,7 +4578,7 @@ class _VictoryBanner extends StatelessWidget {
   }
 }
 
-class _VictoryCutsceneDetail extends StatelessWidget {
+class _VictoryCutsceneDetail extends StatefulWidget {
   const _VictoryCutsceneDetail({
     Key? key,
     required this.game,
@@ -4587,8 +4587,22 @@ class _VictoryCutsceneDetail extends StatelessWidget {
   final OpenDeadlockGame game;
 
   @override
+  State<_VictoryCutsceneDetail> createState() => _VictoryCutsceneDetailState();
+}
+
+class _VictoryCutsceneDetailState extends State<_VictoryCutsceneDetail> {
+  int _sceneIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
-    final beats = _victoryCutsceneBeatsFor(game);
+    final beats = _victoryCutsceneBeatsFor(widget.game);
+    final sceneCount = beats.length;
+    final clampedSceneIndex = _sceneIndex.clamp(0, sceneCount - 1);
+    if (clampedSceneIndex != _sceneIndex) {
+      _sceneIndex = clampedSceneIndex;
+    }
+    final canGoBack = _sceneIndex > 0;
+    final canGoForward = _sceneIndex < sceneCount - 1;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -4614,12 +4628,121 @@ class _VictoryCutsceneDetail extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+          _CutscenePlaybackPanel(
+            sceneNumber: _sceneIndex + 1,
+            sceneCount: sceneCount,
+            beat: beats[_sceneIndex],
+            canGoForward: canGoForward,
+            onPrevious: canGoBack
+                ? () {
+                    setState(() {
+                      _sceneIndex -= 1;
+                    });
+                  }
+                : null,
+            onNext: canGoForward
+                ? () {
+                    setState(() {
+                      _sceneIndex += 1;
+                    });
+                  }
+                : null,
+            onReplay: _sceneIndex > 0
+                ? () {
+                    setState(() {
+                      _sceneIndex = 0;
+                    });
+                  }
+                : null,
+          ),
+          const SizedBox(height: 8),
           ...beats.asMap().entries.map(
                 (entry) => _CutsceneBeatRow(
                   index: entry.key + 1,
                   beat: entry.value,
                 ),
               ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CutscenePlaybackPanel extends StatelessWidget {
+  const _CutscenePlaybackPanel({
+    Key? key,
+    required this.sceneNumber,
+    required this.sceneCount,
+    required this.beat,
+    required this.canGoForward,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onReplay,
+  }) : super(key: key);
+
+  final int sceneNumber;
+  final int sceneCount;
+  final String beat;
+  final bool canGoForward;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+  final VoidCallback? onReplay;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey<String>('victory-cutscene-player'),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26333C),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF43515B)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.play_circle, color: Color(0xFFD9B66F), size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Scene $sceneNumber/$sceneCount',
+                  style: const TextStyle(
+                    color: Color(0xFFFFF5D6),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Previous Scene',
+                icon: const Icon(Icons.chevron_left),
+                color: const Color(0xFFE9EEF2),
+                onPressed: onPrevious,
+              ),
+              IconButton(
+                tooltip: canGoForward ? 'Next Scene' : 'Final Scene',
+                icon: const Icon(Icons.chevron_right),
+                color: const Color(0xFFE9EEF2),
+                onPressed: onNext,
+              ),
+              IconButton(
+                tooltip: 'Replay Cutscene',
+                icon: const Icon(Icons.replay),
+                color: const Color(0xFFE9EEF2),
+                onPressed: onReplay,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            beat,
+            key: ValueKey<String>('cutscene-scene-$sceneNumber'),
+            style: const TextStyle(
+              color: Color(0xFFE9EEF2),
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );
