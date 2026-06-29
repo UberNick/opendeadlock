@@ -234,10 +234,20 @@ void main() {
     expect(find.text('New Game: setup and rules'), findsOneWidget);
     expect(find.text('Developer Menu: legacy screenshots'), findsOneWidget);
 
+    await tester.tap(find.widgetWithText(TextButton, 'Copy URL'));
+    await tester.pumpAndSettle();
+
+    expect(clipboardWrites, <String>[localReviewUrl]);
+    expect(find.text('Copied local review URL'), findsOneWidget);
+    expect(find.text('Local Review Guide'), findsNothing);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Review Guide'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.widgetWithText(ElevatedButton, 'Copy Command'));
     await tester.pumpAndSettle();
 
-    expect(clipboardWrites, <String>[localReviewCommand]);
+    expect(clipboardWrites, <String>[localReviewUrl, localReviewCommand]);
     expect(find.text('Copied local review command'), findsOneWidget);
     expect(find.text('Local Review Guide'), findsNothing);
   });

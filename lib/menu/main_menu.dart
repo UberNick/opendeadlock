@@ -220,9 +220,7 @@ class _MainMenuState extends State<MainMenu> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied local review command')),
-    );
+    _showMenuSnackBar('Copied local review command');
   }
 
   void _showLocalReviewGuide() {
@@ -259,20 +257,39 @@ class _MainMenuState extends State<MainMenu> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(
+                const ClipboardData(text: localReviewUrl),
+              );
+              Navigator.pop(context);
+              _showMenuSnackBar('Copied local review URL');
+            },
+            child: const Text('Copy URL'),
+          ),
           ElevatedButton(
-            onPressed: () {
-              Clipboard.setData(
+            onPressed: () async {
+              await Clipboard.setData(
                 const ClipboardData(text: localReviewCommand),
               );
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Copied local review command')),
-              );
+              _showMenuSnackBar('Copied local review command');
             },
             child: const Text('Copy Command'),
           ),
         ],
       ),
+    );
+  }
+
+  void _showMenuSnackBar(String message) {
+    if (!mounted) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
