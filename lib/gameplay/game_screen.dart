@@ -11524,6 +11524,7 @@ class _ColonyDetail extends StatelessWidget {
               colony.construction,
             ),
           ),
+          _BuildCatalogDetail(colony: colony),
           _DetailRow(label: 'Completed', value: completedBuildings),
           const SizedBox(height: 8),
           ClipRRect(
@@ -11713,6 +11714,210 @@ class _ColonyDetail extends StatelessWidget {
       return 1;
     }
     return progress;
+  }
+}
+
+class _BuildCatalogDetail extends StatelessWidget {
+  const _BuildCatalogDetail({
+    Key? key,
+    required this.colony,
+  }) : super(key: key);
+
+  final Colony colony;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = OpenDeadlockGame.constructionOptions
+        .map((construction) => _BuildCatalogItem.forConstruction(
+              colony,
+              construction,
+            ))
+        .toList(growable: false);
+    final availableCount = items
+        .where((item) => item.status == _BuildCatalogStatus.available)
+        .length;
+    final completedCount = items
+        .where((item) => item.status == _BuildCatalogStatus.completed)
+        .length;
+    final lockedCount =
+        items.where((item) => item.status == _BuildCatalogStatus.locked).length;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Color(0xFF31404C)),
+          ),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: Material(
+            type: MaterialType.transparency,
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 2),
+              collapsedIconColor: const Color(0xFFE9EEF2),
+              iconColor: const Color(0xFFE9EEF2),
+              title: const Row(
+                children: [
+                  Icon(Icons.account_tree, color: Color(0xFFE9EEF2), size: 17),
+                  SizedBox(width: 7),
+                  Text(
+                    'Build Catalog',
+                    style: TextStyle(
+                      color: Color(0xFFF4F7FA),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              subtitle: _DetailRow(
+                label: 'Options',
+                value:
+                    '$availableCount available / $completedCount completed / $lockedCount locked',
+              ),
+              children: [
+                ...items.map((item) => _BuildCatalogRow(item: item)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _BuildCatalogStatus { available, completed, locked }
+
+class _BuildCatalogItem {
+  const _BuildCatalogItem({
+    required this.construction,
+    required this.status,
+    required this.cost,
+    required this.upkeep,
+    required this.requirement,
+    required this.produces,
+  });
+
+  final String construction;
+  final _BuildCatalogStatus status;
+  final int cost;
+  final int upkeep;
+  final String requirement;
+  final String produces;
+
+  static _BuildCatalogItem forConstruction(
+    Colony colony,
+    String construction,
+  ) {
+    final completed =
+        OpenDeadlockGame.isCompletedConstruction(colony, construction);
+    final available =
+        OpenDeadlockGame.isConstructionAvailableFor(colony, construction);
+    return _BuildCatalogItem(
+      construction: construction,
+      status: completed
+          ? _BuildCatalogStatus.completed
+          : available
+              ? _BuildCatalogStatus.available
+              : _BuildCatalogStatus.locked,
+      cost: OpenDeadlockGame.buildCostFor(construction),
+      upkeep: OpenDeadlockGame.constructionUpkeepFor(construction),
+      requirement: OpenDeadlockGame.constructionRequirementFor(construction),
+      produces:
+          OpenDeadlockGame.constructionProducesDescriptionFor(construction),
+    );
+  }
+}
+
+class _BuildCatalogRow extends StatelessWidget {
+  const _BuildCatalogRow({
+    Key? key,
+    required this.item,
+  }) : super(key: key);
+
+  final _BuildCatalogItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor();
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(_statusIcon(), color: color, size: 14),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${item.construction} - ${_statusLabel()}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${item.cost} industry / ${item.upkeep} upkeep / Requires ${item.requirement}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  item.produces,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF9FB0BE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor() {
+    if (item.status == _BuildCatalogStatus.completed) {
+      return const Color(0xFF82CBA8);
+    }
+    if (item.status == _BuildCatalogStatus.locked) {
+      return const Color(0xFFF2C38B);
+    }
+    return const Color(0xFFE9EEF2);
+  }
+
+  IconData _statusIcon() {
+    if (item.status == _BuildCatalogStatus.completed) {
+      return Icons.check_circle;
+    }
+    if (item.status == _BuildCatalogStatus.locked) {
+      return Icons.lock;
+    }
+    return Icons.radio_button_unchecked;
+  }
+
+  String _statusLabel() {
+    if (item.status == _BuildCatalogStatus.completed) {
+      return 'Completed';
+    }
+    if (item.status == _BuildCatalogStatus.locked) {
+      return 'Locked';
+    }
+    return 'Available';
   }
 }
 

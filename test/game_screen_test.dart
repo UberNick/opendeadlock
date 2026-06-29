@@ -2463,12 +2463,13 @@ void main() {
     expect(find.text('1 pop / 45 morale'), findsWidgets);
     expect(find.text('Survey Team captured Redoubt'), findsWidgets);
 
-    for (var scroll = 0;
-        scroll < 18 && find.text('Tactical Log').evaluate().isEmpty;
-        scroll += 1) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -480));
-      await tester.pumpAndSettle();
-    }
+    await tester.scrollUntilVisible(
+      find.text('Tactical Log'),
+      420,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 24,
+    );
+    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.text('Tactical Log'), findsOneWidget);
@@ -2709,6 +2710,69 @@ void main() {
         'Cost 18 industry / Upkeep 1 credit / '
         'Produces +4 population capacity / Requires Housing',
       ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('game screen shows colony build catalog', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final sample = OpenDeadlockGame.sample(sessionId: 'build-catalog-ui');
+    final game = sample.copyWith(
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'new-haven') {
+          return colony;
+        }
+        return colony.copyWith(
+          construction: 'Research Lab',
+          completedBuildings: const <String>['Housing', 'Factory'],
+        );
+      }).toList(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Build Catalog'),
+      420,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 12,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Build Catalog'), findsOneWidget);
+    expect(find.text('Options'), findsOneWidget);
+    expect(find.text('7 available / 2 completed / 3 locked'), findsOneWidget);
+
+    await tester.tap(find.text('Build Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Housing - Completed'), findsOneWidget);
+    expect(find.text('Factory - Completed'), findsOneWidget);
+    expect(find.text('Apartment Complex - Available'), findsOneWidget);
+    expect(find.text('Luxury Housing - Locked'), findsOneWidget);
+    expect(find.text('Armor Company - Locked'), findsOneWidget);
+    expect(
+      find.text('18 industry / 1 upkeep / Requires Housing'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('30 industry / 0 upkeep / Requires Barracks and Factory'),
       findsOneWidget,
     );
   });
