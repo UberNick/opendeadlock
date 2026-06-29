@@ -263,6 +263,7 @@ void main() {
   testWidgets('game screen persists the sound effects toggle', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'opendeadlock.sound_effects_enabled': true,
+      'opendeadlock.music_enabled': true,
     });
 
     await tester.pumpWidget(
@@ -276,6 +277,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Mute sound effects'), findsOneWidget);
+    expect(find.byTooltip('Pause music'), findsOneWidget);
     await tester.dragUntilVisible(
       find.text('Audio'),
       find.byType(Scrollable).last,
@@ -286,9 +288,11 @@ void main() {
 
     expect(find.text('Audio'), findsOneWidget);
     expect(find.text('Effects'), findsOneWidget);
-    expect(find.text('Enabled'), findsOneWidget);
+    expect(find.text('Music'), findsOneWidget);
+    expect(find.text('Enabled'), findsNWidgets(2));
     expect(find.text('Cues'), findsOneWidget);
-    expect(find.text('Orders, saves, sync, turn actions'), findsOneWidget);
+    expect(
+        find.text('Orders, saves, sync, music, turn actions'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Mute sound effects'));
     await tester.pumpAndSettle();
@@ -298,6 +302,14 @@ void main() {
     expect(find.byTooltip('Enable sound effects'), findsOneWidget);
     expect(find.text('Sound effects muted'), findsOneWidget);
     expect(find.text('Muted'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Pause music'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.getBool('opendeadlock.music_enabled'), isFalse);
+    expect(find.byTooltip('Resume music'), findsOneWidget);
+    expect(find.text('Music paused'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
   });
 
   testWidgets('map zoom uses continuous controls on phone width',
@@ -362,7 +374,7 @@ void main() {
 
   testWidgets('map terrain is painted and remains tappable', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    tester.view.physicalSize = const Size(960, 720);
+    tester.view.physicalSize = const Size(960, 960);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -2220,9 +2232,9 @@ void main() {
     await tester.pumpAndSettle();
 
     for (var scroll = 0;
-        scroll < 12 && find.text('News Summary').evaluate().isEmpty;
+        scroll < 18 && find.text('News Summary').evaluate().isEmpty;
         scroll += 1) {
-      await tester.drag(find.byType(ListView).last, const Offset(0, -420));
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
       await tester.pumpAndSettle();
     }
 
@@ -3036,13 +3048,12 @@ void main() {
     );
     expect(find.text('Waiting for sync'), findsWidgets);
 
-    await tester.dragUntilVisible(
-      find.text('Last Sync'),
-      find.byType(ListView),
-      const Offset(0, -420),
-      maxIteration: 12,
-    );
-    await tester.pumpAndSettle();
+    for (var scroll = 0;
+        scroll < 18 && find.text('Last Sync').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Last Sync'), findsOneWidget);
     expect(
@@ -3114,6 +3125,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.dragUntilVisible(
+      find.textContaining('Balanced - No production bias.'),
+      find.byType(Scrollable).last,
+      const Offset(0, -260),
+      maxIteration: 8,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Balanced - No production bias.'));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('+2 industry, -1 food.').last);
@@ -3145,7 +3163,7 @@ void main() {
   testWidgets('command bar can undo the last pending local order',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    tester.view.physicalSize = const Size(960, 720);
+    tester.view.physicalSize = const Size(960, 960);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -3165,6 +3183,13 @@ void main() {
     expect(find.byTooltip('Undo last order'), findsOneWidget);
     expect(find.text('0 cmd'), findsOneWidget);
 
+    await tester.dragUntilVisible(
+      find.textContaining('Balanced - No production bias.'),
+      find.byType(Scrollable).last,
+      const Offset(0, -260),
+      maxIteration: 8,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Balanced - No production bias.'));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('+2 industry, -1 food.').last);

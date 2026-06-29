@@ -41,6 +41,7 @@ const List<XTypeGroup> _snapshotFileTypes = <XTypeGroup>[
 ];
 
 const String _soundEffectsPreferenceKey = 'opendeadlock.sound_effects_enabled';
+const String _musicPreferenceKey = 'opendeadlock.music_enabled';
 const double _minimumMapZoomScale = 1.0;
 const double _maximumMapZoomScale = 3.0;
 const double _mapZoomStep = 0.5;
@@ -131,6 +132,7 @@ class _GameScreenState extends State<GameScreen> {
   double mapZoomScale = _minimumMapZoomScale;
   _MapOverlayMode mapOverlayMode = _MapOverlayMode.terrain;
   bool soundEffectsEnabled = true;
+  bool musicEnabled = true;
   String? lastSyncStatus;
 
   @override
@@ -180,6 +182,8 @@ class _GameScreenState extends State<GameScreen> {
               onImportOrdersFile: _importOrdersFromFile,
               soundEffectsEnabled: soundEffectsEnabled,
               onToggleSoundEffects: _toggleSoundEffects,
+              musicEnabled: musicEnabled,
+              onToggleMusic: _toggleMusic,
               onToggleHotseat: _toggleHotseatMode,
               canUndoLastOrder: _canUndoLastOrder,
               onUndoLastOrder: _undoLastOrder,
@@ -224,6 +228,7 @@ class _GameScreenState extends State<GameScreen> {
                     orderExportBaseCommandCount: orderExportBaseCommandCount,
                     lastSyncStatus: lastSyncStatus,
                     soundEffectsEnabled: soundEffectsEnabled,
+                    musicEnabled: musicEnabled,
                     tile: selectedTile,
                     isExplored: selectedTileKnown,
                     colony: selectedColony,
@@ -462,6 +467,7 @@ class _GameScreenState extends State<GameScreen> {
       final loadedGame = latestSlot == null ? null : latestSlot.decodeGame();
       final storedSoundEffects =
           store.preferences.getBool(_soundEffectsPreferenceKey);
+      final storedMusic = store.preferences.getBool(_musicPreferenceKey);
       if (!mounted) {
         return;
       }
@@ -469,6 +475,7 @@ class _GameScreenState extends State<GameScreen> {
         saveStore = store;
         latestSaveSlot = latestSlot;
         soundEffectsEnabled = storedSoundEffects ?? true;
+        musicEnabled = storedMusic ?? true;
         if (widget.resumeLatestSave && loadedGame != null) {
           game = loadedGame;
           orderExportBaseCommandCount = loadedGame.commandHistory.length;
@@ -662,6 +669,31 @@ class _GameScreenState extends State<GameScreen> {
       SnackBar(
         content:
             Text(enabled ? 'Sound effects enabled' : 'Sound effects muted'),
+      ),
+    );
+  }
+
+  Future<void> _toggleMusic() async {
+    final enabled = !musicEnabled;
+    setState(() {
+      musicEnabled = enabled;
+    });
+    try {
+      final store = await _ensureSaveStore();
+      await store.preferences.setBool(_musicPreferenceKey, enabled);
+    } on Object catch (error) {
+      debugPrint('Could not save music preference: $error');
+    }
+    if (enabled) {
+      _playUiSound(force: true);
+    }
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(enabled ? 'Music enabled' : 'Music paused'),
       ),
     );
   }
@@ -2315,6 +2347,8 @@ class _CommandBar extends StatelessWidget {
     required this.onImportOrdersFile,
     required this.soundEffectsEnabled,
     required this.onToggleSoundEffects,
+    required this.musicEnabled,
+    required this.onToggleMusic,
     required this.onToggleHotseat,
     required this.canUndoLastOrder,
     required this.onUndoLastOrder,
@@ -2341,6 +2375,8 @@ class _CommandBar extends StatelessWidget {
   final Future<void> Function() onImportOrdersFile;
   final bool soundEffectsEnabled;
   final VoidCallback onToggleSoundEffects;
+  final bool musicEnabled;
+  final VoidCallback onToggleMusic;
   final VoidCallback onToggleHotseat;
   final bool canUndoLastOrder;
   final VoidCallback onUndoLastOrder;
@@ -2384,6 +2420,8 @@ class _CommandBar extends StatelessWidget {
                         _undoButton(),
                         const SizedBox(width: 2),
                         _soundButton(),
+                        const SizedBox(width: 2),
+                        _musicButton(),
                         const SizedBox(width: 4),
                         _compactEndTurnButton(),
                       ],
@@ -2421,6 +2459,8 @@ class _CommandBar extends StatelessWidget {
                     _undoButton(),
                     const SizedBox(width: 4),
                     _soundButton(),
+                    const SizedBox(width: 4),
+                    _musicButton(),
                     const SizedBox(width: 8),
                     _endTurnButton(),
                   ],
@@ -2456,6 +2496,15 @@ class _CommandBar extends StatelessWidget {
       color: Colors.white,
       icon: Icon(soundEffectsEnabled ? Icons.volume_up : Icons.volume_off),
       onPressed: onToggleSoundEffects,
+    );
+  }
+
+  Widget _musicButton() {
+    return IconButton(
+      tooltip: musicEnabled ? 'Pause music' : 'Resume music',
+      color: Colors.white,
+      icon: Icon(musicEnabled ? Icons.music_note : Icons.music_off),
+      onPressed: onToggleMusic,
     );
   }
 
@@ -4128,6 +4177,7 @@ class _SelectionPanel extends StatelessWidget {
     required this.orderExportBaseCommandCount,
     required this.lastSyncStatus,
     required this.soundEffectsEnabled,
+    required this.musicEnabled,
     required this.tile,
     required this.isExplored,
     required this.colony,
@@ -4166,6 +4216,7 @@ class _SelectionPanel extends StatelessWidget {
   final int orderExportBaseCommandCount;
   final String? lastSyncStatus;
   final bool soundEffectsEnabled;
+  final bool musicEnabled;
   final PlanetTile tile;
   final bool isExplored;
   final Colony? colony;
@@ -4341,7 +4392,10 @@ class _SelectionPanel extends StatelessWidget {
             onTaxPolicyChanged: onTaxPolicyChanged,
           ),
           const SizedBox(height: 18),
-          _AudioSettingsDetail(soundEffectsEnabled: soundEffectsEnabled),
+          _AudioSettingsDetail(
+            soundEffectsEnabled: soundEffectsEnabled,
+            musicEnabled: musicEnabled,
+          ),
           const SizedBox(height: 18),
           _WorldOverviewDetail(game: game),
           const SizedBox(height: 18),
@@ -5066,9 +5120,11 @@ class _AudioSettingsDetail extends StatelessWidget {
   const _AudioSettingsDetail({
     Key? key,
     required this.soundEffectsEnabled,
+    required this.musicEnabled,
   }) : super(key: key);
 
   final bool soundEffectsEnabled;
+  final bool musicEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -5100,8 +5156,12 @@ class _AudioSettingsDetail extends StatelessWidget {
             value: soundEffectsEnabled ? 'Enabled' : 'Muted',
           ),
           _DetailRow(
+            label: 'Music',
+            value: musicEnabled ? 'Enabled' : 'Paused',
+          ),
+          _DetailRow(
             label: 'Cues',
-            value: 'Orders, saves, sync, turn actions',
+            value: 'Orders, saves, sync, music, turn actions',
           ),
         ],
       ),
