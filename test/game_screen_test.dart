@@ -3538,6 +3538,14 @@ void main() {
     expect(find.text('2 ready / 1 wounded'), findsOneWidget);
     expect(find.text('Scout | HP 3/5 | Moves 2/2'), findsOneWidget);
     expect(find.text('Infantry | HP 8/8 | Moves 1/1'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('unit-roster-review-first')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('unit-roster-row-human-infantry')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.widgetWithText(TextButton, 'Assembly Infantry'));
     await tester.pumpAndSettle();

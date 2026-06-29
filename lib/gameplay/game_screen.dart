@@ -13552,6 +13552,7 @@ class _UnitRosterDetail extends StatelessWidget {
     final woundedCount = units
         .where((unit) => unit.health < OpenDeadlockGame.maxHealthFor(unit.type))
         .length;
+    final firstUnit = units.isEmpty ? null : units.first;
 
     return Container(
       key: const ValueKey<String>('unit-roster'),
@@ -13591,9 +13592,22 @@ class _UnitRosterDetail extends StatelessWidget {
             label: 'Readiness',
             value: '$readyCount ready / $woundedCount wounded',
           ),
+          if (firstUnit != null) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('unit-roster-review-first'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text('Review ${firstUnit.name}'),
+                onPressed: () => onSelectUnit(firstUnit),
+              ),
+            ),
+          ],
           const SizedBox(height: 4),
           ...units.map(
             (unit) => _UnitRosterRow(
+              key: ValueKey<String>('unit-roster-row-${unit.id}'),
               unit: unit,
               isSelected: unit.id == selectedUnitId,
               onSelect: () => onSelectUnit(unit),
