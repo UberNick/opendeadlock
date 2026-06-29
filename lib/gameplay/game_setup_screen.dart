@@ -115,6 +115,8 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                 _SetupPanel(
                   title: 'Planet',
                   icon: Icons.public,
+                  referenceKey: 'setup-reference-planet',
+                  onReference: () => _openLegacyReferences('Planet_Screen.png'),
                   children: [
                     _SetupDropdown(
                       label: 'Map',
@@ -258,6 +260,8 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                 _SetupPanel(
                   title: GameSetup.raceLabelFor(playerRaceId),
                   icon: Icons.person,
+                  referenceKey: 'setup-reference-race',
+                  onReference: () => _openLegacyReferences('Race_Screen.png'),
                   children: [
                     const _SetupReadout(label: 'Seat', value: 'Local'),
                     _PersonalityDropdown(
@@ -308,6 +312,10 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                 _SetupPanel(
                   title: GameSetup.raceLabelFor(rivalRaceId),
                   icon: Icons.smart_toy,
+                  referenceKey: 'setup-reference-difficulty',
+                  onReference: () => _openLegacyReferences(
+                    'Options_Difficulty_Screen.png',
+                  ),
                   children: [
                     _RaceDropdown(
                       label: 'Race',
@@ -610,12 +618,12 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
     );
   }
 
-  void _openLegacyReferences() {
+  void _openLegacyReferences([String initialFileName = 'Planet_Screen.png']) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const LegacyReferenceScreen(
-          initialFileName: 'Planet_Screen.png',
+        builder: (context) => LegacyReferenceScreen(
+          initialFileName: initialFileName,
         ),
       ),
     );
@@ -806,11 +814,15 @@ class _SetupPanel extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.children,
+    this.referenceKey,
+    this.onReference,
   }) : super(key: key);
 
   final String title;
   final IconData icon;
   final List<Widget> children;
+  final String? referenceKey;
+  final VoidCallback? onReference;
 
   @override
   Widget build(BuildContext context) {
@@ -826,13 +838,26 @@ class _SetupPanel extends StatelessWidget {
               children: [
                 Icon(icon, color: const Color(0xFFE9EEF2), size: 19),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFFF4F7FA),
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFFF4F7FA),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+                if (onReference != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    key: ValueKey<String>(referenceKey!),
+                    tooltip: 'Legacy Reference',
+                    color: const Color(0xFFE9EEF2),
+                    icon: const Icon(Icons.image_search, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onReference,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 8),

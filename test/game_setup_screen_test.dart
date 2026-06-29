@@ -264,6 +264,12 @@ void main() {
 
   testWidgets('setup screen can open legacy references', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -287,6 +293,27 @@ void main() {
       ),
       findsOneWidget,
     );
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('setup-reference-race')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Race Selection Screen'), findsWidgets);
+    expect(find.text('Race_Screen.png'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('setup-reference-difficulty')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Difficulty Screen'), findsWidgets);
+    expect(find.text('Options_Difficulty_Screen.png'), findsOneWidget);
   });
 }
 
