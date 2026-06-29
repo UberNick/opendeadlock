@@ -4472,6 +4472,14 @@ class _SelectionPanel extends StatelessWidget {
             onSabotage: onSabotage,
           ),
           const SizedBox(height: 18),
+          _IntelOperationsDetail(
+            game: game,
+            faction: game.activeFaction,
+            canEdit: canIssueLocalOrders,
+            onIntelScan: onIntelScan,
+            onSabotage: onSabotage,
+          ),
+          const SizedBox(height: 18),
           _TradeRoutesDetail(game: game, faction: game.activeFaction),
           const SizedBox(height: 18),
           _ResearchDetail(
@@ -7019,6 +7027,139 @@ class _DiplomacyDetail extends StatelessWidget {
   }
 }
 
+class _IntelOperationsDetail extends StatelessWidget {
+  const _IntelOperationsDetail({
+    Key? key,
+    required this.game,
+    required this.faction,
+    required this.canEdit,
+    required this.onIntelScan,
+    required this.onSabotage,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final Faction faction;
+  final bool canEdit;
+  final void Function(String targetFactionId) onIntelScan;
+  final void Function(String targetFactionId) onSabotage;
+
+  @override
+  Widget build(BuildContext context) {
+    final scanTarget = _bestIntelScanTargetFor(game, faction);
+    final sabotageTarget = _bestSabotageOperationFor(game, faction);
+    final hasScanBudget =
+        faction.resources.credits >= OpenDeadlockGame.intelScanCreditCost;
+    final hasSabotageBudget =
+        faction.resources.credits >= OpenDeadlockGame.sabotageCreditCost;
+    final scanTargetId =
+        canEdit && hasScanBudget ? scanTarget?.faction.id : null;
+    final sabotageTargetId =
+        canEdit && hasSabotageBudget ? sabotageTarget?.faction.id : null;
+
+    return Container(
+      key: const ValueKey<String>('intel-operations'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.radar, color: Color(0xFFE9EEF2), size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Intel Operations',
+                style: TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Credits',
+            value:
+                '${faction.resources.credits} available | scan ${OpenDeadlockGame.intelScanCreditCost} / sabotage ${OpenDeadlockGame.sabotageCreditCost}',
+          ),
+          _DetailRow(
+            label: 'Best Scan',
+            value: scanTarget == null
+                ? 'Intel up to date'
+                : '${scanTarget.faction.name}: ${scanTarget.revealableSectors} hidden sectors',
+          ),
+          _DetailRow(
+            label: 'Best Sabotage',
+            value: sabotageTarget == null
+                ? 'No visible wartime construction'
+                : '${sabotageTarget.target.colonyName}: ${sabotageTarget.target.damage} industry damage',
+          ),
+          _DetailRow(
+            label: 'Security',
+            value: sabotageTarget == null
+                ? 'No target selected'
+                : _sabotageProtectionLabel(sabotageTarget.protection),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.radar, size: 18),
+                label: const Text('Scan Best Target'),
+                onPressed: scanTargetId == null
+                    ? null
+                    : () => onIntelScan(scanTargetId),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.construction, size: 18),
+                label: const Text('Sabotage Best Target'),
+                onPressed: sabotageTargetId == null
+                    ? null
+                    : () => onSabotage(sabotageTargetId),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IntelScanOperation {
+  const _IntelScanOperation({
+    required this.faction,
+    required this.revealableSectors,
+  });
+
+  final Faction faction;
+  final int revealableSectors;
+}
+
+class _SabotageOperation {
+  const _SabotageOperation({
+    required this.faction,
+    required this.target,
+    required this.protection,
+  });
+
+  final Faction faction;
+  final FactionSabotageTarget target;
+  final int protection;
+}
+
 class _TradeRoutesDetail extends StatelessWidget {
   const _TradeRoutesDetail({
     Key? key,
@@ -9096,6 +9237,75 @@ String _syncPackageFlowLabel({
     return 'Share outgoing orders with remote seats';
   }
   return 'Share invites or import remote orders';
+}
+
+_IntelScanOperation? _bestIntelScanTargetFor(
+  OpenDeadlockGame game,
+  Faction faction,
+) {
+  _IntelScanOperation? best;
+  for (final otherFaction in game.factions) {
+    if (otherFaction.id == faction.id) {
+      continue;
+    }
+    final revealableSectors = game.intelScanRevealableSectorCountFor(
+      faction.id,
+      otherFaction.id,
+    );
+    if (revealableSectors <= 0) {
+      continue;
+    }
+    final operation = _IntelScanOperation(
+      faction: otherFaction,
+      revealableSectors: revealableSectors,
+    );
+    if (best == null ||
+        operation.revealableSectors > best.revealableSectors ||
+        (operation.revealableSectors == best.revealableSectors &&
+            operation.faction.name.compareTo(best.faction.name) < 0)) {
+      best = operation;
+    }
+  }
+  return best;
+}
+
+_SabotageOperation? _bestSabotageOperationFor(
+  OpenDeadlockGame game,
+  Faction faction,
+) {
+  _SabotageOperation? best;
+  for (final otherFaction in game.factions) {
+    if (otherFaction.id == faction.id ||
+        !game.areAtWar(faction.id, otherFaction.id)) {
+      continue;
+    }
+    final target = game.sabotageTargetFor(faction.id, otherFaction.id);
+    if (target == null) {
+      continue;
+    }
+    final protection =
+        game.sabotageProtectionForColony(game.colonyById(target.colonyId));
+    final operation = _SabotageOperation(
+      faction: otherFaction,
+      target: target,
+      protection: protection,
+    );
+    if (best == null ||
+        operation.target.damage > best.target.damage ||
+        (operation.target.damage == best.target.damage &&
+            operation.target.colonyName.compareTo(best.target.colonyName) <
+                0)) {
+      best = operation;
+    }
+  }
+  return best;
+}
+
+String _sabotageProtectionLabel(int protection) {
+  if (protection <= 0) {
+    return 'No protection';
+  }
+  return '$protection sabotage protection';
 }
 
 List<String> _syncHandoffChecklistFor({

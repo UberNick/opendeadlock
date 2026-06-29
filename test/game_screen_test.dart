@@ -1490,7 +1490,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Intel up to date'), findsOneWidget);
+    expect(find.text('Intel up to date'), findsWidgets);
     expect(
         find.text('Sabotage Redoubt: 4 industry / 10 credits'), findsOneWidget);
 
@@ -1558,6 +1558,65 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('7 food / 7 ind / 3 res / 13 cred'), findsOneWidget);
+  });
+
+  testWidgets('game screen summarizes intel operations', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame:
+              OpenDeadlockGame.sample(sessionId: 'intel-operations-ui'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey<String>('intel-operations')),
+      find.byType(Scrollable).last,
+      const Offset(0, -420),
+      maxIteration: 16,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Intel Operations'), findsOneWidget);
+    expect(find.text('Credits'), findsOneWidget);
+    expect(find.text('24 available | scan 6 / sabotage 10'), findsOneWidget);
+    expect(find.text('Best Scan'), findsOneWidget);
+    expect(find.text('Tarth Legion: 5 hidden sectors'), findsOneWidget);
+    expect(find.text('Best Sabotage'), findsOneWidget);
+    expect(find.text('No visible wartime construction'), findsOneWidget);
+    expect(find.text('Security'), findsOneWidget);
+    expect(find.text('No target selected'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Scan Best Target'),
+        findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Sabotage Best Target'),
+        findsOneWidget);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Scan Best Target'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Intel up to date'), findsWidgets);
+    expect(find.text('Redoubt: 4 industry damage'), findsOneWidget);
+    expect(find.text('No protection'), findsWidgets);
+
+    await tester
+        .tap(find.widgetWithText(OutlinedButton, 'Sabotage Best Target'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('No visible wartime construction'), findsWidgets);
+    expect(find.text('8 available | scan 6 / sabotage 10'), findsOneWidget);
   });
 
   testWidgets('game screen shows conquest victory progress', (tester) async {
@@ -2712,12 +2771,12 @@ void main() {
     expect(find.widgetWithText(ElevatedButton, 'Run AI'), findsOneWidget);
     expect(find.text('Turn 1'), findsWidgets);
     expect(find.textContaining('Tarth Legion'), findsWidgets);
-    await tester.dragUntilVisible(
-      find.text('AI Orders'),
-      find.byType(Scrollable).last,
-      const Offset(0, -420),
-      maxIteration: 14,
-    );
+    for (var scroll = 0;
+        scroll < 24 && find.text('AI Orders').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
     await tester.pumpAndSettle();
     expect(find.text('AI Orders'), findsOneWidget);
     expect(find.text(plannedLabel), findsOneWidget);
