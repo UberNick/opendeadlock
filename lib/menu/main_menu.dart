@@ -540,11 +540,21 @@ class _JoinGameDialogState extends State<_JoinGameDialog> {
           onPressed: _pasteClipboardCode,
         ),
         TextButton.icon(
+          key: const ValueKey<String>('join-game-open-file'),
           icon: const Icon(Icons.folder_open),
           label: const Text('Open File'),
           onPressed: () async {
             final text = await widget.onOpenFile();
-            if (!mounted || text == null) {
+            if (!mounted) {
+              return;
+            }
+            if (text == null) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No invite or snapshot file selected'),
+                ),
+              );
               return;
             }
             Navigator.pop(context, text);

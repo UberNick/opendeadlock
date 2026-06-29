@@ -202,15 +202,40 @@ void main() {
     await tester.tap(find.text('Join Game'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Open File'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('join-game-open-file')),
+        findsOneWidget);
 
-    await tester.tap(find.widgetWithText(TextButton, 'Open File'));
+    await tester.tap(find.byKey(const ValueKey<String>('join-game-open-file')));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.byTooltip('Sync'), findsOneWidget);
     expect(find.text('Turn 1'), findsWidgets);
     expect(find.textContaining('Human Assembly'), findsWidgets);
+  });
+
+  testWidgets('main menu reports when invite file selection is cancelled',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MainMenu(
+          title: 'OpenDeadlock',
+          joinFileReader: () async => null,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Join Game'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('join-game-open-file')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No invite or snapshot file selected'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('join-game-open-file')),
+        findsOneWidget);
   });
 
   testWidgets('main menu loads a chosen local save slot', (tester) async {
