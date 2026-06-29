@@ -5509,6 +5509,15 @@ void main() {
     expect(find.text('New Haven: focus Research'), findsWidgets);
     expect(find.text('Turn 1 | Human Assembly'), findsWidgets);
     expect(
+      find.byKey(const ValueKey<String>('replay-timeline-review-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('replay-timeline-review-2')),
+      findsOneWidget,
+    );
+    expect(find.text('Review New Haven'), findsWidgets);
+    expect(
       find.byKey(const ValueKey<String>('replay-timeline-review-latest')),
       findsOneWidget,
     );
@@ -5519,6 +5528,31 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey<String>('replay-timeline-review-latest')),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Population'),
+      delta: const Offset(0, 420),
+      maxScrolls: 56,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('New Haven'), findsWidgets);
+    expect(find.text('Population'), findsOneWidget);
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('replay-timeline')),
+      maxScrolls: 56,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('replay-timeline-review-1')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('replay-timeline-review-1')),
     );
     await tester.pumpAndSettle();
 

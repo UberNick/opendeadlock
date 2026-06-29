@@ -11018,6 +11018,8 @@ class _ReplayTimelineDetail extends StatelessWidget {
                 record: record,
                 factionName: _factionNameFor(game, record.factionId),
                 summary: _commandSummaryFor(game, record.command),
+                target: _replayTargetFor(game, record.command),
+                onSelectSector: onSelectSector,
               );
             }),
           ],
@@ -11112,12 +11114,16 @@ class _ReplayTimelineLine extends StatelessWidget {
     required this.record,
     required this.factionName,
     required this.summary,
+    required this.target,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final int index;
   final CommandRecord record;
   final String factionName;
   final String summary;
+  final _ReplayTarget? target;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -11148,13 +11154,33 @@ class _ReplayTimelineLine extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  summary,
-                  style: const TextStyle(
-                    color: Color(0xFFE9EEF2),
-                    fontWeight: FontWeight.w600,
+                if (target == null)
+                  Text(
+                    summary,
+                    style: const TextStyle(
+                      color: Color(0xFFE9EEF2),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                else
+                  TextButton(
+                    key: ValueKey<String>('replay-timeline-review-$index'),
+                    onPressed: () => onSelectSector(target!.x, target!.y),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFE9EEF2),
+                      visualDensity: VisualDensity.compact,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        summary,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                ),
                 const SizedBox(height: 2),
                 Text(
                   'Turn ${record.turn} | $factionName',
@@ -11163,6 +11189,14 @@ class _ReplayTimelineLine extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
+                if (target != null)
+                  Text(
+                    'Review ${target!.label}',
+                    style: const TextStyle(
+                      color: Color(0xFF9FB0BE),
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
