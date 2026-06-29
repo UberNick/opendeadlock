@@ -7583,6 +7583,12 @@ class _SyncStatusDetail extends StatelessWidget {
               hasRemoteFactions: hasRemoteFactions,
             ),
           ),
+          const SizedBox(height: 8),
+          _SyncHandoffChecklistDetail(
+            game: game,
+            pendingOrderCount: pendingOrderCount,
+            remoteFactions: remoteFactions,
+          ),
           _DetailRow(
             label: 'Last Sync',
             value: lastSyncStatus ?? 'No packages applied this session',
@@ -7692,6 +7698,78 @@ class _SyncStatusDetail extends StatelessWidget {
   }
 }
 
+class _SyncHandoffChecklistDetail extends StatelessWidget {
+  const _SyncHandoffChecklistDetail({
+    Key? key,
+    required this.game,
+    required this.pendingOrderCount,
+    required this.remoteFactions,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final int pendingOrderCount;
+  final List<Faction> remoteFactions;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _syncHandoffChecklistFor(
+      game: game,
+      pendingOrderCount: pendingOrderCount,
+      remoteFactions: remoteFactions,
+    );
+
+    return Column(
+      key: const ValueKey<String>('sync-handoff-checklist'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.checklist, color: Color(0xFFD9B66F), size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Handoff Checklist',
+              style: TextStyle(
+                color: Color(0xFFFFF5D6),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ...items.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.radio_button_checked,
+                    size: 12,
+                    color: Color(0xFFCCD6A6),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: const TextStyle(
+                      color: Color(0xFFE9EEF2),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
 class _SyncLedgerDetail extends StatelessWidget {
   const _SyncLedgerDetail({
     Key? key,
@@ -7789,6 +7867,7 @@ class _PendingOrdersDetail extends StatelessWidget {
         : '${pendingRecords.length} pending';
 
     return Container(
+      key: const ValueKey<String>('pending-orders'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF202B34),
@@ -9017,6 +9096,46 @@ String _syncPackageFlowLabel({
     return 'Share outgoing orders with remote seats';
   }
   return 'Share invites or import remote orders';
+}
+
+List<String> _syncHandoffChecklistFor({
+  required OpenDeadlockGame game,
+  required int pendingOrderCount,
+  required List<Faction> remoteFactions,
+}) {
+  if (remoteFactions.isEmpty) {
+    if (game.activeFaction.isComputer) {
+      return <String>[
+        'Run ${game.activeFaction.name} AI locally.',
+        'Review the turn report before the next local player acts.',
+      ];
+    }
+    return <String>[
+      'Use the same device for each local faction turn.',
+      'Save locally before passing the device.',
+    ];
+  }
+
+  final remoteSeatNames = _remoteSeatLabel(remoteFactions);
+  final items = <String>[
+    'Share invites with $remoteSeatNames.',
+  ];
+  if (game.activeFaction.isRemote) {
+    items.add('Import orders from ${game.activeFaction.name}.');
+  } else if (game.activeFaction.isComputer) {
+    items.add('Run ${game.activeFaction.name} AI before sending updates.');
+  } else if (pendingOrderCount > 0) {
+    final orderLabel = pendingOrderCount == 1
+        ? '1 local order'
+        : '$pendingOrderCount local orders';
+    items.add('Copy or export $orderLabel for remote seats.');
+  } else if (game.activeFactionCanIssueLocalOrders) {
+    items.add('Issue local orders or end the turn.');
+  } else {
+    items.add('Wait for the next synced handoff.');
+  }
+  items.add('Verify the state hash after each imported package.');
+  return items;
 }
 
 IconData _syncActionIconFor(OpenDeadlockGame game) {

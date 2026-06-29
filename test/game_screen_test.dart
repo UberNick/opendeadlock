@@ -3086,6 +3086,14 @@ void main() {
     expect(find.text('Tarth Legion, Trade Compact'), findsOneWidget);
     expect(find.text('Package Flow'), findsOneWidget);
     expect(find.text('Share invites or import remote orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-handoff-checklist')),
+        findsOneWidget);
+    expect(find.text('Handoff Checklist'), findsOneWidget);
+    expect(find.text('Share invites with Tarth Legion, Trade Compact.'),
+        findsOneWidget);
+    expect(find.text('Issue local orders or end the turn.'), findsOneWidget);
+    expect(find.text('Verify the state hash after each imported package.'),
+        findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -3487,20 +3495,38 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('+2 industry, -1 food.').last);
     await tester.pumpAndSettle();
-    for (var i = 0; i < 16; i += 1) {
-      if (find.text('Pending Orders').evaluate().isNotEmpty) {
-        break;
-      }
-      await tester.drag(find.byType(ListView).last, const Offset(0, -420));
-      await tester.pumpAndSettle();
-    }
+    await tester.dragUntilVisible(
+      find.text('Pending Orders'),
+      find.byType(Scrollable).last,
+      const Offset(0, -420),
+      maxIteration: 24,
+    );
+    await tester.pumpAndSettle();
 
+    final pendingOrders = find.byKey(const ValueKey<String>('pending-orders'));
     expect(find.text('Pending Orders'), findsOneWidget);
-    expect(find.text('1 pending'), findsOneWidget);
-    expect(find.text('Command 1'), findsOneWidget);
-    expect(find.text('New Haven: focus Industry'), findsOneWidget);
-    expect(find.text('Turn 1 | Human Assembly'), findsOneWidget);
-    expect(find.text('New Haven: build Factory'), findsNothing);
+    expect(find.descendant(of: pendingOrders, matching: find.text('1 pending')),
+        findsOneWidget);
+    expect(find.descendant(of: pendingOrders, matching: find.text('Command 1')),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: pendingOrders,
+          matching: find.text('New Haven: focus Industry'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: pendingOrders,
+          matching: find.text('Turn 1 | Human Assembly'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: pendingOrders,
+          matching: find.text('New Haven: build Factory'),
+        ),
+        findsNothing);
     expect(find.widgetWithText(OutlinedButton, 'Copy Orders'), findsOneWidget);
     expect(
       find.widgetWithText(OutlinedButton, 'Export Orders File'),
@@ -3724,13 +3750,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('+2 industry, -1 food.').last);
     await tester.pumpAndSettle();
-    for (var i = 0; i < 16; i += 1) {
-      if (find.text('Pending Orders').evaluate().isNotEmpty) {
-        break;
-      }
-      await tester.drag(find.byType(ListView).last, const Offset(0, -420));
-      await tester.pumpAndSettle();
-    }
+    await tester.dragUntilVisible(
+      find.text('Pending Orders'),
+      find.byType(Scrollable).last,
+      const Offset(0, -420),
+      maxIteration: 24,
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('1 pending'), findsOneWidget);
     expect(
