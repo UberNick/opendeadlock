@@ -231,6 +231,7 @@ class _GameScreenState extends State<GameScreen> {
                     syncLedgerEntries: syncLedgerEntries,
                     soundEffectsEnabled: soundEffectsEnabled,
                     musicEnabled: musicEnabled,
+                    mapOverlayMode: mapOverlayMode,
                     tile: selectedTile,
                     isExplored: selectedTileKnown,
                     colony: selectedColony,
@@ -2982,6 +2983,19 @@ String _mapOverlayNameFor(_MapOverlayMode mode) {
   return 'terrain';
 }
 
+String _mapOverlayLabelFor(_MapOverlayMode mode) {
+  if (mode == _MapOverlayMode.food) {
+    return 'Food';
+  }
+  if (mode == _MapOverlayMode.industry) {
+    return 'Industry';
+  }
+  if (mode == _MapOverlayMode.research) {
+    return 'Research';
+  }
+  return 'Terrain';
+}
+
 String _mapOverlayTooltipFor(_MapOverlayMode mode) {
   if (mode == _MapOverlayMode.food) {
     return 'Food overlay';
@@ -4253,6 +4267,7 @@ class _SelectionPanel extends StatelessWidget {
     required this.syncLedgerEntries,
     required this.soundEffectsEnabled,
     required this.musicEnabled,
+    required this.mapOverlayMode,
     required this.tile,
     required this.isExplored,
     required this.colony,
@@ -4295,6 +4310,7 @@ class _SelectionPanel extends StatelessWidget {
   final List<_SyncLedgerEntry> syncLedgerEntries;
   final bool soundEffectsEnabled;
   final bool musicEnabled;
+  final _MapOverlayMode mapOverlayMode;
   final PlanetTile tile;
   final bool isExplored;
   final Colony? colony;
@@ -4631,6 +4647,11 @@ class _SelectionPanel extends StatelessWidget {
           _OpponentIntelDetail(game: game),
           const SizedBox(height: 18),
           _MapIntelDetail(game: game),
+          const SizedBox(height: 18),
+          _ResourceOverlayDetail(
+            game: game,
+            overlayMode: mapOverlayMode,
+          ),
           const SizedBox(height: 18),
           _SessionAuditDetail(game: game),
         ],
@@ -8107,6 +8128,157 @@ class _MapIntelDetail extends StatelessWidget {
       }
     }
     return '${OpenDeadlockGame.terrainLabelFor(bestTerrain)} leads ${counts[bestTerrain]}';
+  }
+}
+
+class _ResourceOverlayDetail extends StatelessWidget {
+  const _ResourceOverlayDetail({
+    Key? key,
+    required this.game,
+    required this.overlayMode,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final _MapOverlayMode overlayMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleTiles = game.tiles
+        .where((tile) =>
+            tile.isExploredBy(game.activeFactionId) &&
+            OpenDeadlockGame.isTerrainPassable(tile.terrain))
+        .toList(growable: false)
+      ..sort(_compareTilesForOverlay);
+    final topTiles = visibleTiles.take(3).toList(growable: false);
+    final peakValue = topTiles.isEmpty ? 0 : _overlayValueFor(topTiles.first);
+    final ownedTopTiles =
+        topTiles.where((tile) => tile.ownerId == game.activeFactionId).length;
+    final bestOwnedEmpty = visibleTiles.where((tile) {
+      return tile.ownerId == game.activeFactionId && tile.colonyId == null;
+    }).fold<PlanetTile?>(null, (best, tile) {
+      if (best == null || _compareTilesForOverlay(tile, best) < 0) {
+        return tile;
+      }
+      return best;
+    });
+
+    return Container(
+      key: const ValueKey<String>('resource-overlay-intel'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _mapOverlayIconFor(overlayMode),
+                color: _mapOverlayColorFor(overlayMode),
+                size: 19,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Resource Overlay',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                _mapOverlayLabelFor(overlayMode),
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Ranked By',
+            value: overlayMode == _MapOverlayMode.terrain
+                ? 'Total visible yield'
+                : '${_mapOverlayLabelFor(overlayMode)} yield',
+          ),
+          _DetailRow(
+            label: 'Peak',
+            value: topTiles.isEmpty
+                ? 'No passable explored sectors'
+                : '$peakValue ${_overlayUnitLabel()} at ${_sectorLabel(topTiles.first)}',
+          ),
+          _DetailRow(
+            label: 'Top Owned',
+            value: topTiles.isEmpty
+                ? 'No ranked sectors'
+                : '$ownedTopTiles of top ${topTiles.length} sectors',
+          ),
+          _DetailRow(
+            label: 'Expansion Pick',
+            value: bestOwnedEmpty == null
+                ? 'No owned empty sector'
+                : '${_sectorLabel(bestOwnedEmpty)} | ${_tileYieldLabel(bestOwnedEmpty.yields)}',
+          ),
+          for (var index = 0; index < topTiles.length; index += 1)
+            _DetailRow(
+              label: '#${index + 1}',
+              value:
+                  '${_sectorLabel(topTiles[index])} | ${_overlayValueFor(topTiles[index])} ${_overlayUnitLabel()} | ${_ownershipLabel(topTiles[index])}',
+            ),
+        ],
+      ),
+    );
+  }
+
+  int _compareTilesForOverlay(PlanetTile a, PlanetTile b) {
+    final valueCompare = _overlayValueFor(b).compareTo(_overlayValueFor(a));
+    if (valueCompare != 0) {
+      return valueCompare;
+    }
+    final totalCompare = _totalYieldFor(b).compareTo(_totalYieldFor(a));
+    if (totalCompare != 0) {
+      return totalCompare;
+    }
+    final yCompare = a.y.compareTo(b.y);
+    if (yCompare != 0) {
+      return yCompare;
+    }
+    return a.x.compareTo(b.x);
+  }
+
+  int _overlayValueFor(PlanetTile tile) {
+    return _resourceValueForOverlay(tile.yields, overlayMode);
+  }
+
+  int _totalYieldFor(PlanetTile tile) {
+    return tile.yields.food + tile.yields.industry + tile.yields.research;
+  }
+
+  String _overlayUnitLabel() {
+    if (overlayMode == _MapOverlayMode.terrain) {
+      return 'total';
+    }
+    return _mapOverlayNameFor(overlayMode);
+  }
+
+  String _sectorLabel(PlanetTile tile) {
+    return 'Sector ${tile.x + 1}, ${tile.y + 1}';
+  }
+
+  String _ownershipLabel(PlanetTile tile) {
+    if (tile.ownerId == game.activeFactionId) {
+      return 'Owned';
+    }
+    if (tile.ownerId == null) {
+      return 'Neutral';
+    }
+    final owner = game.factionById(tile.ownerId);
+    return owner == null ? 'Rival' : owner.name;
   }
 }
 

@@ -588,6 +588,110 @@ void main() {
     expect(find.text('New Haven'), findsOneWidget);
   });
 
+  testWidgets('game screen ranks sectors for active resource overlay',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final game = OpenDeadlockGame.sample(sessionId: 'overlay-ranking');
+    final visibleTiles = game.tiles
+        .where((tile) =>
+            tile.isExploredBy(game.activeFactionId) &&
+            OpenDeadlockGame.isTerrainPassable(tile.terrain))
+        .toList(growable: false)
+      ..sort((a, b) {
+        final valueCompare = b.yields.industry.compareTo(a.yields.industry);
+        if (valueCompare != 0) {
+          return valueCompare;
+        }
+        final aTotal = a.yields.food + a.yields.industry + a.yields.research;
+        final bTotal = b.yields.food + b.yields.industry + b.yields.research;
+        final totalCompare = bTotal.compareTo(aTotal);
+        if (totalCompare != 0) {
+          return totalCompare;
+        }
+        final yCompare = a.y.compareTo(b.y);
+        if (yCompare != 0) {
+          return yCompare;
+        }
+        return a.x.compareTo(b.x);
+      });
+    final topTiles = visibleTiles.take(3).toList(growable: false);
+    final ownedTopTiles =
+        topTiles.where((tile) => tile.ownerId == game.activeFactionId).length;
+    PlanetTile? bestOwnedEmpty;
+    for (final tile in visibleTiles) {
+      if (tile.ownerId == game.activeFactionId && tile.colonyId == null) {
+        bestOwnedEmpty = tile;
+        break;
+      }
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('map-overlay-industry')));
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('resource-overlay-intel')),
+      maxScrolls: 56,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('resource-overlay-intel')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Resource Overlay'), findsOneWidget);
+    expect(find.text('Industry'), findsWidgets);
+    expect(find.text('Industry yield'), findsOneWidget);
+    expect(
+      find.text(
+        '${topTiles.first.yields.industry} industry at Sector ${topTiles.first.x + 1}, ${topTiles.first.y + 1}',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('$ownedTopTiles of top ${topTiles.length} sectors'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Sector ${bestOwnedEmpty!.x + 1}, ${bestOwnedEmpty.y + 1} | ${bestOwnedEmpty.yields.food} food / ${bestOwnedEmpty.yields.industry} industry / ${bestOwnedEmpty.yields.research} research',
+      ),
+      findsOneWidget,
+    );
+    for (var index = 0; index < topTiles.length; index += 1) {
+      final tile = topTiles[index];
+      final ownerLabel = tile.ownerId == game.activeFactionId
+          ? 'Owned'
+          : tile.ownerId == null
+              ? 'Neutral'
+              : game.factionById(tile.ownerId)!.name;
+      expect(
+        find.text(
+          'Sector ${tile.x + 1}, ${tile.y + 1} | ${tile.yields.industry} industry | $ownerLabel',
+        ),
+        findsOneWidget,
+      );
+    }
+  });
+
   testWidgets('map hides remembered enemy units outside live vision',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
