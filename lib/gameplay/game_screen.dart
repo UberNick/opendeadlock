@@ -12189,6 +12189,191 @@ class _ColonyWorkPlanner extends StatelessWidget {
   }
 }
 
+class _ColonyOrdersDetail extends StatelessWidget {
+  const _ColonyOrdersDetail({
+    Key? key,
+    required this.colony,
+    required this.rushIndustry,
+    required this.rushCost,
+    required this.canRush,
+    required this.bestSectorCount,
+    required this.assignedSectorCount,
+    required this.focusTargetCount,
+    required this.buildTargetCount,
+    required this.onRushConstruction,
+    required this.onAssignBestSectors,
+    required this.onReleaseAllSectors,
+    required this.onApplyFocusToAll,
+    required this.onApplyConstructionToAll,
+  }) : super(key: key);
+
+  final Colony colony;
+  final int rushIndustry;
+  final int rushCost;
+  final bool canRush;
+  final int bestSectorCount;
+  final int assignedSectorCount;
+  final int focusTargetCount;
+  final int buildTargetCount;
+  final VoidCallback onRushConstruction;
+  final VoidCallback onAssignBestSectors;
+  final VoidCallback onReleaseAllSectors;
+  final VoidCallback onApplyFocusToAll;
+  final VoidCallback onApplyConstructionToAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAnyAction = canRush ||
+        bestSectorCount > 0 ||
+        assignedSectorCount > 0 ||
+        focusTargetCount > 0 ||
+        buildTargetCount > 0;
+
+    return Container(
+      key: const ValueKey<String>('colony-orders'),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26333C),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF43515B)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.task_alt, color: Color(0xFFE9EEF2), size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Colony Orders',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (!hasAnyAction)
+            const Text(
+              'No immediate colony orders available.',
+              style: TextStyle(color: Color(0xFFE9EEF2)),
+            )
+          else ...[
+            _ColonyOrderButton(
+              icon: Icons.flash_on,
+              label: canRush
+                  ? 'Rush Construction +$rushIndustry'
+                  : 'Rush Construction',
+              detail: canRush
+                  ? '$rushCost credits for ${colony.construction}'
+                  : 'Need credits and unfinished construction',
+              enabled: canRush,
+              onPressed: onRushConstruction,
+            ),
+            _ColonyOrderButton(
+              icon: Icons.grid_view,
+              label: bestSectorCount == 0
+                  ? 'Assign Best Work'
+                  : 'Assign Best Work x$bestSectorCount',
+              detail: bestSectorCount == 0
+                  ? 'No better legal sectors'
+                  : 'Fill open work slots with best yields',
+              enabled: bestSectorCount > 0,
+              onPressed: onAssignBestSectors,
+            ),
+            _ColonyOrderButton(
+              icon: Icons.grid_off,
+              label: assignedSectorCount == 0
+                  ? 'Release Worked Sectors'
+                  : 'Release Worked Sectors x$assignedSectorCount',
+              detail: assignedSectorCount == 0
+                  ? 'No outlying sectors assigned'
+                  : 'Clear current outlying assignments',
+              enabled: assignedSectorCount > 0,
+              onPressed: onReleaseAllSectors,
+            ),
+            _ColonyOrderButton(
+              icon: Icons.tune,
+              label:
+                  'Copy ${OpenDeadlockGame.colonyFocusLabelFor(colony.focus)} Focus',
+              detail: focusTargetCount == 0
+                  ? 'All colonies already match'
+                  : '$focusTargetCount eligible ${_colonyCountLabel(focusTargetCount)}',
+              enabled: focusTargetCount > 0,
+              onPressed: onApplyFocusToAll,
+            ),
+            _ColonyOrderButton(
+              icon: Icons.playlist_add_check,
+              label: 'Copy ${colony.construction} Build',
+              detail: buildTargetCount == 0
+                  ? 'No eligible colonies'
+                  : '$buildTargetCount eligible ${_colonyCountLabel(buildTargetCount)}',
+              enabled: buildTargetCount > 0,
+              onPressed: onApplyConstructionToAll,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _colonyCountLabel(int count) {
+    return count == 1 ? 'colony' : 'colonies';
+  }
+}
+
+class _ColonyOrderButton extends StatelessWidget {
+  const _ColonyOrderButton({
+    Key? key,
+    required this.icon,
+    required this.label,
+    required this.detail,
+    required this.enabled,
+    required this.onPressed,
+  }) : super(key: key);
+
+  final IconData icon;
+  final String label;
+  final String detail;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          icon: Icon(icon),
+          label: Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  detail,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          onPressed: enabled ? onPressed : null,
+        ),
+      ),
+    );
+  }
+}
+
 class _ColonyDetail extends StatelessWidget {
   const _ColonyDetail({
     Key? key,
@@ -12238,6 +12423,8 @@ class _ColonyDetail extends StatelessWidget {
     final focusTargetCount = _focusCopyTargetCount();
     final buildTargetCount = _constructionCopyTargetCount();
     final hasOtherOwnedColonies = _ownedColonyCount() > 1;
+    final bestSectors = game.preferredAssignableSectorsFor(colony);
+    final assignedSectorCount = colony.assignedSectors.length;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -12424,6 +12611,25 @@ class _ColonyDetail extends StatelessWidget {
                       : null,
                 ),
               ),
+            ),
+          ],
+          if (canEdit) ...[
+            const SizedBox(height: 8),
+            _ColonyOrdersDetail(
+              colony: colony,
+              rushIndustry: rushIndustry,
+              rushCost: rushCost,
+              canRush: canRush,
+              bestSectorCount: bestSectors.length,
+              assignedSectorCount: assignedSectorCount,
+              focusTargetCount: focusTargetCount,
+              buildTargetCount: buildTargetCount,
+              onRushConstruction: () =>
+                  onRushConstruction(colony.id, rushIndustry),
+              onAssignBestSectors: () => onAssignBestSectors(colony),
+              onReleaseAllSectors: () => onReleaseAllSectors(colony),
+              onApplyFocusToAll: () => onApplyFocusToAll(colony),
+              onApplyConstructionToAll: () => onApplyConstructionToAll(colony),
             ),
           ],
         ],

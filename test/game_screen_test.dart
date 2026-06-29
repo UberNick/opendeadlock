@@ -278,12 +278,11 @@ void main() {
 
     expect(find.byTooltip('Mute sound effects'), findsOneWidget);
     expect(find.byTooltip('Pause music'), findsOneWidget);
-    for (var scroll = 0;
-        scroll < 12 && find.text('Audio').evaluate().isEmpty;
-        scroll += 1) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -360));
-      await tester.pumpAndSettle();
-    }
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Audio'),
+      delta: const Offset(0, -360),
+    );
 
     expect(find.text('Audio'), findsOneWidget);
     expect(find.text('Effects'), findsOneWidget);
@@ -1957,13 +1956,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
+    await _scrollSidePanelUntilVisible(
+      tester,
       find.textContaining('Defeated | Tarth'),
-      420,
-      scrollable: find.byType(Scrollable).last,
-      maxScrolls: 12,
+      maxScrolls: 30,
     );
-    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(
@@ -2952,6 +2949,52 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('22/24 industry stored (+7)'), findsOneWidget);
     expect(find.text('Rush Build'), findsOneWidget);
+  });
+
+  testWidgets('game screen can use colony order actions', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'colony-orders-ui'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('colony-orders')),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('colony-orders')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Colony Orders'), findsOneWidget);
+    expect(find.text('Rush Construction +12'), findsOneWidget);
+    expect(find.text('24 credits for Colony Hub'), findsOneWidget);
+    expect(find.textContaining('Assign Best Work'), findsOneWidget);
+    expect(find.text('Copy Balanced Focus'), findsOneWidget);
+    expect(find.text('Copy Colony Hub Build'), findsOneWidget);
+
+    await tester.tap(
+      find.widgetWithText(OutlinedButton, 'Rush Construction +12'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('22/24 industry stored (+7)'), findsOneWidget);
+    expect(find.text('Rush Construction'), findsWidgets);
   });
 
   testWidgets('game screen shows housing capacity in colony details',
@@ -3959,24 +4002,31 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('+2 industry, -1 food.').last);
     await tester.pumpAndSettle();
-    await tester.dragUntilVisible(
+    await _scrollSidePanelUntilVisible(
+      tester,
       find.text('Pending Orders'),
-      find.byType(Scrollable).last,
-      const Offset(0, -420),
-      maxIteration: 18,
+      maxScrolls: 30,
     );
-    await tester.pumpAndSettle();
 
     expect(find.text('1 pending'), findsOneWidget);
     expect(find.text('New Haven: focus Industry'), findsWidgets);
     expect(
         find.widgetWithText(OutlinedButton, 'Undo Last Order'), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'Undo Last Order'),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, 'Undo Last Order'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.text('Undid New Haven: focus Industry'), findsOneWidget);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('0 pending'),
+      delta: const Offset(0, 420),
+    );
     expect(find.text('0 pending'), findsOneWidget);
     expect(find.text('No orders since the sync baseline.'), findsOneWidget);
     expect(
@@ -4437,23 +4487,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var scroll = 0;
-        scroll < 18 && find.text('Last Sync').evaluate().isEmpty;
-        scroll += 1) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
-      await tester.pumpAndSettle();
-    }
+    final importOrdersFile =
+        find.widgetWithText(OutlinedButton, 'Import Orders File');
+    await _scrollSidePanelUntilVisible(tester, importOrdersFile);
 
-    expect(
-      find.widgetWithText(OutlinedButton, 'Import Orders File'),
-      findsOneWidget,
-    );
+    expect(importOrdersFile, findsOneWidget);
 
-    await tester.ensureVisible(
-      find.widgetWithText(OutlinedButton, 'Import Orders File'),
-    );
+    await tester.ensureVisible(importOrdersFile);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Import Orders File'));
+    await tester.tap(importOrdersFile);
     await _pumpUntilFound(tester, find.text('Review Orders'));
 
     expect(find.text('Review Orders'), findsOneWidget);
@@ -4619,16 +4661,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var scroll = 0;
-        scroll < 18 && find.text('Save Invite').evaluate().isEmpty;
-        scroll += 1) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
-      await tester.pumpAndSettle();
-    }
-    await tester
-        .ensureVisible(find.widgetWithText(OutlinedButton, 'Save Invite'));
+    final saveInvite = find.widgetWithText(OutlinedButton, 'Save Invite');
+    await _scrollSidePanelUntilVisible(tester, saveInvite);
+    await tester.ensureVisible(saveInvite);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Save Invite'));
+    await tester.tap(saveInvite);
     await tester.pumpAndSettle();
 
     expect(find.text('Review Invite'), findsOneWidget);
