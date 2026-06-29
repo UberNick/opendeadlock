@@ -3230,12 +3230,12 @@ void main() {
     final sample = OpenDeadlockGame.sample(sessionId: 'combat-readiness-ui');
     final readinessGame = sample.copyWith(
       tiles: sample.tiles.map((tile) {
-        if (tile.colonyId != 'redoubt') {
-          return tile;
+        if (tile.colonyId == 'redoubt' || (tile.x == 4 && tile.y == 1)) {
+          return tile.copyWith(
+            exploredBy: <String>{...tile.exploredBy, 'humans'}.toList(),
+          );
         }
-        return tile.copyWith(
-          exploredBy: <String>{...tile.exploredBy, 'humans'}.toList(),
-        );
+        return tile;
       }).toList(),
       units: <Unit>[
         sample.unitById('human-scout').copyWith(health: 3),
@@ -3295,6 +3295,77 @@ void main() {
     expect(find.text('Redoubt at 7, 4'), findsOneWidget);
     expect(find.text('Recent Battles'), findsOneWidget);
     expect(find.text('1 logged'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('combat-readiness-view-enemy-unit'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('combat-readiness-view-enemy-colony'),
+      ),
+      findsOneWidget,
+    );
+
+    final enemyUnitButton = find.byKey(
+      const ValueKey<String>('combat-readiness-view-enemy-unit'),
+    );
+    final enemyColonyButton = find.byKey(
+      const ValueKey<String>('combat-readiness-view-enemy-colony'),
+    );
+
+    await tester.ensureVisible(enemyUnitButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(enemyUnitButton);
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Sector 5, 2'),
+      delta: const Offset(0, 420),
+      maxScrolls: 56,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Sector 5, 2'), findsWidgets);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: readinessGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('combat-readiness')),
+      delta: const Offset(0, -480),
+      maxScrolls: 32,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(enemyColonyButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(enemyColonyButton);
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Redoubt'),
+      delta: const Offset(0, 420),
+      maxScrolls: 56,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Redoubt'), findsWidgets);
   });
 
   testWidgets('game screen summarizes and selects active units',

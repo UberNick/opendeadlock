@@ -4589,7 +4589,10 @@ class _SelectionPanel extends StatelessWidget {
           const SizedBox(height: 18),
           _ReplayTimelineDetail(game: game),
           const SizedBox(height: 18),
-          _CombatReadinessDetail(game: game),
+          _CombatReadinessDetail(
+            game: game,
+            onSelectSector: onSelectSector,
+          ),
           if (newsGroups.isNotEmpty) ...[
             const SizedBox(height: 18),
             _NewsSummaryDetail(groups: newsGroups),
@@ -13958,9 +13961,11 @@ class _CombatReadinessDetail extends StatelessWidget {
   const _CombatReadinessDetail({
     Key? key,
     required this.game,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -13991,6 +13996,12 @@ class _CombatReadinessDetail extends StatelessWidget {
         .toList();
     final recentBattles =
         game.reports.where((report) => report.isBattle).length;
+    final primaryEnemyUnit = visibleEnemyUnits.isEmpty
+        ? null
+        : (visibleEnemyUnits..sort((a, b) => a.name.compareTo(b.name))).first;
+    final primaryEnemyColony = knownEnemyColonies.isEmpty
+        ? null
+        : (knownEnemyColonies..sort((a, b) => a.name.compareTo(b.name))).first;
     final posture = visibleEnemyUnits.isNotEmpty
         ? 'Enemy contact'
         : knownEnemyColonies.isNotEmpty
@@ -14067,6 +14078,39 @@ class _CombatReadinessDetail extends StatelessWidget {
             label: 'Recent Battles',
             value: recentBattles == 1 ? '1 logged' : '$recentBattles logged',
           ),
+          if (primaryEnemyUnit != null || primaryEnemyColony != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (primaryEnemyUnit != null)
+                  TextButton.icon(
+                    key: const ValueKey<String>(
+                      'combat-readiness-view-enemy-unit',
+                    ),
+                    icon: const Icon(Icons.gps_fixed, size: 16),
+                    label: Text('View ${primaryEnemyUnit.name}'),
+                    onPressed: () => onSelectSector(
+                      primaryEnemyUnit.x,
+                      primaryEnemyUnit.y,
+                    ),
+                  ),
+                if (primaryEnemyColony != null)
+                  TextButton.icon(
+                    key: const ValueKey<String>(
+                      'combat-readiness-view-enemy-colony',
+                    ),
+                    icon: const Icon(Icons.location_city, size: 16),
+                    label: Text('View ${primaryEnemyColony.name}'),
+                    onPressed: () => onSelectSector(
+                      primaryEnemyColony.x,
+                      primaryEnemyColony.y,
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
