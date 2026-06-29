@@ -835,6 +835,89 @@ void main() {
     );
   });
 
+  testWidgets('game screen summarizes opponent intel', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final game = OpenDeadlockGame.sample(sessionId: 'opponent-intel-ui');
+    final rival = game.factionById('rebels')!;
+    final activeStrength = game.militaryStrengthFor('humans');
+    final rivalStrength = game.militaryStrengthFor(rival.id);
+    final rivalScore = game.factionScoreFor(rival.id).total;
+    final activeScore = game.factionScoreFor('humans').total;
+    final visibleRivalUnits = game.units
+        .where((unit) =>
+            unit.ownerId == rival.id && game.isUnitVisibleTo('humans', unit))
+        .length;
+    final knownRivalColonies = game.colonies
+        .where((colony) =>
+            colony.ownerId == rival.id &&
+            game.tileAt(colony.x, colony.y).isExploredBy('humans'))
+        .length;
+    final threatLabel = rivalStrength > activeStrength
+        ? 'stronger threat'
+        : rivalStrength < activeStrength
+            ? 'weaker threat'
+            : 'matched threat';
+    final stanceHint = rivalStrength > activeStrength
+        ? 'avoid exposed fights'
+        : rivalStrength < activeStrength
+            ? 'press military advantage'
+            : 'scout before committing';
+    final scoreDelta = rivalScore - activeScore;
+    final scoreDeltaLabel = scoreDelta > 0 ? '+$scoreDelta' : '$scoreDelta';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('opponent-intel')),
+      maxScrolls: 48,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('opponent-intel')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Opponent Intel'), findsOneWidget);
+    expect(find.text('1 rivals'), findsOneWidget);
+    expect(find.text('1 active war'), findsWidgets);
+    expect(
+      find.text(
+          '$visibleRivalUnits visible units / $knownRivalColonies known colonies'),
+      findsWidgets,
+    );
+    expect(find.text('Tarth Legion'), findsWidgets);
+    expect(
+      find.text('War | $threatLabel | $rivalScore pts'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Strength $rivalStrength vs $activeStrength | Score $scoreDeltaLabel',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Profile Conqueror | $stanceHint'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('game screen can assign a sector to colony production',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

@@ -4627,6 +4627,8 @@ class _SelectionPanel extends StatelessWidget {
               onSelectSector: onSelectSector,
             ),
           ],
+          const SizedBox(height: 18),
+          _OpponentIntelDetail(game: game),
         ],
       ),
     );
@@ -7694,6 +7696,262 @@ class _FactionScoreRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _OpponentIntelDetail extends StatelessWidget {
+  const _OpponentIntelDetail({
+    Key? key,
+    required this.game,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final rivals = game.factions
+        .where((faction) => faction.id != game.activeFactionId)
+        .toList(growable: false);
+    final activeStrength = game.militaryStrengthFor(game.activeFactionId);
+    final activeScore = game.factionScoreFor(game.activeFactionId).total;
+    final wars = rivals
+        .where((faction) => game.areAtWar(game.activeFactionId, faction.id))
+        .length;
+    final visibleEnemyUnits = game.visibleEnemyUnitCountFor(
+      game.activeFactionId,
+    );
+    final knownEnemyColonies = _knownEnemyColonyCount();
+
+    return Container(
+      key: const ValueKey<String>('opponent-intel'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.radar, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Opponent Intel',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                rivals.isEmpty ? 'Clear' : '${rivals.length} rivals',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Posture',
+            value: wars == 0
+                ? 'No active wars'
+                : _countLabel(wars, 'active war', 'active wars'),
+          ),
+          _DetailRow(
+            label: 'Contact',
+            value:
+                '$visibleEnemyUnits visible units / $knownEnemyColonies known colonies',
+          ),
+          _DetailRow(label: 'Our Power', value: '$activeStrength strength'),
+          _DetailRow(label: 'Our Score', value: '$activeScore pts'),
+          if (rivals.isEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'No rival factions in this scenario.',
+              style: TextStyle(color: Color(0xFFE9EEF2)),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            ...rivals.map(
+              (faction) => _OpponentIntelRow(
+                game: game,
+                faction: faction,
+                activeStrength: activeStrength,
+                activeScore: activeScore,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  int _knownEnemyColonyCount() {
+    var count = 0;
+    for (final colony in game.colonies) {
+      if (!game.areAtWar(game.activeFactionId, colony.ownerId)) {
+        continue;
+      }
+      if (game.tileAt(colony.x, colony.y).isExploredBy(game.activeFactionId)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+}
+
+class _OpponentIntelRow extends StatelessWidget {
+  const _OpponentIntelRow({
+    Key? key,
+    required this.game,
+    required this.faction,
+    required this.activeStrength,
+    required this.activeScore,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final Faction faction;
+  final int activeStrength;
+  final int activeScore;
+
+  @override
+  Widget build(BuildContext context) {
+    final status =
+        game.diplomacyStatusBetween(game.activeFactionId, faction.id);
+    final summary = game.worldSummaryFor(faction.id);
+    final score = game.factionScoreFor(faction.id);
+    final strength = game.militaryStrengthFor(faction.id);
+    final visibleUnits = _visibleUnitCount();
+    final knownColonies = _knownColonyCount();
+    final tradeCredits =
+        game.treatyTradeCreditsFor(game.activeFactionId, faction.id);
+    final profile = Faction.aiPersonalityLabelFor(faction.aiPersonality);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 8),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0xFF34424D), width: 1),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.only(top: 5),
+            decoration: BoxDecoration(
+              color: Color(faction.colorValue),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  faction.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFE9EEF2),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${OpenDeadlockGame.diplomacyStatusLabelFor(status)} | ${_threatLabel(strength)} | ${score.total} pts',
+                  style: const TextStyle(
+                    color: Color(0xFFD7DEE5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '$visibleUnits visible units / $knownColonies known colonies / ${summary.unitCount} total units',
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  'Strength $strength vs $activeStrength | Score ${_signedInt(score.total - activeScore)}',
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  'Profile $profile | ${_stanceHint(status, strength, tradeCredits)}',
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _visibleUnitCount() {
+    var count = 0;
+    for (final unit in game.units) {
+      if (unit.ownerId == faction.id &&
+          game.isUnitVisibleTo(game.activeFactionId, unit)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  int _knownColonyCount() {
+    var count = 0;
+    for (final colony in game.colonies) {
+      if (colony.ownerId == faction.id &&
+          game.tileAt(colony.x, colony.y).isExploredBy(game.activeFactionId)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  String _threatLabel(int strength) {
+    if (strength > activeStrength) {
+      return 'stronger threat';
+    }
+    if (strength < activeStrength) {
+      return 'weaker threat';
+    }
+    return 'matched threat';
+  }
+
+  String _stanceHint(String status, int strength, int tradeCredits) {
+    if (status == OpenDeadlockGame.diplomacyStatusAlliance) {
+      return tradeCredits > 0
+          ? 'preserve +$tradeCredits trade'
+          : 'preserve shared intel';
+    }
+    if (status == OpenDeadlockGame.diplomacyStatusPeace) {
+      return tradeCredits > 0
+          ? 'trade +$tradeCredits credits'
+          : 'peace blocks attacks';
+    }
+    if (strength > activeStrength) {
+      return 'avoid exposed fights';
+    }
+    if (strength < activeStrength) {
+      return 'press military advantage';
+    }
+    return 'scout before committing';
   }
 }
 
