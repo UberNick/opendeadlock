@@ -3584,9 +3584,22 @@ void main() {
     expect(find.text('3 best sectors listed'), findsOneWidget);
     expect(find.text('Survey Team ready at 4, 2'), findsOneWidget);
     expect(find.text('Sector 1, 1'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('expansion-planner-review-first')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('expansion-ready-unit-human-scout')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('expansion-site-0-0')),
+      findsOneWidget,
+    );
 
-    await tester
-        .tap(find.widgetWithText(TextButton, 'Survey Team ready at 4, 2'));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('expansion-planner-review-first')),
+    );
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

@@ -13642,6 +13642,9 @@ class _ExpansionPlannerDetail extends StatelessWidget {
     final readyScouts =
         scoutUnits.where((unit) => _canFoundFrom(unit)).toList(growable: false);
     final candidateSites = _candidateSites().take(3).toList(growable: false);
+    final firstReadyScout = readyScouts.isEmpty ? null : readyScouts.first;
+    final firstCandidateSite =
+        candidateSites.isEmpty ? null : candidateSites.first;
 
     return Container(
       key: const ValueKey<String>('expansion-planner'),
@@ -13684,6 +13687,27 @@ class _ExpansionPlannerDetail extends StatelessWidget {
                 ? 'No owned empty sectors'
                 : '${candidateSites.length} best sectors listed',
           ),
+          if (firstReadyScout != null || firstCandidateSite != null) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('expansion-planner-review-first'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text(
+                  firstReadyScout == null
+                      ? 'Review Sector ${firstCandidateSite!.tile.x + 1}, ${firstCandidateSite.tile.y + 1}'
+                      : 'Review ${firstReadyScout.name}',
+                ),
+                onPressed: firstReadyScout == null
+                    ? () => onSelectSector(
+                          firstCandidateSite!.tile.x,
+                          firstCandidateSite.tile.y,
+                        )
+                    : () => onSelectUnit(firstReadyScout),
+              ),
+            ),
+          ],
           if (readyScouts.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text(
@@ -13697,6 +13721,7 @@ class _ExpansionPlannerDetail extends StatelessWidget {
             const SizedBox(height: 4),
             ...readyScouts.map(
               (unit) => _ExpansionUnitRow(
+                key: ValueKey<String>('expansion-ready-unit-${unit.id}'),
                 unit: unit,
                 selected: unit.id == selectedUnitId,
                 onSelect: () => onSelectUnit(unit),
@@ -13716,6 +13741,9 @@ class _ExpansionPlannerDetail extends StatelessWidget {
             const SizedBox(height: 4),
             ...candidateSites.map(
               (site) => _ExpansionSiteRow(
+                key: ValueKey<String>(
+                  'expansion-site-${site.tile.x}-${site.tile.y}',
+                ),
                 site: site,
                 onSelect: () => onSelectSector(site.tile.x, site.tile.y),
               ),
