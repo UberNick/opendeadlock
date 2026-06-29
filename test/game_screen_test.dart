@@ -2690,6 +2690,26 @@ void main() {
       find.text('Human | 1/2 colonies | 0/4 research | 1 units | 16 sectors'),
       findsOneWidget,
     );
+
+    final reviewButton = find.byKey(
+      const ValueKey<String>('world-score-review-humans'),
+    );
+    expect(reviewButton, findsOneWidget);
+
+    await tester.ensureVisible(reviewButton);
+    await tester.pumpAndSettle();
+    await tester.tap(reviewButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Population'),
+      delta: const Offset(0, 420),
+      maxScrolls: 40,
+    );
+    expect(find.text('New Haven'), findsWidgets);
+    expect(find.text('Population'), findsOneWidget);
   });
 
   testWidgets('game screen shows configured victory paths', (tester) async {
