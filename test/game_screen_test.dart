@@ -44,7 +44,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Load Invite'), findsOneWidget);
+    expect(find.text('Save Local'), findsOneWidget);
   });
 
   testWidgets('mobile sync cue reports pending orders', (tester) async {
@@ -4667,9 +4667,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _tapSyncMenuItem(tester, 'Load Invite');
+    final loadInvite = find.byKey(const ValueKey<String>('sync-load-invite'));
+    await _scrollSidePanelUntilVisible(tester, loadInvite);
+    await tester.ensureVisible(loadInvite);
+    await tester.pumpAndSettle();
+    expect(loadInvite, findsOneWidget);
+    await tester.tap(loadInvite);
+    await tester.pumpAndSettle();
 
-    expect(find.text('Load Invite'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Load Invite'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.enterText(find.byType(TextField), inviteCode);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Join'));
@@ -4700,7 +4712,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _tapSyncMenuItem(tester, 'Import Invite File');
+    final importInviteFile =
+        find.byKey(const ValueKey<String>('sync-import-invite-file'));
+    await _scrollSidePanelUntilVisible(tester, importInviteFile);
+    await tester.ensureVisible(importInviteFile);
+    await tester.pumpAndSettle();
+    expect(importInviteFile, findsOneWidget);
+    await tester.tap(importInviteFile);
+    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.text('Invite file loaded: joined as Tarth Legion'),
@@ -4966,7 +4985,13 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-save-snapshot-file')),
         findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-load-snapshot')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-import-snapshot-file')),
+        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('sync-load-invite')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-import-invite-file')),
         findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-handoff-checklist')),
         findsOneWidget);

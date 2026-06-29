@@ -430,8 +430,11 @@ class _GameScreenState extends State<GameScreen> {
                       );
                     },
                     onCopySnapshot: _copySnapshotToClipboard,
+                    onLoadSnapshot: _loadSnapshotFromClipboard,
                     onExportSnapshotFile: _exportSnapshotToFile,
                     onImportSnapshotFile: _importSnapshotFromFile,
+                    onLoadInvite: _loadInviteFromClipboard,
+                    onImportInviteFile: _importInviteFromFile,
                     onCopyInvite: _copyInviteForFaction,
                     onExportInvite: _exportInviteForFaction,
                     onCopyOrders: _copyOrdersToClipboard,
@@ -4310,8 +4313,11 @@ class _SelectionPanel extends StatelessWidget {
     required this.onIntelScan,
     required this.onSabotage,
     required this.onCopySnapshot,
+    required this.onLoadSnapshot,
     required this.onExportSnapshotFile,
     required this.onImportSnapshotFile,
+    required this.onLoadInvite,
+    required this.onImportInviteFile,
     required this.onCopyInvite,
     required this.onExportInvite,
     required this.onCopyOrders,
@@ -4360,8 +4366,11 @@ class _SelectionPanel extends StatelessWidget {
   final void Function(String targetFactionId) onIntelScan;
   final void Function(String targetFactionId) onSabotage;
   final Future<void> Function() onCopySnapshot;
+  final Future<void> Function() onLoadSnapshot;
   final Future<void> Function() onExportSnapshotFile;
   final Future<void> Function() onImportSnapshotFile;
+  final Future<void> Function() onLoadInvite;
+  final Future<void> Function() onImportInviteFile;
   final Future<void> Function(String factionId) onCopyInvite;
   final Future<void> Function(String factionId) onExportInvite;
   final Future<void> Function() onCopyOrders;
@@ -4599,8 +4608,11 @@ class _SelectionPanel extends StatelessWidget {
             lastSyncStatus: lastSyncStatus,
             syncLedgerEntries: syncLedgerEntries,
             onCopySnapshot: onCopySnapshot,
+            onLoadSnapshot: onLoadSnapshot,
             onExportSnapshotFile: onExportSnapshotFile,
             onImportSnapshotFile: onImportSnapshotFile,
+            onLoadInvite: onLoadInvite,
+            onImportInviteFile: onImportInviteFile,
             onCopyInvite: onCopyInvite,
             onExportInvite: onExportInvite,
             onApplyOrders: onApplyOrders,
@@ -10364,8 +10376,11 @@ class _SyncStatusDetail extends StatelessWidget {
     required this.lastSyncStatus,
     required this.syncLedgerEntries,
     required this.onCopySnapshot,
+    required this.onLoadSnapshot,
     required this.onExportSnapshotFile,
     required this.onImportSnapshotFile,
+    required this.onLoadInvite,
+    required this.onImportInviteFile,
     required this.onCopyInvite,
     required this.onExportInvite,
     required this.onApplyOrders,
@@ -10378,8 +10393,11 @@ class _SyncStatusDetail extends StatelessWidget {
   final String? lastSyncStatus;
   final List<_SyncLedgerEntry> syncLedgerEntries;
   final Future<void> Function() onCopySnapshot;
+  final Future<void> Function() onLoadSnapshot;
   final Future<void> Function() onExportSnapshotFile;
   final Future<void> Function() onImportSnapshotFile;
+  final Future<void> Function() onLoadInvite;
+  final Future<void> Function() onImportInviteFile;
   final Future<void> Function(String factionId) onCopyInvite;
   final Future<void> Function(String factionId) onExportInvite;
   final Future<void> Function() onApplyOrders;
@@ -10556,11 +10574,54 @@ class _SyncStatusDetail extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
+                key: const ValueKey<String>('sync-load-snapshot'),
+                icon: const Icon(Icons.upload_file, size: 18),
+                label: const Text('Load Snapshot'),
+                onPressed: () {
+                  onLoadSnapshot();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
                 key: const ValueKey<String>('sync-import-snapshot-file'),
                 icon: const Icon(Icons.drive_folder_upload, size: 18),
                 label: const Text('Import Snapshot File'),
                 onPressed: () {
                   onImportSnapshotFile();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-load-invite'),
+                icon: const Icon(Icons.person_add_alt_1, size: 18),
+                label: const Text('Load Invite'),
+                onPressed: () {
+                  onLoadInvite();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-import-invite-file'),
+                icon: const Icon(Icons.drive_folder_upload, size: 18),
+                label: const Text('Import Invite File'),
+                onPressed: () {
+                  onImportInviteFile();
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFE9EEF2),
