@@ -3165,6 +3165,13 @@ void main() {
       findsWidgets,
     );
     expect(find.textContaining('1 cmd'), findsWidgets);
+    expect(find.byKey(const ValueKey<String>('sync-ledger')), findsOneWidget);
+    expect(find.text('Sync Ledger'), findsOneWidget);
+    expect(find.text('Source'), findsOneWidget);
+    expect(find.text('Typed Code'), findsOneWidget);
+    expect(find.text('Received'), findsOneWidget);
+    expect(find.text('1 order'), findsWidgets);
+    expect(find.text('Result State'), findsOneWidget);
 
     await _tapSyncMenuItem(tester, 'Apply Orders');
     await tester.enterText(find.byType(TextField), orderCode);
@@ -3777,6 +3784,10 @@ void main() {
       findsWidgets,
     );
     expect(find.textContaining('1 cmd'), findsWidgets);
+    expect(find.byKey(const ValueKey<String>('sync-ledger')), findsOneWidget);
+    expect(find.text('Imported File'), findsOneWidget);
+    expect(find.text('Base Cmd'), findsOneWidget);
+    expect(find.text('Result State'), findsOneWidget);
   });
 
   testWidgets('game screen exports snapshots to a file', (tester) async {

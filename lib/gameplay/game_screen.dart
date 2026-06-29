@@ -134,6 +134,7 @@ class _GameScreenState extends State<GameScreen> {
   bool soundEffectsEnabled = true;
   bool musicEnabled = true;
   String? lastSyncStatus;
+  final List<_SyncLedgerEntry> syncLedgerEntries = <_SyncLedgerEntry>[];
 
   @override
   void initState() {
@@ -227,6 +228,7 @@ class _GameScreenState extends State<GameScreen> {
                     latestSaveSlot: latestSaveSlot,
                     orderExportBaseCommandCount: orderExportBaseCommandCount,
                     lastSyncStatus: lastSyncStatus,
+                    syncLedgerEntries: syncLedgerEntries,
                     soundEffectsEnabled: soundEffectsEnabled,
                     musicEnabled: musicEnabled,
                     tile: selectedTile,
@@ -479,6 +481,7 @@ class _GameScreenState extends State<GameScreen> {
         if (widget.resumeLatestSave && loadedGame != null) {
           game = loadedGame;
           orderExportBaseCommandCount = loadedGame.commandHistory.length;
+          syncLedgerEntries.clear();
           undoStack.clear();
           _selectDefaultTile(loadedGame);
         }
@@ -751,6 +754,7 @@ class _GameScreenState extends State<GameScreen> {
         latestSaveSlot = slot;
         orderExportBaseCommandCount = loadedGame.commandHistory.length;
         lastSyncStatus = null;
+        syncLedgerEntries.clear();
         undoStack.clear();
         _selectDefaultTile(loadedGame);
       });
@@ -922,6 +926,7 @@ class _GameScreenState extends State<GameScreen> {
         afterSet: (_) {
           orderExportBaseCommandCount = loadedGame.commandHistory.length;
           lastSyncStatus = null;
+          syncLedgerEntries.clear();
           undoStack.clear();
           _selectDefaultTile(loadedGame);
         },
@@ -1010,6 +1015,7 @@ class _GameScreenState extends State<GameScreen> {
         afterSet: (_) {
           orderExportBaseCommandCount = loadedGame.commandHistory.length;
           lastSyncStatus = null;
+          syncLedgerEntries.clear();
           undoStack.clear();
           _selectDefaultTile(loadedGame);
         },
@@ -1102,11 +1108,21 @@ class _GameScreenState extends State<GameScreen> {
       final syncStatus =
           '${preview.hasNewCommands ? '$successPrefix ${preview.summaryLabel}' : preview.summaryLabel}. '
           'Next: ${preview.handoffLabel}';
+      final ledgerEntry = _SyncLedgerEntry.fromPackage(
+        preview: preview,
+        package: package,
+        source: successPrefix == 'Imported' ? 'Imported File' : 'Typed Code',
+        status: syncStatus,
+      );
       _replaceGame(
         updatedGame,
         afterSet: (_) {
           orderExportBaseCommandCount = updatedGame.commandHistory.length;
           lastSyncStatus = syncStatus;
+          syncLedgerEntries.insert(0, ledgerEntry);
+          if (syncLedgerEntries.length > 4) {
+            syncLedgerEntries.removeRange(4, syncLedgerEntries.length);
+          }
           undoStack.clear();
           final currentSelectedUnitId = selectedUnitId;
           selectedUnitId = currentSelectedUnitId != null &&
@@ -2041,6 +2057,43 @@ class _PreparedInvite {
 
   final String encoded;
   final GameInvite invite;
+}
+
+class _SyncLedgerEntry {
+  const _SyncLedgerEntry({
+    required this.source,
+    required this.sender,
+    required this.status,
+    required this.orders,
+    required this.handoff,
+    required this.baseCommandFingerprint,
+    required this.resultStateFingerprint,
+  });
+
+  factory _SyncLedgerEntry.fromPackage({
+    required CommandPackagePreview preview,
+    required CommandPackage package,
+    required String source,
+    required String status,
+  }) {
+    return _SyncLedgerEntry(
+      source: source,
+      sender: preview.exportedByFactionName,
+      status: status,
+      orders: preview.newCommandCount,
+      handoff: preview.handoffLabel,
+      baseCommandFingerprint: package.baseCommandFingerprint,
+      resultStateFingerprint: preview.stateFingerprint,
+    );
+  }
+
+  final String source;
+  final String sender;
+  final String status;
+  final int orders;
+  final String handoff;
+  final String baseCommandFingerprint;
+  final String resultStateFingerprint;
 }
 
 class _InvitePreviewDialog extends StatelessWidget {
@@ -4176,6 +4229,7 @@ class _SelectionPanel extends StatelessWidget {
     required this.latestSaveSlot,
     required this.orderExportBaseCommandCount,
     required this.lastSyncStatus,
+    required this.syncLedgerEntries,
     required this.soundEffectsEnabled,
     required this.musicEnabled,
     required this.tile,
@@ -4215,6 +4269,7 @@ class _SelectionPanel extends StatelessWidget {
   final SavedGameSlot? latestSaveSlot;
   final int orderExportBaseCommandCount;
   final String? lastSyncStatus;
+  final List<_SyncLedgerEntry> syncLedgerEntries;
   final bool soundEffectsEnabled;
   final bool musicEnabled;
   final PlanetTile tile;
@@ -4431,6 +4486,7 @@ class _SelectionPanel extends StatelessWidget {
             latestSaveSlot: latestSaveSlot,
             orderExportBaseCommandCount: orderExportBaseCommandCount,
             lastSyncStatus: lastSyncStatus,
+            syncLedgerEntries: syncLedgerEntries,
             onCopyInvite: onCopyInvite,
             onExportInvite: onExportInvite,
             onApplyOrders: onApplyOrders,
@@ -7420,6 +7476,7 @@ class _SyncStatusDetail extends StatelessWidget {
     required this.latestSaveSlot,
     required this.orderExportBaseCommandCount,
     required this.lastSyncStatus,
+    required this.syncLedgerEntries,
     required this.onCopyInvite,
     required this.onExportInvite,
     required this.onApplyOrders,
@@ -7430,6 +7487,7 @@ class _SyncStatusDetail extends StatelessWidget {
   final SavedGameSlot? latestSaveSlot;
   final int orderExportBaseCommandCount;
   final String? lastSyncStatus;
+  final List<_SyncLedgerEntry> syncLedgerEntries;
   final Future<void> Function(String factionId) onCopyInvite;
   final Future<void> Function(String factionId) onExportInvite;
   final Future<void> Function() onApplyOrders;
@@ -7527,6 +7585,10 @@ class _SyncStatusDetail extends StatelessWidget {
             label: 'Last Sync',
             value: lastSyncStatus ?? 'No packages applied this session',
           ),
+          if (syncLedgerEntries.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _SyncLedgerDetail(entries: syncLedgerEntries),
+          ],
           _DetailRow(
             label: 'Save',
             value: latestSaveSlot == null
@@ -7622,6 +7684,76 @@ class _SyncStatusDetail extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SyncLedgerDetail extends StatelessWidget {
+  const _SyncLedgerDetail({
+    Key? key,
+    required this.entries,
+  }) : super(key: key);
+
+  final List<_SyncLedgerEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final latest = entries.first;
+    final orderLabel =
+        latest.orders == 1 ? '1 order' : '${latest.orders} orders';
+
+    return Container(
+      key: const ValueKey<String>('sync-ledger'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26333C),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF43515B)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.receipt_long, color: Color(0xFFD9B66F), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Sync Ledger',
+                style: TextStyle(
+                  color: Color(0xFFFFF5D6),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _DetailRow(label: 'Source', value: latest.source),
+          _DetailRow(label: 'Status', value: latest.status),
+          _DetailRow(label: 'Sender', value: latest.sender),
+          _DetailRow(label: 'Received', value: orderLabel),
+          _DetailRow(label: 'Handoff', value: latest.handoff),
+          _DetailRow(
+            label: 'Base Cmd',
+            value: _shortFingerprint(latest.baseCommandFingerprint),
+          ),
+          _DetailRow(
+            label: 'Result State',
+            value: _shortFingerprint(latest.resultStateFingerprint),
+          ),
+          if (entries.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '+${entries.length - 1} earlier sync ${entries.length == 2 ? 'entry' : 'entries'} this session',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                ),
+              ),
+            ),
         ],
       ),
     );
