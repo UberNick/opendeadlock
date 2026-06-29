@@ -4900,6 +4900,15 @@ class _FactionTraitDetail extends StatelessWidget {
               style: const TextStyle(color: Color(0xFFE9EEF2)),
             ),
           ),
+          _DetailRow(
+            label: 'Build Priorities',
+            value: _personalityBuildPrioritySummaryFor(faction.aiPersonality),
+          ),
+          _DetailRow(
+            label: 'Research Priorities',
+            value:
+                _personalityResearchPrioritySummaryFor(faction.aiPersonality),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Text(
@@ -4944,6 +4953,38 @@ class _FactionTraitDetail extends StatelessWidget {
       ),
     );
   }
+}
+
+String _personalityBuildPrioritySummaryFor(String aiPersonality) {
+  if (aiPersonality == Faction.aiPersonalityConqueror) {
+    return 'Barracks, infantry, factories, armor, militia';
+  }
+  if (aiPersonality == Faction.aiPersonalityExpansionist) {
+    return 'Scouts, colony hubs, farm domes';
+  }
+  if (aiPersonality == Faction.aiPersonalityResearcher) {
+    return 'Research labs, factories';
+  }
+  if (aiPersonality == Faction.aiPersonalityTrader) {
+    return 'Farm domes, factories, scouts';
+  }
+  return 'Adapts to shortages, threats, and local colony needs';
+}
+
+String _personalityResearchPrioritySummaryFor(String aiPersonality) {
+  if (aiPersonality == Faction.aiPersonalityConqueror) {
+    return 'Defense Grid, Industrial Automation';
+  }
+  if (aiPersonality == Faction.aiPersonalityExpansionist) {
+    return 'Hydroponics, Industrial Automation';
+  }
+  if (aiPersonality == Faction.aiPersonalityResearcher) {
+    return 'Xenoarchaeology, Industrial Automation';
+  }
+  if (aiPersonality == Faction.aiPersonalityTrader) {
+    return 'Hydroponics, Industrial Automation, Future Studies';
+  }
+  return 'Adapts to race, traits, and unfinished projects';
 }
 
 String _raceEffectSummaryFor(RaceProfile race) {

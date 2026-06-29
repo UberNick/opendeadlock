@@ -278,13 +278,12 @@ void main() {
 
     expect(find.byTooltip('Mute sound effects'), findsOneWidget);
     expect(find.byTooltip('Pause music'), findsOneWidget);
-    await tester.dragUntilVisible(
-      find.text('Audio'),
-      find.byType(Scrollable).last,
-      const Offset(0, -360),
-      maxIteration: 8,
-    );
-    await tester.pumpAndSettle();
+    for (var scroll = 0;
+        scroll < 12 && find.text('Audio').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -360));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Audio'), findsOneWidget);
     expect(find.text('Effects'), findsOneWidget);
@@ -647,6 +646,10 @@ void main() {
     expect(find.text('Researcher'), findsOneWidget);
     expect(find.text('Race Effects'), findsOneWidget);
     expect(find.text('+2 credits per colony'), findsOneWidget);
+    expect(find.text('Build Priorities'), findsOneWidget);
+    expect(find.text('Research labs, factories'), findsOneWidget);
+    expect(find.text('Research Priorities'), findsOneWidget);
+    expect(find.text('Xenoarchaeology, Industrial Automation'), findsOneWidget);
     expect(
       find.text(
           'Prioritizes research labs, science focus, and research projects.'),
@@ -3532,19 +3535,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.text('Last Sync'),
-      find.byType(ListView),
-      const Offset(0, -420),
-      maxIteration: 12,
-    );
-    await tester.pumpAndSettle();
+    for (var scroll = 0;
+        scroll < 18 && find.text('Last Sync').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
 
     expect(
       find.widgetWithText(OutlinedButton, 'Import Orders File'),
       findsOneWidget,
     );
 
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'Import Orders File'),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, 'Import Orders File'));
     await _pumpUntilFound(tester, find.text('Review Orders'));
 
@@ -3707,12 +3713,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.text('Save Invite'),
-      find.byType(ListView),
-      const Offset(0, -420),
-      maxIteration: 12,
-    );
+    for (var scroll = 0;
+        scroll < 18 && find.text('Save Invite').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+      await tester.pumpAndSettle();
+    }
+    await tester
+        .ensureVisible(find.widgetWithText(OutlinedButton, 'Save Invite'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, 'Save Invite'));
     await tester.pumpAndSettle();
