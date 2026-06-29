@@ -1764,6 +1764,14 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Strategic Advisor'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('strategic-advisor-open-top')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('strategic-advisor-row-1')),
+      findsOneWidget,
+    );
     expect(find.text('Recover Survey Team'), findsWidgets);
     expect(
       find.text(

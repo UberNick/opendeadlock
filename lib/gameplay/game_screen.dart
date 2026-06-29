@@ -5863,13 +5863,28 @@ class _StrategicAdvisorDetail extends StatelessWidget {
                 : _countLabel(warCount, 'active war', 'active wars'),
           ),
           if (items.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            ...items.map(
-              (item) => _StrategicAdvisorRow(
-                item: item,
-                onPressed: _onPressedFor(item),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('strategic-advisor-open-top'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Open Top Action'),
+                onPressed: _onPressedFor(items.first),
               ),
             ),
+          ],
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...items.asMap().entries.map(
+                  (entry) => _StrategicAdvisorRow(
+                    key: ValueKey<String>(
+                      'strategic-advisor-row-${entry.key + 1}',
+                    ),
+                    item: entry.value,
+                    onPressed: _onPressedFor(entry.value),
+                  ),
+                ),
           ],
         ],
       ),
