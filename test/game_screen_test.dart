@@ -3754,11 +3754,36 @@ void main() {
     expect(find.text('Luxury Housing - Locked'), findsOneWidget);
     expect(find.text('Armor Company - Locked'), findsOneWidget);
     expect(
+      find.byKey(
+        const ValueKey<String>('build-catalog-queue-Apartment Complex'),
+      ),
+      findsOneWidget,
+    );
+    expect(
       find.text('18 industry / 1 upkeep / Requires Housing'),
       findsOneWidget,
     );
     expect(
       find.text('30 industry / 0 upkeep / Requires Barracks and Factory'),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('build-catalog-queue-Apartment Complex'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Apartment Complex'), findsWidgets);
+    expect(find.text('Apartment Complex - Available'), findsOneWidget);
+    expect(find.textContaining('0/18 industry stored'), findsOneWidget);
+    expect(
+      find.text(
+        'Cost 18 industry / Upkeep 1 credit / '
+        'Produces +4 population capacity / Requires Housing',
+      ),
       findsOneWidget,
     );
   });

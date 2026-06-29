@@ -14440,7 +14440,11 @@ class _ColonyDetail extends StatelessWidget {
               colony.construction,
             ),
           ),
-          _BuildCatalogDetail(colony: colony),
+          _BuildCatalogDetail(
+            colony: colony,
+            canEdit: canEdit,
+            onConstructionChanged: onConstructionChanged,
+          ),
           _DetailRow(label: 'Completed', value: completedBuildings),
           const SizedBox(height: 8),
           ClipRRect(
@@ -14786,9 +14790,14 @@ class _BuildCatalogDetail extends StatelessWidget {
   const _BuildCatalogDetail({
     Key? key,
     required this.colony,
+    required this.canEdit,
+    required this.onConstructionChanged,
   }) : super(key: key);
 
   final Colony colony;
+  final bool canEdit;
+  final void Function(String colonyId, String construction)
+      onConstructionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -14844,7 +14853,14 @@ class _BuildCatalogDetail extends StatelessWidget {
                     '$availableCount available / $completedCount completed / $lockedCount locked',
               ),
               children: [
-                ...items.map((item) => _BuildCatalogRow(item: item)),
+                ...items.map(
+                  (item) => _BuildCatalogRow(
+                    colony: colony,
+                    item: item,
+                    canEdit: canEdit,
+                    onConstructionChanged: onConstructionChanged,
+                  ),
+                ),
               ],
             ),
           ),
@@ -14900,14 +14916,24 @@ class _BuildCatalogItem {
 class _BuildCatalogRow extends StatelessWidget {
   const _BuildCatalogRow({
     Key? key,
+    required this.colony,
     required this.item,
+    required this.canEdit,
+    required this.onConstructionChanged,
   }) : super(key: key);
 
+  final Colony colony;
   final _BuildCatalogItem item;
+  final bool canEdit;
+  final void Function(String colonyId, String construction)
+      onConstructionChanged;
 
   @override
   Widget build(BuildContext context) {
     final color = _statusColor();
+    final canQueue = canEdit &&
+        item.status == _BuildCatalogStatus.available &&
+        item.construction != colony.construction;
     return Padding(
       padding: const EdgeInsets.only(top: 7),
       child: Row(
@@ -14950,6 +14976,18 @@ class _BuildCatalogRow extends StatelessWidget {
               ],
             ),
           ),
+          if (canQueue) ...[
+            const SizedBox(width: 8),
+            TextButton.icon(
+              key: ValueKey<String>(
+                'build-catalog-queue-${item.construction}',
+              ),
+              icon: const Icon(Icons.construction, size: 15),
+              label: const Text('Build'),
+              onPressed: () =>
+                  onConstructionChanged(colony.id, item.construction),
+            ),
+          ],
         ],
       ),
     );
