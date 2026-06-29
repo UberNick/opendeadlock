@@ -4657,7 +4657,10 @@ class _SelectionPanel extends StatelessWidget {
           const SizedBox(height: 18),
           _OpponentIntelDetail(game: game),
           const SizedBox(height: 18),
-          _MapIntelDetail(game: game),
+          _MapIntelDetail(
+            game: game,
+            onSelectSector: onSelectSector,
+          ),
           const SizedBox(height: 18),
           _ResourceOverlayDetail(
             game: game,
@@ -8135,9 +8138,11 @@ class _MapIntelDetail extends StatelessWidget {
   const _MapIntelDetail({
     Key? key,
     required this.game,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -8227,6 +8232,18 @@ class _MapIntelDetail extends StatelessWidget {
                     '${OpenDeadlockGame.terrainLabelFor(bestTile.terrain)} | '
                     '${_tileYieldLabel(bestTile.yields)}',
           ),
+          if (bestTile != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('map-intel-select-best'),
+                icon: const Icon(Icons.my_location, size: 16),
+                label: Text('View Sector ${bestTile.x + 1}, ${bestTile.y + 1}'),
+                onPressed: () => onSelectSector(bestTile.x, bestTile.y),
+              ),
+            ),
+          ],
         ],
       ),
     );

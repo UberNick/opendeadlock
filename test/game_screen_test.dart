@@ -1193,6 +1193,28 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey<String>('map-intel-select-best')),
+      findsOneWidget,
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('map-intel-select-best')));
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Sector ${bestTile.x + 1}, ${bestTile.y + 1}'),
+      delta: const Offset(0, 420),
+      maxScrolls: 56,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.text('Sector ${bestTile.x + 1}, ${bestTile.y + 1}'),
+      findsWidgets,
+    );
   });
 
   testWidgets('game screen summarizes session audit', (tester) async {
