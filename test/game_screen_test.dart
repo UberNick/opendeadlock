@@ -1279,6 +1279,66 @@ void main() {
     );
   });
 
+  testWidgets('game screen summarizes faction economy', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final game = _maintenanceShortfallGame();
+    final faction = game.activeFaction;
+    final summary = game.worldSummaryFor(faction.id);
+    final colonies = game.colonies
+        .where((colony) => colony.ownerId == faction.id)
+        .toList(growable: false);
+    final projections =
+        colonies.map((colony) => game.colonyProductionFor(colony)).toList();
+    final warningCount = projections
+        .where((projection) =>
+            projection.isStarving ||
+            projection.isInUnrest ||
+            projection.isRioting ||
+            projection.hasMaintenanceShortfall)
+        .length;
+    final maintenanceShortfall = projections.fold<int>(
+      0,
+      (total, projection) => total + projection.maintenanceShortfall,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('faction-economy')),
+      420,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 12,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Faction Economy'), findsOneWidget);
+    expect(find.text('${faction.resources.credits} credits'), findsWidgets);
+    expect(find.text(_resourceLineForTest(summary.projectedProduction)),
+        findsWidgets);
+    expect(
+      find.text(
+        '${colonies.length} active | ${warningCount == 0 ? 'no warnings' : '$warningCount warnings'}',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('$maintenanceShortfall credit shortfall'), findsOneWidget);
+  });
+
   testWidgets('game screen shows colony unrest penalties', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 1200);
@@ -1411,17 +1471,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var i = 0; i < 12; i += 1) {
-      if (find
-          .textContaining('Balanced - No tax pressure.')
-          .evaluate()
-          .isNotEmpty) {
-        break;
-      }
-      await tester.drag(find.byType(ListView).last, const Offset(0, -260));
-      await tester.pumpAndSettle();
-    }
-    await tester.pumpAndSettle();
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.textContaining('Balanced - No tax pressure.'),
+      delta: const Offset(0, -260),
+    );
 
     await tester.ensureVisible(
       find.textContaining('Balanced - No tax pressure.').last,
@@ -1436,16 +1490,13 @@ void main() {
     expect(
         find.textContaining('High - +3 credits, -2 morale.'), findsOneWidget);
 
-    for (var i = 0; i < 12; i += 1) {
-      if (find.text('7 food / 7 ind / 3 res / 12 cred').evaluate().isNotEmpty) {
-        break;
-      }
-      await tester.drag(find.byType(ListView).last, const Offset(0, 360));
-      await tester.pumpAndSettle();
-    }
-    await tester.pumpAndSettle();
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('7 food / 7 ind / 3 res / 12 cred'),
+      delta: const Offset(0, 360),
+    );
 
-    expect(find.text('7 food / 7 ind / 3 res / 12 cred'), findsOneWidget);
+    expect(find.text('7 food / 7 ind / 3 res / 12 cred'), findsWidgets);
   });
 
   testWidgets('game screen can make peace and show treaty trade',
@@ -1639,13 +1690,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var i = 0; i < 12; i += 1) {
-      if (find.text('1/2 colonies / 50%').evaluate().isNotEmpty) {
-        break;
-      }
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -260));
-      await tester.pumpAndSettle();
-    }
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Rank'),
+      delta: const Offset(0, -260),
+    );
 
     expect(tester.takeException(), isNull);
     expect(find.text('Rank'), findsOneWidget);
@@ -2440,12 +2489,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var scroll = 0;
-        scroll < 18 && find.text('News Summary').evaluate().isEmpty;
-        scroll += 1) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
-      await tester.pumpAndSettle();
-    }
+    await _scrollSidePanelUntilVisible(tester, find.text('News Summary'));
 
     expect(tester.takeException(), isNull);
     expect(find.text('News Summary'), findsOneWidget);
@@ -2670,13 +2714,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.text('Fund +8'),
-      find.byType(Scrollable).last,
-      const Offset(0, -420),
-      maxIteration: 14,
-    );
-    await tester.pumpAndSettle();
+    await _scrollSidePanelUntilVisible(tester, find.text('Fund +8'));
     await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'Fund +8'));
     await tester.pumpAndSettle();
     expect(find.text('Fund +8'), findsOneWidget);
@@ -2721,13 +2759,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('Tech Roadmap'),
-      420,
-      scrollable: find.byType(Scrollable).last,
-      maxScrolls: 12,
-    );
-    await tester.pumpAndSettle();
+    await _scrollSidePanelUntilVisible(tester, find.text('Tech Roadmap'));
 
     expect(tester.takeException(), isNull);
     expect(find.text('Tech Roadmap'), findsOneWidget);
@@ -2771,13 +2803,7 @@ void main() {
     expect(find.widgetWithText(ElevatedButton, 'Run AI'), findsOneWidget);
     expect(find.text('Turn 1'), findsWidgets);
     expect(find.textContaining('Tarth Legion'), findsWidgets);
-    for (var scroll = 0;
-        scroll < 24 && find.text('AI Orders').evaluate().isEmpty;
-        scroll += 1) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
-      await tester.pumpAndSettle();
-    }
-    await tester.pumpAndSettle();
+    await _scrollSidePanelUntilVisible(tester, find.text('AI Orders'));
     expect(find.text('AI Orders'), findsOneWidget);
     expect(find.text(plannedLabel), findsOneWidget);
     expect(
@@ -2839,13 +2865,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.text('AI Orders'),
-      find.byType(Scrollable).last,
-      const Offset(0, -420),
-      maxIteration: 14,
-    );
-    await tester.pumpAndSettle();
+    await _scrollSidePanelUntilVisible(tester, find.text('AI Orders'));
 
     expect(tester.takeException(), isNull);
     expect(
@@ -3719,13 +3739,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
+    await _scrollSidePanelUntilVisible(
+      tester,
       find.byKey(const ValueKey<String>('replay-timeline')),
-      find.byType(Scrollable).last,
-      const Offset(0, -420),
-      maxIteration: 18,
     );
-    await tester.pumpAndSettle();
 
     final commandFingerprint = GameCodec.fingerprintCommands(
       replayGame.commandHistory.map((record) => record.command),
@@ -4259,6 +4276,26 @@ OpenDeadlockGame _maintenanceShortfallGame() {
       );
     }).toList(),
   );
+}
+
+String _resourceLineForTest(ResourceStockpile stockpile) {
+  return '${stockpile.food} food / ${stockpile.industry} ind / '
+      '${stockpile.research} res / ${stockpile.credits} cred';
+}
+
+Future<void> _scrollSidePanelUntilVisible(
+  WidgetTester tester,
+  Finder finder, {
+  Offset delta = const Offset(0, -420),
+  int maxScrolls = 30,
+}) async {
+  for (var scroll = 0; scroll < maxScrolls; scroll += 1) {
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+    await tester.drag(find.byType(Scrollable).last, delta);
+    await tester.pumpAndSettle();
+  }
 }
 
 String _shortFingerprintForTest(String fingerprint) {

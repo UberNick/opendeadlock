@@ -4454,6 +4454,8 @@ class _SelectionPanel extends StatelessWidget {
             musicEnabled: musicEnabled,
           ),
           const SizedBox(height: 18),
+          _FactionEconomyDetail(game: game, faction: game.activeFaction),
+          const SizedBox(height: 18),
           _WorldOverviewDetail(game: game),
           const SizedBox(height: 18),
           _FactionControlDetail(
@@ -6076,6 +6078,134 @@ class _PendingBuildRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _FactionEconomyDetail extends StatelessWidget {
+  const _FactionEconomyDetail({
+    Key? key,
+    required this.game,
+    required this.faction,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final Faction faction;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = game.worldSummaryFor(faction.id);
+    final colonies = game.colonies
+        .where((colony) => colony.ownerId == faction.id)
+        .toList(growable: false);
+    final projections =
+        colonies.map((colony) => game.colonyProductionFor(colony)).toList();
+    final tradeIncome = game.tradeIncomeFor(faction.id);
+    final warningCount =
+        projections.where((projection) => _hasColonyWarning(projection)).length;
+    final maintenanceShortfall = projections.fold<int>(
+      0,
+      (total, projection) => total + projection.maintenanceShortfall,
+    );
+    final completingBuildCount = projections
+        .where((projection) => projection.willCompleteConstruction)
+        .length;
+    final stalledBuildCount = projections
+        .where((projection) =>
+            projection.constructionWork <= 0 &&
+            !projection.willCompleteConstruction)
+        .length;
+    final moralePressureCount = projections
+        .where((projection) =>
+            projection.moraleChange < 0 ||
+            projection.isInUnrest ||
+            projection.isRioting)
+        .length;
+
+    return Container(
+      key: const ValueKey<String>('faction-economy'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.account_balance, color: Color(0xFFE9EEF2), size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Faction Economy',
+                style: TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Treasury',
+            value: '${faction.resources.credits} credits',
+          ),
+          _DetailRow(
+            label: 'Next Output',
+            value: _resourceLine(summary.projectedProduction),
+          ),
+          _DetailRow(
+            label: 'Trade',
+            value: tradeIncome.credits == 0
+                ? 'No treaty income'
+                : '+${tradeIncome.credits} credits / turn',
+          ),
+          _DetailRow(
+            label: 'Colonies',
+            value:
+                '${colonies.length} active | ${warningCount == 0 ? 'no warnings' : '$warningCount warnings'}',
+          ),
+          _DetailRow(
+            label: 'Upkeep',
+            value: maintenanceShortfall == 0
+                ? 'Covered'
+                : '$maintenanceShortfall credit shortfall',
+          ),
+          _DetailRow(
+            label: 'Builds',
+            value:
+                '$completingBuildCount completing | $stalledBuildCount stalled',
+          ),
+          _DetailRow(
+            label: 'Morale',
+            value: moralePressureCount == 0
+                ? 'Stable'
+                : '$moralePressureCount under pressure',
+          ),
+          _DetailRow(label: 'Research', value: _researchLabel()),
+        ],
+      ),
+    );
+  }
+
+  String _resourceLine(ResourceStockpile stockpile) {
+    return '${stockpile.food} food / ${stockpile.industry} ind / '
+        '${stockpile.research} res / ${stockpile.credits} cred';
+  }
+
+  String _researchLabel() {
+    if (!OpenDeadlockGame.researchOptions.contains(faction.researchProject)) {
+      return 'No active project';
+    }
+    final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
+    final remaining = cost - faction.resources.research;
+    if (remaining <= 0) {
+      return '${faction.researchProject} ready';
+    }
+    final fundable = _fundableResearchFor(faction);
+    if (fundable > 0) {
+      return 'Fund $fundable of $remaining remaining';
+    }
+    return '${faction.resources.research}/$cost ${faction.researchProject}';
   }
 }
 
