@@ -11780,6 +11780,7 @@ class _ColonyDetail extends StatelessWidget {
                   colony: colony,
                   onFocusChanged: onFocusChanged,
                 ),
+                _FocusCatalogDetail(activeFocus: colony.focus),
                 if (hasOtherOwnedColonies)
                   _BulkColonyActionButton(
                     icon: Icons.tune,
@@ -11795,6 +11796,7 @@ class _ColonyDetail extends StatelessWidget {
               label: 'Focus',
               value: OpenDeadlockGame.colonyFocusLabelFor(colony.focus),
             ),
+          _FocusCatalogDetail(activeFocus: colony.focus),
           _DetailRow(
             label: 'Output',
             value:
@@ -12066,6 +12068,136 @@ class _ColonyDetail extends StatelessWidget {
       return 1;
     }
     return progress;
+  }
+}
+
+class _FocusCatalogDetail extends StatelessWidget {
+  const _FocusCatalogDetail({
+    Key? key,
+    required this.activeFocus,
+  }) : super(key: key);
+
+  final String activeFocus;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeLabel = OpenDeadlockGame.colonyFocusLabelFor(activeFocus);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Color(0xFF31404C)),
+          ),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: Material(
+            type: MaterialType.transparency,
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 2),
+              collapsedIconColor: const Color(0xFFE9EEF2),
+              iconColor: const Color(0xFFE9EEF2),
+              title: const Row(
+                children: [
+                  Icon(Icons.tune, color: Color(0xFFE9EEF2), size: 17),
+                  SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      'Focus Catalog',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFFF4F7FA),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              subtitle: Text(
+                '${OpenDeadlockGame.colonyFocuses.length} options / '
+                '$activeLabel active',
+                style: const TextStyle(
+                  color: Color(0xFFB9C5CE),
+                  fontSize: 12,
+                ),
+              ),
+              children: [
+                ...OpenDeadlockGame.colonyFocuses.map(
+                  (focus) => _FocusCatalogRow(
+                    focus: focus,
+                    isActive: focus == activeFocus,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusCatalogRow extends StatelessWidget {
+  const _FocusCatalogRow({
+    Key? key,
+    required this.focus,
+    required this.isActive,
+  }) : super(key: key);
+
+  final String focus;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? const Color(0xFFCCD6A6) : const Color(0xFFE9EEF2);
+    final label = OpenDeadlockGame.colonyFocusLabelFor(focus);
+    final description = OpenDeadlockGame.colonyFocusDescriptionFor(focus);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              isActive ? Icons.play_circle : Icons.radio_button_unchecked,
+              color: color,
+              size: 14,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$label - ${isActive ? 'Active' : 'Available'}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  description,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

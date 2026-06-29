@@ -633,11 +633,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
+    await _scrollSidePanelUntilVisible(
+      tester,
       find.text('AI Profile'),
-      find.byType(ListView),
-      const Offset(0, -260),
-      maxIteration: 8,
+      delta: const Offset(0, -260),
+      maxScrolls: 16,
     );
     await tester.pumpAndSettle();
 
@@ -935,6 +935,59 @@ void main() {
         findsOneWidget);
     expect(find.text('6 food / 9 ind / 3 res / 9 cred'), findsOneWidget);
     expect(find.textContaining('(+9)'), findsOneWidget);
+  });
+
+  testWidgets('game screen shows colony focus catalog', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final sample = OpenDeadlockGame.sample(sessionId: 'focus-catalog-ui');
+    final focused = sample.copyWith(
+      colonies: sample.colonies.map((colony) {
+        if (colony.id != 'new-haven') {
+          return colony;
+        }
+        return colony.copyWith(focus: OpenDeadlockGame.colonyFocusIndustry);
+      }).toList(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: focused,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final focusCatalog = find.text('Focus Catalog').first;
+    await _scrollSidePanelUntilVisible(tester, focusCatalog);
+    await tester.ensureVisible(focusCatalog);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Focus Catalog'), findsWidgets);
+    expect(find.text('5 options / Industry active'), findsWidgets);
+
+    await tester.tap(focusCatalog);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Industry - Active'), findsOneWidget);
+    expect(find.text('Balanced - Available'), findsOneWidget);
+    expect(find.text('Growth - Available'), findsOneWidget);
+    expect(find.text('Research - Available'), findsOneWidget);
+    expect(find.text('Revenue - Available'), findsOneWidget);
+    expect(find.text('No production bias.'), findsWidgets);
+    expect(find.text('+2 food, -1 industry.'), findsWidgets);
+    expect(find.text('+2 industry, -1 food.'), findsWidgets);
+    expect(find.text('+2 research, -1 industry.'), findsWidgets);
+    expect(find.text('+3 credits, -1 research.'), findsWidgets);
   });
 
   testWidgets('game screen shows colony income and morale forecasts',
@@ -1577,23 +1630,31 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('No treaty trade'),
-      420,
-      scrollable: find.byType(Scrollable).last,
-      maxScrolls: 12,
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Trade Routes'),
+      maxScrolls: 24,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Trade Routes'), findsOneWidget);
+    expect(find.text('No treaty trade'), findsOneWidget);
+    expect(find.text('+0 credits / turn from 0 routes'), findsOneWidget);
+    expect(
+      find.text('Make peace or alliance treaties to open treaty trade.'),
+      findsOneWidget,
+    );
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('No visible project to sabotage'),
+      maxScrolls: 24,
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Strength 14 vs 15'), findsOneWidget);
     expect(find.text('Intel scan: 5 sectors / 6 credits'), findsOneWidget);
     expect(find.text('No visible project to sabotage'), findsOneWidget);
-    expect(find.text('Trade Routes'), findsOneWidget);
-    expect(find.text('+0 credits / turn from 0 routes'), findsOneWidget);
-    expect(
-      find.text('Make peace or alliance treaties to open treaty trade.'),
-      findsOneWidget,
-    );
 
     await tester.tap(find.widgetWithText(TextButton, 'Scan').last);
     await tester.pumpAndSettle();
