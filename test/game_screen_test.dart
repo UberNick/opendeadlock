@@ -2901,6 +2901,66 @@ void main() {
     expect(find.text('Invite code copied for Trade Compact'), findsOneWidget);
   });
 
+  testWidgets('sync panel explains async connectivity', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(520, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final sample = OpenDeadlockGame.sample(sessionId: 'connectivity-panel');
+    const traders = Faction(
+      id: 'traders',
+      name: 'Trade Compact',
+      colorValue: 0xFF2CB67D,
+      raceId: 'uva_mosk',
+      isComputer: false,
+      controlMode: Faction.controlRemote,
+      resources:
+          ResourceStockpile(food: 12, industry: 5, research: 0, credits: 9),
+    );
+    final asyncGame = sample.copyWith(
+      factions: <Faction>[
+        sample.factionById('humans')!,
+        sample.factionById('rebels')!.copyWith(
+              controlMode: Faction.controlRemote,
+            ),
+        traders,
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: asyncGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text('Transport'),
+      find.byType(Scrollable).last,
+      const Offset(0, -420),
+      maxIteration: 18,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Transport'), findsOneWidget);
+    expect(find.text('Invite and order packages'), findsOneWidget);
+    expect(find.text('Integrity'), findsOneWidget);
+    expect(find.text('State fingerprints verified'), findsOneWidget);
+    expect(find.text('Local Role'), findsOneWidget);
+    expect(find.text('Local player can issue orders'), findsOneWidget);
+    expect(find.text('Remote Seats'), findsOneWidget);
+    expect(find.text('Tarth Legion, Trade Compact'), findsOneWidget);
+    expect(find.text('Package Flow'), findsOneWidget);
+    expect(find.text('Share invites or import remote orders'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('game screen can apply an order package from typed sync code',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

@@ -7312,6 +7312,33 @@ class _SyncStatusDetail extends StatelessWidget {
           ),
           _DetailRow(label: 'Turn State', value: turnState),
           _DetailRow(
+            label: 'Transport',
+            value: _syncTransportLabel(
+              hasRemoteFactions: hasRemoteFactions,
+              hasComputerFactions: hasComputerFactions,
+            ),
+          ),
+          _DetailRow(
+            label: 'Integrity',
+            value: _syncIntegrityLabel(hasRemoteFactions: hasRemoteFactions),
+          ),
+          _DetailRow(
+            label: 'Local Role',
+            value: _syncLocalRoleLabel(game),
+          ),
+          _DetailRow(
+            label: 'Remote Seats',
+            value: _remoteSeatLabel(remoteFactions),
+          ),
+          _DetailRow(
+            label: 'Package Flow',
+            value: _syncPackageFlowLabel(
+              game: game,
+              pendingOrderCount: pendingOrderCount,
+              hasRemoteFactions: hasRemoteFactions,
+            ),
+          ),
+          _DetailRow(
             label: 'Last Sync',
             value: lastSyncStatus ?? 'No packages applied this session',
           ),
@@ -8433,6 +8460,60 @@ String _syncActionLabelFor(OpenDeadlockGame game, int pendingOrderCount) {
     return 'Send 1 order';
   }
   return 'Send $pendingOrderCount orders';
+}
+
+String _syncTransportLabel({
+  required bool hasRemoteFactions,
+  required bool hasComputerFactions,
+}) {
+  if (hasRemoteFactions) {
+    return 'Invite and order packages';
+  }
+  if (hasComputerFactions) {
+    return 'Local AI turns';
+  }
+  return 'Same-device hotseat';
+}
+
+String _syncIntegrityLabel({required bool hasRemoteFactions}) {
+  return hasRemoteFactions ? 'State fingerprints verified' : 'Local state only';
+}
+
+String _syncLocalRoleLabel(OpenDeadlockGame game) {
+  if (game.activeFaction.isRemote) {
+    return 'Host waiting for remote player';
+  }
+  if (game.activeFactionCanIssueLocalOrders) {
+    return 'Local player can issue orders';
+  }
+  if (game.activeFaction.isComputer) {
+    return 'Computer faction can run locally';
+  }
+  return 'Observer';
+}
+
+String _remoteSeatLabel(List<Faction> remoteFactions) {
+  if (remoteFactions.isEmpty) {
+    return 'None';
+  }
+  return remoteFactions.map((faction) => faction.name).join(', ');
+}
+
+String _syncPackageFlowLabel({
+  required OpenDeadlockGame game,
+  required int pendingOrderCount,
+  required bool hasRemoteFactions,
+}) {
+  if (!hasRemoteFactions) {
+    return 'No package exchange needed';
+  }
+  if (game.activeFaction.isRemote) {
+    return 'Apply incoming orders to continue';
+  }
+  if (pendingOrderCount > 0) {
+    return 'Share outgoing orders with remote seats';
+  }
+  return 'Share invites or import remote orders';
 }
 
 IconData _syncActionIconFor(OpenDeadlockGame game) {
