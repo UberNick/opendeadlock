@@ -3362,7 +3362,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('1 pending'), findsOneWidget);
-    expect(find.text('New Haven: focus Industry'), findsOneWidget);
+    expect(find.text('New Haven: focus Industry'), findsWidgets);
     expect(
         find.widgetWithText(OutlinedButton, 'Undo Last Order'), findsOneWidget);
 
@@ -3597,6 +3597,59 @@ void main() {
       find.text('Order code copied: no new orders since last sync'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('game screen shows a replay timeline for command history',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final replayGame = OpenDeadlockGame.sample(sessionId: 'replay-timeline-ui')
+        .applyCommand(
+          const SetColonyConstructionCommand(
+            factionId: 'humans',
+            colonyId: 'new-haven',
+            construction: 'Factory',
+          ),
+        )
+        .applyCommand(
+          const SetColonyFocusCommand(
+            factionId: 'humans',
+            colonyId: 'new-haven',
+            focus: OpenDeadlockGame.colonyFocusResearch,
+          ),
+        );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: replayGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey<String>('replay-timeline')),
+      find.byType(Scrollable).last,
+      const Offset(0, -420),
+      maxIteration: 18,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Replay Timeline'), findsOneWidget);
+    expect(find.text('2 commands'), findsOneWidget);
+    expect(find.text('Last Actor'), findsOneWidget);
+    expect(find.text('Human Assembly'), findsWidgets);
+    expect(find.text('New Haven: build Factory'), findsWidgets);
+    expect(find.text('New Haven: focus Research'), findsWidgets);
+    expect(find.text('Turn 1 | Human Assembly'), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('game screen exports pending orders to a file', (tester) async {

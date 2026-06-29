@@ -4506,6 +4506,8 @@ class _SelectionPanel extends StatelessWidget {
             onUndoLastOrder: onUndoLastOrder,
           ),
           const SizedBox(height: 18),
+          _ReplayTimelineDetail(game: game),
+          const SizedBox(height: 18),
           _CombatReadinessDetail(game: game),
           if (newsGroups.isNotEmpty) ...[
             const SizedBox(height: 18),
@@ -7998,6 +8000,170 @@ class _ComputerOrdersDetail extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplayTimelineDetail extends StatelessWidget {
+  const _ReplayTimelineDetail({
+    Key? key,
+    required this.game,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final records = game.commandHistory;
+    final recentStart = records.length > 6 ? records.length - 6 : 0;
+    final recentRecords = records.skip(recentStart).toList();
+    final lastRecord = records.isEmpty ? null : records.last;
+
+    return Container(
+      key: const ValueKey<String>('replay-timeline'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Replay Timeline',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                records.length == 1
+                    ? '1 command'
+                    : '${records.length} commands',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(label: 'Turn', value: '${game.turn}'),
+          _DetailRow(label: 'Active', value: game.activeFaction.name),
+          _DetailRow(
+            label: 'Last Actor',
+            value: lastRecord == null
+                ? 'No commands recorded'
+                : _factionNameFor(game, lastRecord.factionId),
+          ),
+          if (records.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'No replay commands have been recorded yet.',
+                style: TextStyle(color: Color(0xFFE9EEF2)),
+              ),
+            )
+          else ...[
+            const SizedBox(height: 6),
+            ...recentRecords.asMap().entries.map((entry) {
+              final index = recentStart + entry.key + 1;
+              final record = entry.value;
+              return _ReplayTimelineLine(
+                index: index,
+                record: record,
+                factionName: _factionNameFor(game, record.factionId),
+                summary: _commandSummaryFor(game, record.command),
+              );
+            }),
+          ],
+          if (records.length > recentRecords.length)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                '+${records.length - recentRecords.length} earlier replay commands',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplayTimelineLine extends StatelessWidget {
+  const _ReplayTimelineLine({
+    Key? key,
+    required this.index,
+    required this.record,
+    required this.factionName,
+    required this.summary,
+  }) : super(key: key);
+
+  final int index;
+  final CommandRecord record;
+  final String factionName;
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF313B44),
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Text(
+              '$index',
+              style: const TextStyle(
+                color: Color(0xFFCCD6A6),
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  summary,
+                  style: const TextStyle(
+                    color: Color(0xFFE9EEF2),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Turn ${record.turn} | $factionName',
+                  style: const TextStyle(
+                    color: Color(0xFF9FB0BE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
