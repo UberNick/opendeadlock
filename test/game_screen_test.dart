@@ -2654,21 +2654,37 @@ void main() {
     expect(find.text('No visible wartime construction'), findsOneWidget);
     expect(find.text('Security'), findsOneWidget);
     expect(find.text('No target selected'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('intel-operations-open-top')),
+      findsOneWidget,
+    );
+    expect(find.text('Run Best Scan'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('intel-operations-scan-best')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('intel-operations-sabotage-best')),
+      findsOneWidget,
+    );
     expect(find.widgetWithText(OutlinedButton, 'Scan Best Target'),
         findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Sabotage Best Target'),
         findsOneWidget);
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Scan Best Target'));
+    await tester
+        .tap(find.byKey(const ValueKey<String>('intel-operations-scan-best')));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.text('Intel up to date'), findsWidgets);
     expect(find.text('Redoubt: 4 industry damage'), findsOneWidget);
     expect(find.text('No protection'), findsWidgets);
+    expect(find.text('Run Best Sabotage'), findsOneWidget);
 
-    await tester
-        .tap(find.widgetWithText(OutlinedButton, 'Sabotage Best Target'));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('intel-operations-open-top')),
+    );
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

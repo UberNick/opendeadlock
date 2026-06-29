@@ -9329,6 +9329,16 @@ class _IntelOperationsDetail extends StatelessWidget {
         canEdit && hasScanBudget ? scanTarget?.faction.id : null;
     final sabotageTargetId =
         canEdit && hasSabotageBudget ? sabotageTarget?.faction.id : null;
+    final topOperationLabel = sabotageTargetId != null
+        ? 'Run Best Sabotage'
+        : scanTargetId != null
+            ? 'Run Best Scan'
+            : null;
+    final topOperation = sabotageTargetId != null
+        ? () => onSabotage(sabotageTargetId)
+        : scanTargetId != null
+            ? () => onIntelScan(scanTargetId)
+            : null;
 
     return Container(
       key: const ValueKey<String>('intel-operations'),
@@ -9377,12 +9387,25 @@ class _IntelOperationsDetail extends StatelessWidget {
                 ? 'No target selected'
                 : _sabotageProtectionLabel(sabotageTarget.protection),
           ),
+          if (topOperation != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('intel-operations-open-top'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text(topOperationLabel!),
+                onPressed: topOperation,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 6,
             children: [
               OutlinedButton.icon(
+                key: const ValueKey<String>('intel-operations-scan-best'),
                 icon: const Icon(Icons.radar, size: 18),
                 label: const Text('Scan Best Target'),
                 onPressed: scanTargetId == null
@@ -9394,6 +9417,7 @@ class _IntelOperationsDetail extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
+                key: const ValueKey<String>('intel-operations-sabotage-best'),
                 icon: const Icon(Icons.construction, size: 18),
                 label: const Text('Sabotage Best Target'),
                 onPressed: sabotageTargetId == null
