@@ -4527,6 +4527,10 @@ class _SelectionPanel extends StatelessWidget {
             const SizedBox(height: 18),
             _TacticalLogDetail(reports: tacticalReports),
           ],
+          if (game.reports.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            _StrategicArchiveDetail(reports: game.reports),
+          ],
           const SizedBox(height: 18),
           const Text(
             'Turn Log',
@@ -10012,6 +10016,229 @@ class _TacticalLogDetail extends StatelessWidget {
       );
     }
     return entries;
+  }
+}
+
+class _StrategicArchiveDetail extends StatelessWidget {
+  const _StrategicArchiveDetail({
+    Key? key,
+    required this.reports,
+  }) : super(key: key);
+
+  final List<TurnReport> reports;
+
+  @override
+  Widget build(BuildContext context) {
+    final recentReports = reports.take(20).toList(growable: false);
+    final categoryCounts = <String, int>{};
+    for (final report in recentReports) {
+      final label = _newsCategoryLabelFor(report);
+      categoryCounts[label] = (categoryCounts[label] ?? 0) + 1;
+    }
+    final highlights = <_ArchiveHighlight>[
+      _ArchiveHighlight.forCategory(
+        label: 'Combat',
+        report: _latestReportWhere(
+          recentReports,
+          (report) => report.isBattle,
+        ),
+      ),
+      _ArchiveHighlight.forCategory(
+        label: 'Economy',
+        report: _latestReportWhere(
+          recentReports,
+          (report) => _newsCategoryLabelFor(report) == 'Economy',
+        ),
+      ),
+      _ArchiveHighlight.forCategory(
+        label: 'Research',
+        report: _latestReportWhere(
+          recentReports,
+          (report) => _newsCategoryLabelFor(report) == 'Research',
+        ),
+      ),
+      _ArchiveHighlight.forCategory(
+        label: 'Diplomacy',
+        report: _latestReportWhere(
+          recentReports,
+          (report) => _newsCategoryLabelFor(report) == 'Diplomacy',
+        ),
+      ),
+    ].where((highlight) => highlight.report != null).toList(growable: false);
+
+    return Container(
+      key: const ValueKey<String>('strategic-archive'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history_edu, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Strategic Archive',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                '${recentReports.length} recent',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(label: 'Latest', value: recentReports.first.title),
+          _DetailRow(
+            label: 'Categories',
+            value: _categorySummary(categoryCounts),
+          ),
+          if (highlights.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...highlights.map(
+              (highlight) => _ArchiveHighlightRow(highlight: highlight),
+            ),
+          ],
+          const SizedBox(height: 6),
+          ...recentReports.take(4).map(
+                (report) => _ArchiveReportLine(report: report),
+              ),
+        ],
+      ),
+    );
+  }
+
+  String _categorySummary(Map<String, int> categoryCounts) {
+    if (categoryCounts.isEmpty) {
+      return 'No reports';
+    }
+    return categoryCounts.entries
+        .take(4)
+        .map((entry) => '${entry.key} ${entry.value}')
+        .join(' / ');
+  }
+
+  TurnReport? _latestReportWhere(
+    List<TurnReport> source,
+    bool Function(TurnReport report) test,
+  ) {
+    for (final report in source) {
+      if (test(report)) {
+        return report;
+      }
+    }
+    return null;
+  }
+}
+
+class _ArchiveHighlight {
+  const _ArchiveHighlight({
+    required this.label,
+    required this.report,
+  });
+
+  final String label;
+  final TurnReport? report;
+
+  static _ArchiveHighlight forCategory({
+    required String label,
+    required TurnReport? report,
+  }) {
+    return _ArchiveHighlight(label: label, report: report);
+  }
+}
+
+class _ArchiveHighlightRow extends StatelessWidget {
+  const _ArchiveHighlightRow({
+    Key? key,
+    required this.highlight,
+  }) : super(key: key);
+
+  final _ArchiveHighlight highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final report = highlight.report!;
+    final category = _newsCategoryLabelFor(report);
+    final style = _newsCategoryStyleFor(category);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(style.icon, color: style.color, size: 15),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              '${highlight.label}: ${report.title}',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFE9EEF2),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArchiveReportLine extends StatelessWidget {
+  const _ArchiveReportLine({
+    Key? key,
+    required this.report,
+  }) : super(key: key);
+
+  final TurnReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final category = _newsCategoryLabelFor(report);
+    final style = _newsCategoryStyleFor(category);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 5),
+            decoration: BoxDecoration(
+              color: style.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              '$category: ${report.title}',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFB9C5CE),
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

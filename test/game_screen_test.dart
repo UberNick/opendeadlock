@@ -1739,14 +1739,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var scroll = 0; scroll < 20; scroll += 1) {
-      if (find.text('Victory Paths').evaluate().isNotEmpty) {
-        break;
-      }
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -480));
-      await tester.pumpAndSettle();
-    }
-    await tester.pumpAndSettle();
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Victory Paths'),
+      delta: const Offset(0, -480),
+    );
 
     expect(tester.takeException(), isNull);
     expect(find.text('Victory Paths'), findsOneWidget);
@@ -2502,6 +2499,25 @@ void main() {
     expect(find.text('Expansion (1)'), findsOneWidget);
     expect(find.text('New Haven: Scout Patrol completed'), findsWidgets);
     expect(find.text('Human Assembly: Hydroponics researched'), findsWidgets);
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('strategic-archive')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Strategic Archive'), findsOneWidget);
+    expect(find.text('6 recent'), findsOneWidget);
+    expect(find.text('Pact Recon attacked Survey Team'), findsWidgets);
+    expect(
+        find.text(
+            'Attack 1 / Unit Production 1 / Population & Morale 1 / Research 1'),
+        findsOneWidget);
+    expect(
+        find.text('Combat: Pact Recon attacked Survey Team'), findsOneWidget);
+    expect(find.text('Economy: Tax policy changed'), findsOneWidget);
+    expect(find.text('Research: Human Assembly: Hydroponics researched'),
+        findsWidgets);
   });
 
   testWidgets('game screen can recover a damaged unit', (tester) async {
