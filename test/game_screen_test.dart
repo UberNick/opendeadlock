@@ -2525,6 +2525,73 @@ void main() {
     expect(find.text('7 food / 7 ind / 3 res / 13 cred'), findsOneWidget);
   });
 
+  testWidgets('trade routes can open and upgrade treaties', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(
+            sessionId: 'trade-routes-actions-ui',
+          ),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Trade Routes'),
+      maxScrolls: 24,
+    );
+    await tester.pumpAndSettle();
+
+    final peaceButton = find.byKey(
+      const ValueKey<String>('trade-routes-peace-rebels'),
+    );
+    expect(find.text('+0 credits / turn from 0 routes'), findsOneWidget);
+    expect(peaceButton, findsOneWidget);
+
+    await tester.ensureVisible(peaceButton);
+    await tester.pumpAndSettle();
+    await tester.tap(peaceButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('+2 credits / turn from 1 route'), findsOneWidget);
+    expect(find.text('Peace +2'), findsOneWidget);
+
+    final allianceButton = find.byKey(
+      const ValueKey<String>('trade-routes-alliance-rebels'),
+    );
+    expect(allianceButton, findsOneWidget);
+
+    await tester.ensureVisible(allianceButton);
+    await tester.pumpAndSettle();
+    await tester.tap(allianceButton);
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('+4 credits / turn from 1 route'),
+      delta: const Offset(0, 420),
+      maxScrolls: 24,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('+4 credits / turn from 1 route'), findsOneWidget);
+    expect(find.text('Alliance +4'), findsOneWidget);
+    expect(allianceButton, findsNothing);
+  });
+
   testWidgets('game screen summarizes intel operations', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 1200);

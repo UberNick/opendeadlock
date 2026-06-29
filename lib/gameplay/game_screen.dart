@@ -4553,7 +4553,12 @@ class _SelectionPanel extends StatelessWidget {
             onSabotage: onSabotage,
           ),
           const SizedBox(height: 18),
-          _TradeRoutesDetail(game: game, faction: game.activeFaction),
+          _TradeRoutesDetail(
+            game: game,
+            faction: game.activeFaction,
+            canEdit: canIssueLocalOrders,
+            onDiplomacyChanged: onDiplomacyChanged,
+          ),
           const SizedBox(height: 18),
           _ResearchDetail(
             faction: game.activeFaction,
@@ -9300,10 +9305,14 @@ class _TradeRoutesDetail extends StatelessWidget {
     Key? key,
     required this.game,
     required this.faction,
+    required this.canEdit,
+    required this.onDiplomacyChanged,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
   final Faction faction;
+  final bool canEdit;
+  final void Function(String targetFactionId, String status) onDiplomacyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -9315,6 +9324,14 @@ class _TradeRoutesDetail extends StatelessWidget {
     }).toList(growable: false);
     final totalTrade = game.tradeIncomeFor(faction.id).credits;
     final routeLabel = routes.length == 1 ? 'route' : 'routes';
+    final warTargets = game.factions.where((otherFaction) {
+      if (otherFaction.id == faction.id) {
+        return false;
+      }
+      return game.diplomacyStatusBetween(faction.id, otherFaction.id) ==
+          OpenDeadlockGame.diplomacyStatusWar;
+    }).toList(growable: false)
+      ..sort((a, b) => a.name.compareTo(b.name));
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -9344,45 +9361,83 @@ class _TradeRoutesDetail extends StatelessWidget {
             value:
                 '+$totalTrade credits / turn from ${routes.length} $routeLabel',
           ),
-          if (routes.isEmpty)
+          if (routes.isEmpty) ...[
             const Text(
               'Make peace or alliance treaties to open treaty trade.',
               style: TextStyle(color: Color(0xFFB9C5CE), fontSize: 12),
-            )
-          else
+            ),
+            if (canEdit && warTargets.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              TextButton.icon(
+                key: ValueKey<String>(
+                  'trade-routes-peace-${warTargets.first.id}',
+                ),
+                icon: const Icon(Icons.handshake, size: 16),
+                label: Text('Offer Peace to ${warTargets.first.name}'),
+                onPressed: () => onDiplomacyChanged(
+                  warTargets.first.id,
+                  OpenDeadlockGame.diplomacyStatusPeace,
+                ),
+              ),
+            ],
+          ] else
             ...routes.map(
               (otherFaction) {
                 final status =
                     game.diplomacyStatusBetween(faction.id, otherFaction.id);
                 final tradeCredits =
                     game.treatyTradeCreditsFor(faction.id, otherFaction.id);
+                final canUpgrade =
+                    canEdit && status == OpenDeadlockGame.diplomacyStatusPeace;
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Icon(
-                        Icons.circle,
-                        color: Color(otherFaction.colorValue),
-                        size: 10,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            color: Color(otherFaction.colorValue),
+                            size: 10,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              otherFaction.name,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Color(0xFFE9EEF2)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${OpenDeadlockGame.diplomacyStatusLabelFor(status)} +$tradeCredits',
+                            style: const TextStyle(
+                              color: Color(0xFFCCD6A6),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          otherFaction.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Color(0xFFE9EEF2)),
+                      if (canUpgrade) ...[
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            key: ValueKey<String>(
+                              'trade-routes-alliance-${otherFaction.id}',
+                            ),
+                            icon: const Icon(Icons.groups, size: 16),
+                            label: Text('Upgrade ${otherFaction.name}'),
+                            onPressed: () => onDiplomacyChanged(
+                              otherFaction.id,
+                              OpenDeadlockGame.diplomacyStatusAlliance,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${OpenDeadlockGame.diplomacyStatusLabelFor(status)} +$tradeCredits',
-                        style: const TextStyle(
-                          color: Color(0xFFCCD6A6),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 );
