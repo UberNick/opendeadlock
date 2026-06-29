@@ -1708,6 +1708,13 @@ void main() {
       find.text('Human Assembly completed every core research project.'),
       findsOneWidget,
     );
+    expect(find.text('Victory Cutscene'), findsOneWidget);
+    expect(
+      find.text(
+        'Human Assembly uplinks the final discovery from every research lab.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('game screen shows post-game stats after victory',
@@ -1760,6 +1767,11 @@ void main() {
     expect(find.text('Post-game Stats'), findsOneWidget);
     expect(find.text('Victory Type'), findsOneWidget);
     expect(find.text('Science'), findsWidgets);
+    expect(find.text('Victory Cutscene'), findsOneWidget);
+    expect(
+      find.text('The colony network powers ancient vaults across the planet.'),
+      findsOneWidget,
+    );
     expect(find.text('Final Turn'), findsOneWidget);
     expect(find.text('Turn 1'), findsWidgets);
     expect(find.text('Research completed every core project'), findsOneWidget);
@@ -1816,6 +1828,13 @@ void main() {
     expect(find.text('Human Assembly wins'), findsWidgets);
     expect(find.text('Human Assembly has the highest score at turn 20.'),
         findsOneWidget);
+    expect(find.text('Victory Cutscene'), findsOneWidget);
+    expect(
+      find.text(
+        'Human Assembly closes the final council tally with the strongest score.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Victory Type'), findsOneWidget);
     expect(find.text('Score'), findsWidgets);
     expect(find.text('Held the highest score when the turn limit expired'),

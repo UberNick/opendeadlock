@@ -4279,6 +4279,8 @@ class _SelectionPanel extends StatelessWidget {
           if (game.isGameOver) ...[
             _VictoryBanner(game: game),
             const SizedBox(height: 16),
+            _VictoryCutsceneDetail(game: game),
+            const SizedBox(height: 16),
             _PostGameStatsDetail(game: game),
             const SizedBox(height: 16),
           ],
@@ -4572,6 +4574,132 @@ class _VictoryBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+class _VictoryCutsceneDetail extends StatelessWidget {
+  const _VictoryCutsceneDetail({
+    Key? key,
+    required this.game,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final beats = _victoryCutsceneBeatsFor(game);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C2830),
+        border: Border.all(color: const Color(0xFF55616C)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.movie_creation, color: Color(0xFFE9EEF2), size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Victory Cutscene',
+                style: TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...beats.asMap().entries.map(
+                (entry) => _CutsceneBeatRow(
+                  index: entry.key + 1,
+                  beat: entry.value,
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CutsceneBeatRow extends StatelessWidget {
+  const _CutsceneBeatRow({
+    Key? key,
+    required this.index,
+    required this.beat,
+  }) : super(key: key);
+
+  final int index;
+  final String beat;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF313B44),
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Text(
+              '$index',
+              style: const TextStyle(
+                color: Color(0xFFE9EEF2),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              beat,
+              style: const TextStyle(color: Color(0xFFE9EEF2)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+List<String> _victoryCutsceneBeatsFor(OpenDeadlockGame game) {
+  final winnerName = game.winningFaction?.name ?? 'The winning faction';
+  final victoryType = game.winningVictoryType;
+  if (victoryType == OpenDeadlockGame.victoryTypeScience) {
+    return <String>[
+      '$winnerName uplinks the final discovery from every research lab.',
+      'The colony network powers ancient vaults across the planet.',
+      'Exploration gives way to a new era of planetary mastery.',
+    ];
+  }
+  if (victoryType == OpenDeadlockGame.victoryTypeConquest) {
+    return <String>[
+      '$winnerName banners rise over the last contested colony.',
+      'Rival command channels fall silent across the sector grid.',
+      'The planet unifies under one command.',
+    ];
+  }
+  if (victoryType == OpenDeadlockGame.victoryTypeScore) {
+    return <String>[
+      '$winnerName closes the final council tally with the strongest score.',
+      'Colonies, sectors, science, military, and reserves are audited.',
+      'The planetary charter confirms the leading faction.',
+    ];
+  }
+  return <String>[
+    '$winnerName reaches the closing sequence.',
+    'The final reports are gathered.',
+    'A new planetary chapter begins.',
+  ];
 }
 
 class _TurnChecklistDetail extends StatelessWidget {
