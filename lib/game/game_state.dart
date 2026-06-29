@@ -1960,6 +1960,22 @@ class OpenDeadlockGame {
     colonyFocusRevenue,
   ];
 
+  static const List<String> terrainTypes = <String>[
+    'plains',
+    'forest',
+    'ridge',
+    'water',
+    'ruins',
+  ];
+
+  static const Map<String, TileYield> terrainBaseYields = <String, TileYield>{
+    'plains': TileYield(food: 3, industry: 1, research: 0),
+    'forest': TileYield(food: 2, industry: 2, research: 0),
+    'ridge': TileYield(food: 1, industry: 3, research: 0),
+    'water': TileYield(food: 2, industry: 0, research: 1),
+    'ruins': TileYield(food: 0, industry: 1, research: 3),
+  };
+
   static const List<String> researchOptions = <String>[
     'Hydroponics',
     'Industrial Automation',
@@ -2539,6 +2555,55 @@ class OpenDeadlockGame {
       throw ArgumentError('Water sectors are not passable.');
     }
     return _movementCostForTerrain(terrain);
+  }
+
+  static TileYield terrainYieldFor(String terrain) {
+    final yields = terrainBaseYields[terrain];
+    if (yields == null) {
+      throw ArgumentError('Unknown terrain: $terrain.');
+    }
+    return yields;
+  }
+
+  static String terrainLabelFor(String terrain) {
+    if (terrain == 'plains') {
+      return 'Plains';
+    }
+    if (terrain == 'forest') {
+      return 'Forest';
+    }
+    if (terrain == 'ridge') {
+      return 'Ridge';
+    }
+    if (terrain == 'water') {
+      return 'Water';
+    }
+    if (terrain == 'ruins') {
+      return 'Ruins';
+    }
+    if (terrain.isEmpty) {
+      return terrain;
+    }
+    return '${terrain[0].toUpperCase()}${terrain.substring(1)}';
+  }
+
+  static String terrainDescriptionFor(String terrain) {
+    if (terrain == 'plains') {
+      return 'Open land with strong food and fast movement.';
+    }
+    if (terrain == 'forest') {
+      return 'Balanced growth and industry, slower to cross.';
+    }
+    if (terrain == 'ridge') {
+      return 'High industry terrain that slows ground units.';
+    }
+    if (terrain == 'water') {
+      return 'Research-bearing water, blocked until naval rules exist.';
+    }
+    if (terrain == 'ruins') {
+      return 'Ancient sites with high research and fast movement.';
+    }
+    return 'Unknown terrain.';
   }
 
   static int colonyDefenseFor(Colony colony) {
@@ -7416,26 +7481,11 @@ class OpenDeadlockGame {
     );
 
     final tiles = <PlanetTile>[];
-    const terrainCycle = <String>[
-      'plains',
-      'forest',
-      'ridge',
-      'water',
-      'ruins'
-    ];
-    const yields = <String, TileYield>{
-      'plains': TileYield(food: 3, industry: 1, research: 0),
-      'forest': TileYield(food: 2, industry: 2, research: 0),
-      'ridge': TileYield(food: 1, industry: 3, research: 0),
-      'water': TileYield(food: 2, industry: 0, research: 1),
-      'ruins': TileYield(food: 0, industry: 1, research: 3),
-    };
-
     const width = 8;
     const height = 6;
     for (var y = 0; y < height; y += 1) {
       for (var x = 0; x < width; x += 1) {
-        final terrain = terrainCycle[(x + (y * 2)) % terrainCycle.length];
+        final terrain = terrainTypes[(x + (y * 2)) % terrainTypes.length];
         String? ownerId;
         String? colonyId;
         if (x == 2 && y == 2) {
@@ -7466,7 +7516,7 @@ class OpenDeadlockGame {
             x: x,
             y: y,
             terrain: terrain,
-            yields: yields[terrain]!,
+            yields: terrainYieldFor(terrain),
             ownerId: ownerId,
             colonyId: colonyId,
             explored: exploredBy.isNotEmpty,

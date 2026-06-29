@@ -408,6 +408,61 @@ void main() {
     expect(find.text('Survey Team'), findsWidgets);
   });
 
+  testWidgets('game screen shows terrain catalog', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 960);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'terrain-catalog-ui'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey<String>('terrain-2-2'))),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(tester, find.text('Terrain Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Terrain Catalog'), findsOneWidget);
+    expect(find.text('5 terrain types / Forest selected'), findsOneWidget);
+
+    await tester.tap(find.text('Terrain Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Plains - Available'), findsOneWidget);
+    expect(find.text('Forest - Selected'), findsOneWidget);
+    expect(find.text('Ridge - Available'), findsOneWidget);
+    expect(find.text('Water - Available'), findsOneWidget);
+    expect(find.text('Ruins - Available'), findsOneWidget);
+    expect(
+        find.text('3 food / 1 industry / 0 research / 1 move'), findsOneWidget);
+    expect(
+        find.text('2 food / 2 industry / 0 research / 2 move'), findsOneWidget);
+    expect(
+        find.text('1 food / 3 industry / 0 research / 2 move'), findsOneWidget);
+    expect(find.text('2 food / 0 industry / 1 research / Blocked'),
+        findsOneWidget);
+    expect(
+        find.text('0 food / 1 industry / 3 research / 1 move'), findsOneWidget);
+    expect(
+      find.text('Research-bearing water, blocked until naval rules exist.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('map unit markers distinguish unit types', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 720);
@@ -2727,9 +2782,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('2/5'), findsOneWidget);
-    expect(find.widgetWithText(OutlinedButton, 'Recover Unit'), findsOneWidget);
+    final recoverButton = find.widgetWithText(OutlinedButton, 'Recover Unit');
+    await _scrollSidePanelUntilVisible(tester, recoverButton);
+    await tester.ensureVisible(recoverButton);
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Recover Unit'));
+    expect(recoverButton, findsOneWidget);
+
+    await tester.tap(recoverButton);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

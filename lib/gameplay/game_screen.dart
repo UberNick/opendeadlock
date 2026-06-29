@@ -4365,7 +4365,10 @@ class _SelectionPanel extends StatelessWidget {
           if (!isExplored)
             const _UnexploredSector()
           else ...[
-            _DetailRow(label: 'Terrain', value: _titleCase(tile.terrain)),
+            _DetailRow(
+              label: 'Terrain',
+              value: OpenDeadlockGame.terrainLabelFor(tile.terrain),
+            ),
             _DetailRow(
               label: 'Move Cost',
               value: OpenDeadlockGame.isTerrainPassable(tile.terrain)
@@ -4380,6 +4383,8 @@ class _SelectionPanel extends StatelessWidget {
               value:
                   '${tile.yields.food} food / ${tile.yields.industry} industry / ${tile.yields.research} research',
             ),
+            const SizedBox(height: 4),
+            _TerrainCatalogDetail(activeTerrain: tile.terrain),
           ],
           if (latestBattleReport != null) ...[
             const SizedBox(height: 12),
@@ -4576,13 +4581,6 @@ class _SelectionPanel extends StatelessWidget {
     );
   }
 
-  String _titleCase(String value) {
-    if (value.isEmpty) {
-      return value;
-    }
-    return value.substring(0, 1).toUpperCase() + value.substring(1);
-  }
-
   bool _canFoundColony(Faction? owner, Unit unit) {
     return isExplored &&
         game.activeFactionCanIssueLocalOrders &&
@@ -4618,6 +4616,149 @@ class _SelectionPanel extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+class _TerrainCatalogDetail extends StatelessWidget {
+  const _TerrainCatalogDetail({
+    Key? key,
+    required this.activeTerrain,
+  }) : super(key: key);
+
+  final String activeTerrain;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeLabel = OpenDeadlockGame.terrainLabelFor(activeTerrain);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Color(0xFF31404C)),
+          ),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: Material(
+            type: MaterialType.transparency,
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 2),
+              collapsedIconColor: const Color(0xFFE9EEF2),
+              iconColor: const Color(0xFFE9EEF2),
+              title: const Row(
+                children: [
+                  Icon(Icons.map, color: Color(0xFFE9EEF2), size: 17),
+                  SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      'Terrain Catalog',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFFF4F7FA),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              subtitle: Text(
+                '${OpenDeadlockGame.terrainTypes.length} terrain types / '
+                '$activeLabel selected',
+                style: const TextStyle(
+                  color: Color(0xFFB9C5CE),
+                  fontSize: 12,
+                ),
+              ),
+              children: [
+                ...OpenDeadlockGame.terrainTypes.map(
+                  (terrain) => _TerrainCatalogRow(
+                    terrain: terrain,
+                    isActive: terrain == activeTerrain,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TerrainCatalogRow extends StatelessWidget {
+  const _TerrainCatalogRow({
+    Key? key,
+    required this.terrain,
+    required this.isActive,
+  }) : super(key: key);
+
+  final String terrain;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final yields = OpenDeadlockGame.terrainYieldFor(terrain);
+    final passable = OpenDeadlockGame.isTerrainPassable(terrain);
+    final label = OpenDeadlockGame.terrainLabelFor(terrain);
+    final color = isActive ? const Color(0xFFCCD6A6) : const Color(0xFFE9EEF2);
+    final movement = passable
+        ? '${OpenDeadlockGame.movementCostForTerrain(terrain)} move'
+        : 'Blocked';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              passable ? Icons.directions_walk : Icons.block,
+              color: color,
+              size: 14,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$label - ${isActive ? 'Selected' : 'Available'}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${yields.food} food / ${yields.industry} industry / '
+                  '${yields.research} research / $movement',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  OpenDeadlockGame.terrainDescriptionFor(terrain),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF9FB0BE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
