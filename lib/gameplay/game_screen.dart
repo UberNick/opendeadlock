@@ -223,6 +223,7 @@ class _GameScreenState extends State<GameScreen> {
                     latestSaveSlot: latestSaveSlot,
                     orderExportBaseCommandCount: orderExportBaseCommandCount,
                     lastSyncStatus: lastSyncStatus,
+                    soundEffectsEnabled: soundEffectsEnabled,
                     tile: selectedTile,
                     isExplored: selectedTileKnown,
                     colony: selectedColony,
@@ -4126,6 +4127,7 @@ class _SelectionPanel extends StatelessWidget {
     required this.latestSaveSlot,
     required this.orderExportBaseCommandCount,
     required this.lastSyncStatus,
+    required this.soundEffectsEnabled,
     required this.tile,
     required this.isExplored,
     required this.colony,
@@ -4163,6 +4165,7 @@ class _SelectionPanel extends StatelessWidget {
   final SavedGameSlot? latestSaveSlot;
   final int orderExportBaseCommandCount;
   final String? lastSyncStatus;
+  final bool soundEffectsEnabled;
   final PlanetTile tile;
   final bool isExplored;
   final Colony? colony;
@@ -4337,6 +4340,8 @@ class _SelectionPanel extends StatelessWidget {
             canEdit: canIssueLocalOrders,
             onTaxPolicyChanged: onTaxPolicyChanged,
           ),
+          const SizedBox(height: 18),
+          _AudioSettingsDetail(soundEffectsEnabled: soundEffectsEnabled),
           const SizedBox(height: 18),
           _WorldOverviewDetail(game: game),
           const SizedBox(height: 18),
@@ -5050,6 +5055,53 @@ class _TaxPolicyDropdown extends StatelessWidget {
                 },
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AudioSettingsDetail extends StatelessWidget {
+  const _AudioSettingsDetail({
+    Key? key,
+    required this.soundEffectsEnabled,
+  }) : super(key: key);
+
+  final bool soundEffectsEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.volume_up, color: Color(0xFFE9EEF2), size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Audio',
+                style: TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Effects',
+            value: soundEffectsEnabled ? 'Enabled' : 'Muted',
+          ),
+          _DetailRow(
+            label: 'Cues',
+            value: 'Orders, saves, sync, turn actions',
           ),
         ],
       ),

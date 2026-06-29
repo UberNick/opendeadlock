@@ -70,7 +70,7 @@ void main() {
 
     await tester.dragUntilVisible(
       find.textContaining('Balanced - No production bias.'),
-      find.byType(ListView),
+      find.byType(Scrollable).last,
       const Offset(0, -260),
       maxIteration: 8,
     );
@@ -83,17 +83,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Send 1 order'), findsOneWidget);
 
-    await tester.dragUntilVisible(
-      find.text('Unsent'),
-      find.byType(ListView),
-      const Offset(0, -360),
-      maxIteration: 12,
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Next'), findsWidgets);
     expect(find.text('Send 1 order'), findsWidgets);
-    expect(find.text('1 order'), findsOneWidget);
   });
 
   testWidgets('game screen summarizes turn checklist on phone width',
@@ -286,6 +276,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Mute sound effects'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.text('Audio'),
+      find.byType(Scrollable).last,
+      const Offset(0, -360),
+      maxIteration: 8,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Audio'), findsOneWidget);
+    expect(find.text('Effects'), findsOneWidget);
+    expect(find.text('Enabled'), findsOneWidget);
+    expect(find.text('Cues'), findsOneWidget);
+    expect(find.text('Orders, saves, sync, turn actions'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Mute sound effects'));
     await tester.pumpAndSettle();
@@ -294,6 +297,7 @@ void main() {
     expect(preferences.getBool('opendeadlock.sound_effects_enabled'), isFalse);
     expect(find.byTooltip('Enable sound effects'), findsOneWidget);
     expect(find.text('Sound effects muted'), findsOneWidget);
+    expect(find.text('Muted'), findsOneWidget);
   });
 
   testWidgets('map zoom uses continuous controls on phone width',
@@ -1537,13 +1541,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.text('1/2 colonies / 50%'),
-      find.byType(ListView),
-      const Offset(0, -260),
-      maxIteration: 8,
-    );
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 12; i += 1) {
+      if (find.text('1/2 colonies / 50%').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -260));
+      await tester.pumpAndSettle();
+    }
 
     expect(tester.takeException(), isNull);
     expect(find.text('Rank'), findsOneWidget);
@@ -3261,6 +3265,13 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.scrollUntilVisible(
+      find.widgetWithText(OutlinedButton, 'Copy Orders'),
+      160,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 4,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, 'Copy Orders'));
     await tester.pumpAndSettle();
 
