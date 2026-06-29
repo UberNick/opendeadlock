@@ -918,6 +918,121 @@ void main() {
     );
   });
 
+  testWidgets('game screen summarizes map intel', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final game = OpenDeadlockGame.sample(sessionId: 'map-intel-ui');
+    final exploredTiles = game.tiles
+        .where((tile) => tile.isExploredBy(game.activeFactionId))
+        .toList(growable: false);
+    final ownedCount =
+        exploredTiles.where((tile) => tile.ownerId == 'humans').length;
+    final rivalCount = exploredTiles
+        .where((tile) => tile.ownerId != null && tile.ownerId != 'humans')
+        .length;
+    final neutralCount =
+        exploredTiles.where((tile) => tile.ownerId == null).length;
+    final passableCount = exploredTiles
+        .where((tile) => OpenDeadlockGame.isTerrainPassable(tile.terrain))
+        .length;
+    final emptyOwnedCount = exploredTiles
+        .where((tile) =>
+            tile.ownerId == 'humans' &&
+            tile.colonyId == null &&
+            OpenDeadlockGame.isTerrainPassable(tile.terrain))
+        .length;
+    final terrainCounts = <String, int>{};
+    var food = 0;
+    var industry = 0;
+    var research = 0;
+    PlanetTile? bestTile;
+    for (final tile in exploredTiles) {
+      terrainCounts[tile.terrain] = (terrainCounts[tile.terrain] ?? 0) + 1;
+      food += tile.yields.food;
+      industry += tile.yields.industry;
+      research += tile.yields.research;
+      final tileScore =
+          tile.yields.food + tile.yields.industry + tile.yields.research;
+      final bestScore = bestTile == null
+          ? -1
+          : bestTile.yields.food +
+              bestTile.yields.industry +
+              bestTile.yields.research;
+      if (OpenDeadlockGame.isTerrainPassable(tile.terrain) &&
+          tileScore > bestScore) {
+        bestTile = tile;
+      }
+    }
+    var dominantTerrain = terrainCounts.keys.first;
+    for (final terrain in terrainCounts.keys.skip(1)) {
+      final terrainCount = terrainCounts[terrain]!;
+      final dominantCount = terrainCounts[dominantTerrain]!;
+      if (terrainCount > dominantCount ||
+          (terrainCount == dominantCount &&
+              terrain.compareTo(dominantTerrain) < 0)) {
+        dominantTerrain = terrain;
+      }
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('map-intel')),
+      maxScrolls: 52,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('map-intel')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Map Intel'), findsOneWidget);
+    expect(
+      find.text('${exploredTiles.length}/${game.tiles.length} known'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+          '$ownedCount owned / $rivalCount rival / $neutralCount neutral'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        '${OpenDeadlockGame.terrainLabelFor(dominantTerrain)} leads ${terrainCounts[dominantTerrain]} / $passableCount passable',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('$food food / $industry industry / $research research'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('$emptyOwnedCount owned empty sectors'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Sector ${bestTile!.x + 1}, ${bestTile.y + 1} | ${OpenDeadlockGame.terrainLabelFor(bestTile.terrain)} | ${bestTile.yields.food} food / ${bestTile.yields.industry} industry / ${bestTile.yields.research} research',
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('game screen can assign a sector to colony production',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

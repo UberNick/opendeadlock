@@ -4629,6 +4629,8 @@ class _SelectionPanel extends StatelessWidget {
           ],
           const SizedBox(height: 18),
           _OpponentIntelDetail(game: game),
+          const SizedBox(height: 18),
+          _MapIntelDetail(game: game),
         ],
       ),
     );
@@ -7952,6 +7954,157 @@ class _OpponentIntelRow extends StatelessWidget {
       return 'press military advantage';
     }
     return 'scout before committing';
+  }
+}
+
+class _MapIntelDetail extends StatelessWidget {
+  const _MapIntelDetail({
+    Key? key,
+    required this.game,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final exploredTiles = game.tiles
+        .where((tile) => tile.isExploredBy(game.activeFactionId))
+        .toList(growable: false);
+    final ownedTiles =
+        exploredTiles.where((tile) => tile.ownerId == game.activeFactionId);
+    final rivalTiles = exploredTiles.where(
+        (tile) => tile.ownerId != null && tile.ownerId != game.activeFactionId);
+    final neutralTiles = exploredTiles.where((tile) => tile.ownerId == null);
+    final passableTiles = exploredTiles
+        .where((tile) => OpenDeadlockGame.isTerrainPassable(tile.terrain))
+        .length;
+    final emptyOwnedTiles = exploredTiles
+        .where((tile) =>
+            tile.ownerId == game.activeFactionId &&
+            tile.colonyId == null &&
+            OpenDeadlockGame.isTerrainPassable(tile.terrain))
+        .length;
+    final totalYields = _totalYieldsFor(exploredTiles);
+    final bestTile = _bestVisibleTile(exploredTiles);
+
+    return Container(
+      key: const ValueKey<String>('map-intel'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.map, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Map Intel',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                '${exploredTiles.length}/${game.tiles.length} known',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Control',
+            value:
+                '${ownedTiles.length} owned / ${rivalTiles.length} rival / ${neutralTiles.length} neutral',
+          ),
+          _DetailRow(
+            label: 'Terrain',
+            value:
+                '${_dominantTerrainLabel(exploredTiles)} / $passableTiles passable',
+          ),
+          _DetailRow(
+            label: 'Yield Map',
+            value: _tileYieldLabel(totalYields),
+          ),
+          _DetailRow(
+            label: 'Expansion',
+            value: emptyOwnedTiles == 0
+                ? 'No owned empty sectors'
+                : _countLabel(
+                    emptyOwnedTiles,
+                    'owned empty sector',
+                    'owned empty sectors',
+                  ),
+          ),
+          _DetailRow(
+            label: 'Best Visible',
+            value: bestTile == null
+                ? 'No explored sectors'
+                : 'Sector ${bestTile.x + 1}, ${bestTile.y + 1} | '
+                    '${OpenDeadlockGame.terrainLabelFor(bestTile.terrain)} | '
+                    '${_tileYieldLabel(bestTile.yields)}',
+          ),
+        ],
+      ),
+    );
+  }
+
+  TileYield _totalYieldsFor(List<PlanetTile> tiles) {
+    var food = 0;
+    var industry = 0;
+    var research = 0;
+    for (final tile in tiles) {
+      food += tile.yields.food;
+      industry += tile.yields.industry;
+      research += tile.yields.research;
+    }
+    return TileYield(food: food, industry: industry, research: research);
+  }
+
+  PlanetTile? _bestVisibleTile(List<PlanetTile> tiles) {
+    PlanetTile? best;
+    for (final tile in tiles) {
+      if (!OpenDeadlockGame.isTerrainPassable(tile.terrain)) {
+        continue;
+      }
+      if (best == null || _tileScore(tile) > _tileScore(best)) {
+        best = tile;
+      }
+    }
+    return best;
+  }
+
+  int _tileScore(PlanetTile tile) {
+    return tile.yields.food + tile.yields.industry + tile.yields.research;
+  }
+
+  String _dominantTerrainLabel(List<PlanetTile> tiles) {
+    if (tiles.isEmpty) {
+      return 'No terrain known';
+    }
+    final counts = <String, int>{};
+    for (final tile in tiles) {
+      counts[tile.terrain] = (counts[tile.terrain] ?? 0) + 1;
+    }
+    var bestTerrain = counts.keys.first;
+    for (final terrain in counts.keys.skip(1)) {
+      final currentCount = counts[terrain]!;
+      final bestCount = counts[bestTerrain]!;
+      if (currentCount > bestCount ||
+          (currentCount == bestCount && terrain.compareTo(bestTerrain) < 0)) {
+        bestTerrain = terrain;
+      }
+    }
+    return '${OpenDeadlockGame.terrainLabelFor(bestTerrain)} leads ${counts[bestTerrain]}';
   }
 }
 
