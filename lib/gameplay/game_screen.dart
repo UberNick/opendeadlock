@@ -4655,7 +4655,12 @@ class _SelectionPanel extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 18),
-          _OpponentIntelDetail(game: game),
+          _OpponentIntelDetail(
+            game: game,
+            canEdit: canIssueLocalOrders,
+            onSelectSector: onSelectSector,
+            onDiplomacyChanged: onDiplomacyChanged,
+          ),
           const SizedBox(height: 18),
           _MapIntelDetail(
             game: game,
@@ -7882,9 +7887,15 @@ class _OpponentIntelDetail extends StatelessWidget {
   const _OpponentIntelDetail({
     Key? key,
     required this.game,
+    required this.canEdit,
+    required this.onSelectSector,
+    required this.onDiplomacyChanged,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
+  final bool canEdit;
+  final void Function(int x, int y) onSelectSector;
+  final void Function(String targetFactionId, String status) onDiplomacyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -7962,6 +7973,9 @@ class _OpponentIntelDetail extends StatelessWidget {
                 faction: faction,
                 activeStrength: activeStrength,
                 activeScore: activeScore,
+                canEdit: canEdit,
+                onSelectSector: onSelectSector,
+                onDiplomacyChanged: onDiplomacyChanged,
               ),
             ),
           ],
@@ -7991,12 +8005,18 @@ class _OpponentIntelRow extends StatelessWidget {
     required this.faction,
     required this.activeStrength,
     required this.activeScore,
+    required this.canEdit,
+    required this.onSelectSector,
+    required this.onDiplomacyChanged,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
   final Faction faction;
   final int activeStrength;
   final int activeScore;
+  final bool canEdit;
+  final void Function(int x, int y) onSelectSector;
+  final void Function(String targetFactionId, String status) onDiplomacyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -8007,9 +8027,21 @@ class _OpponentIntelRow extends StatelessWidget {
     final strength = game.militaryStrengthFor(faction.id);
     final visibleUnits = _visibleUnitCount();
     final knownColonies = _knownColonyCount();
+    final knownColony = _firstKnownColony();
+    final visibleUnit = _firstVisibleUnit();
+    final knownSector = _firstKnownSector();
+    final contactLabel = knownColony?.name ??
+        visibleUnit?.name ??
+        (knownSector == null
+            ? null
+            : 'Sector ${knownSector.x + 1}, ${knownSector.y + 1}');
+    final contactX = knownColony?.x ?? visibleUnit?.x ?? knownSector?.x;
+    final contactY = knownColony?.y ?? visibleUnit?.y ?? knownSector?.y;
     final tradeCredits =
         game.treatyTradeCreditsFor(game.activeFactionId, faction.id);
     final profile = Faction.aiPersonalityLabelFor(faction.aiPersonality);
+    final canOfferPeace =
+        canEdit && status == OpenDeadlockGame.diplomacyStatusWar;
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -8073,6 +8105,38 @@ class _OpponentIntelRow extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
+                if (contactLabel != null || canOfferPeace) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      if (contactLabel != null &&
+                          contactX != null &&
+                          contactY != null)
+                        TextButton.icon(
+                          key: ValueKey<String>(
+                            'opponent-intel-view-${faction.id}',
+                          ),
+                          icon: const Icon(Icons.location_on, size: 16),
+                          label: Text('View $contactLabel'),
+                          onPressed: () => onSelectSector(contactX, contactY),
+                        ),
+                      if (canOfferPeace)
+                        TextButton.icon(
+                          key: ValueKey<String>(
+                            'opponent-intel-peace-${faction.id}',
+                          ),
+                          icon: const Icon(Icons.handshake, size: 16),
+                          label: Text('Offer Peace to ${faction.name}'),
+                          onPressed: () => onDiplomacyChanged(
+                            faction.id,
+                            OpenDeadlockGame.diplomacyStatusPeace,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -8092,6 +8156,19 @@ class _OpponentIntelRow extends StatelessWidget {
     return count;
   }
 
+  Unit? _firstVisibleUnit() {
+    final visibleUnits = game.units
+        .where((unit) =>
+            unit.ownerId == faction.id &&
+            game.isUnitVisibleTo(game.activeFactionId, unit))
+        .toList(growable: false)
+      ..sort((a, b) => a.name.compareTo(b.name));
+    if (visibleUnits.isEmpty) {
+      return null;
+    }
+    return visibleUnits.first;
+  }
+
   int _knownColonyCount() {
     var count = 0;
     for (final colony in game.colonies) {
@@ -8101,6 +8178,38 @@ class _OpponentIntelRow extends StatelessWidget {
       }
     }
     return count;
+  }
+
+  Colony? _firstKnownColony() {
+    final knownColonies = game.colonies
+        .where((colony) =>
+            colony.ownerId == faction.id &&
+            game.tileAt(colony.x, colony.y).isExploredBy(game.activeFactionId))
+        .toList(growable: false)
+      ..sort((a, b) => a.name.compareTo(b.name));
+    if (knownColonies.isEmpty) {
+      return null;
+    }
+    return knownColonies.first;
+  }
+
+  PlanetTile? _firstKnownSector() {
+    final knownSectors = game.tiles
+        .where((tile) =>
+            tile.ownerId == faction.id &&
+            tile.isExploredBy(game.activeFactionId))
+        .toList(growable: false)
+      ..sort((a, b) {
+        final yComparison = a.y.compareTo(b.y);
+        if (yComparison != 0) {
+          return yComparison;
+        }
+        return a.x.compareTo(b.x);
+      });
+    if (knownSectors.isEmpty) {
+      return null;
+    }
+    return knownSectors.first;
   }
 
   String _threatLabel(int strength) {

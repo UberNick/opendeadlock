@@ -1006,7 +1006,13 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final game = OpenDeadlockGame.sample(sessionId: 'opponent-intel-ui');
+    final sample = OpenDeadlockGame.sample(sessionId: 'opponent-intel-ui');
+    final game = sample.copyWith(
+      tiles: sample.tiles
+          .map((tile) =>
+              tile.colonyId == 'redoubt' ? tile.revealTo('humans') : tile)
+          .toList(growable: false),
+    );
     final rival = game.factionById('rebels')!;
     final activeStrength = game.militaryStrengthFor('humans');
     final rivalStrength = game.militaryStrengthFor(rival.id);
@@ -1021,6 +1027,33 @@ void main() {
             colony.ownerId == rival.id &&
             game.tileAt(colony.x, colony.y).isExploredBy('humans'))
         .length;
+    final knownRivalColony = game.colonies
+        .where((colony) =>
+            colony.ownerId == rival.id &&
+            game.tileAt(colony.x, colony.y).isExploredBy('humans'))
+        .toList(growable: false)
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final visibleRivalUnit = game.units
+        .where((unit) =>
+            unit.ownerId == rival.id && game.isUnitVisibleTo('humans', unit))
+        .toList(growable: false)
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final knownRivalSector = game.tiles
+        .where(
+            (tile) => tile.ownerId == rival.id && tile.isExploredBy('humans'))
+        .toList(growable: false)
+      ..sort((a, b) {
+        final yComparison = a.y.compareTo(b.y);
+        if (yComparison != 0) {
+          return yComparison;
+        }
+        return a.x.compareTo(b.x);
+      });
+    final contactName = knownRivalColony.isNotEmpty
+        ? knownRivalColony.first.name
+        : visibleRivalUnit.isNotEmpty
+            ? visibleRivalUnit.first.name
+            : 'Sector ${knownRivalSector.first.x + 1}, ${knownRivalSector.first.y + 1}';
     final threatLabel = rivalStrength > activeStrength
         ? 'stronger threat'
         : rivalStrength < activeStrength
@@ -1078,6 +1111,40 @@ void main() {
       find.text('Profile Conqueror | $stanceHint'),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey<String>('opponent-intel-view-rebels')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('opponent-intel-peace-rebels')),
+      findsOneWidget,
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('opponent-intel-peace-rebels')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('No active wars'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey<String>('opponent-intel-peace-rebels')),
+      findsNothing,
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey<String>('opponent-intel-view-rebels')));
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text(contactName),
+      delta: const Offset(0, 420),
+      maxScrolls: 56,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(contactName), findsWidgets);
   });
 
   testWidgets('game screen summarizes map intel', (tester) async {
