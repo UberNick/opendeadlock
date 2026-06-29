@@ -5307,6 +5307,140 @@ class _FactionTraitDetail extends StatelessWidget {
                 ),
               ),
             ),
+          const SizedBox(height: 8),
+          _RaceCatalogDetail(activeRaceId: faction.raceId),
+        ],
+      ),
+    );
+  }
+}
+
+class _RaceCatalogDetail extends StatelessWidget {
+  const _RaceCatalogDetail({
+    Key? key,
+    required this.activeRaceId,
+  }) : super(key: key);
+
+  final String activeRaceId;
+
+  @override
+  Widget build(BuildContext context) {
+    final races = OpenDeadlockGame.raceProfiles();
+    final activeRace = OpenDeadlockGame.raceProfileForId(activeRaceId);
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0xFF31404C)),
+        ),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: Material(
+          type: MaterialType.transparency,
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: 2),
+            collapsedIconColor: const Color(0xFFE9EEF2),
+            iconColor: const Color(0xFFE9EEF2),
+            title: const Row(
+              children: [
+                Icon(Icons.diversity_3, color: Color(0xFFE9EEF2), size: 17),
+                SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Race Catalog',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFFF4F7FA),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Text(
+              '${races.length} races / ${activeRace.name} active',
+              style: const TextStyle(
+                color: Color(0xFFB9C5CE),
+                fontSize: 12,
+              ),
+            ),
+            children: [
+              ...races.map(
+                (race) => _RaceCatalogRow(
+                  race: race,
+                  isActive: race.id == activeRaceId,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RaceCatalogRow extends StatelessWidget {
+  const _RaceCatalogRow({
+    Key? key,
+    required this.race,
+    required this.isActive,
+  }) : super(key: key);
+
+  final RaceProfile race;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? const Color(0xFFCCD6A6) : const Color(0xFFE9EEF2);
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              isActive ? Icons.play_circle : Icons.radio_button_unchecked,
+              color: color,
+              size: 14,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${race.name} - ${isActive ? 'Active' : 'Available'}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  _raceEffectSummaryFor(race),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  race.description,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF9FB0BE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

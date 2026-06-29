@@ -672,6 +672,64 @@ void main() {
     );
   });
 
+  testWidgets('game screen shows race catalog', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final sample = OpenDeadlockGame.sample(sessionId: 'race-catalog-ui');
+    final profiled = sample.copyWith(
+      factions: sample.factions.map((faction) {
+        if (faction.id != 'humans') {
+          return faction;
+        }
+        return faction.copyWith(raceId: 'relu');
+      }).toList(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: profiled,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(tester, find.text('Race Catalog'));
+    await tester.ensureVisible(find.text('Race Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Race Catalog'), findsOneWidget);
+    expect(find.text("7 races / Re'Lu active"), findsOneWidget);
+
+    await tester.tap(find.text('Race Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Re'Lu - Active"), findsOneWidget);
+    expect(find.text('Human - Available'), findsOneWidget);
+    expect(find.text('Tarth - Available'), findsOneWidget);
+    expect(
+      find.textContaining('reveals full map'),
+      findsWidgets,
+    );
+    expect(
+      find.textContaining('prioritizes Xenoarchaeology'),
+      findsWidgets,
+    );
+    expect(
+      find.textContaining(
+          'Aggressive militarists with stronger ground attacks.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('world overview compares race profiles and traits',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
