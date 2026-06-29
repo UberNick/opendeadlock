@@ -4965,10 +4965,25 @@ void main() {
     expect(find.textContaining('1 cmd'), findsWidgets);
     expect(find.byKey(const ValueKey<String>('sync-ledger')), findsOneWidget);
     expect(find.text('Sync Ledger'), findsOneWidget);
+    expect(find.text('1 entry'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-ledger-source')),
+        findsOneWidget);
     expect(find.text('Source'), findsOneWidget);
     expect(find.text('Typed Code'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-ledger-status')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-ledger-sender')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-ledger-received')),
+        findsOneWidget);
     expect(find.text('Received'), findsOneWidget);
     expect(find.text('1 order'), findsWidgets);
+    expect(find.byKey(const ValueKey<String>('sync-ledger-handoff')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-ledger-base-command')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-ledger-result-state')),
+        findsOneWidget);
     expect(find.text('Result State'), findsOneWidget);
 
     await _tapSyncMenuItem(tester, 'Apply Orders');

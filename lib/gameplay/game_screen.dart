@@ -10563,6 +10563,8 @@ class _SyncLedgerDetail extends StatelessWidget {
     final latest = entries.first;
     final orderLabel =
         latest.orders == 1 ? '1 order' : '${latest.orders} orders';
+    final entryLabel =
+        entries.length == 1 ? '1 entry' : '${entries.length} entries';
 
     return Container(
       key: const ValueKey<String>('sync-ledger'),
@@ -10577,29 +10579,62 @@ class _SyncLedgerDetail extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.receipt_long, color: Color(0xFFD9B66F), size: 18),
-              SizedBox(width: 8),
+            children: [
+              const Icon(Icons.receipt_long,
+                  color: Color(0xFFD9B66F), size: 18),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Sync Ledger',
+                  style: TextStyle(
+                    color: Color(0xFFFFF5D6),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
               Text(
-                'Sync Ledger',
-                style: TextStyle(
-                  color: Color(0xFFFFF5D6),
+                entryLabel,
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          _DetailRow(label: 'Source', value: latest.source),
-          _DetailRow(label: 'Status', value: latest.status),
-          _DetailRow(label: 'Sender', value: latest.sender),
-          _DetailRow(label: 'Received', value: orderLabel),
-          _DetailRow(label: 'Handoff', value: latest.handoff),
           _DetailRow(
+            key: const ValueKey<String>('sync-ledger-source'),
+            label: 'Source',
+            value: latest.source,
+          ),
+          _DetailRow(
+            key: const ValueKey<String>('sync-ledger-status'),
+            label: 'Status',
+            value: latest.status,
+          ),
+          _DetailRow(
+            key: const ValueKey<String>('sync-ledger-sender'),
+            label: 'Sender',
+            value: latest.sender,
+          ),
+          _DetailRow(
+            key: const ValueKey<String>('sync-ledger-received'),
+            label: 'Received',
+            value: orderLabel,
+          ),
+          _DetailRow(
+            key: const ValueKey<String>('sync-ledger-handoff'),
+            label: 'Handoff',
+            value: latest.handoff,
+          ),
+          _DetailRow(
+            key: const ValueKey<String>('sync-ledger-base-command'),
             label: 'Base Cmd',
             value: _shortFingerprint(latest.baseCommandFingerprint),
           ),
           _DetailRow(
+            key: const ValueKey<String>('sync-ledger-result-state'),
             label: 'Result State',
             value: _shortFingerprint(latest.resultStateFingerprint),
           ),
