@@ -2612,6 +2612,55 @@ void main() {
     expect(find.text('8/8'), findsOneWidget);
   });
 
+  testWidgets('game screen summarizes expansion planning', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'expansion-planner'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('expansion-planner')),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('expansion-planner')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Expansion Planner'), findsOneWidget);
+    expect(find.text('1 ready'), findsOneWidget);
+    expect(find.text('1 ready / 1 scouting'), findsOneWidget);
+    expect(find.text('3 best sectors listed'), findsOneWidget);
+    expect(find.text('Survey Team ready at 4, 2'), findsOneWidget);
+    expect(find.text('Sector 1, 1'), findsOneWidget);
+
+    await tester
+        .tap(find.widgetWithText(TextButton, 'Survey Team ready at 4, 2'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.widgetWithText(ElevatedButton, 'Found Colony'),
+      delta: const Offset(0, 420),
+    );
+    expect(find.widgetWithText(ElevatedButton, 'Found Colony'), findsOneWidget);
+  });
+
   testWidgets('game screen shows unit catalog', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 1500);

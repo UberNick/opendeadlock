@@ -4600,6 +4600,17 @@ class _SelectionPanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           _VictoryPathsDetail(game: game),
+          if (activeUnits.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            _ExpansionPlannerDetail(
+              game: game,
+              units: activeUnits,
+              selectedUnitId:
+                  unit?.ownerId == game.activeFactionId ? unit?.id : null,
+              onSelectUnit: onSelectUnit,
+              onSelectSector: onSelectSector,
+            ),
+          ],
         ],
       ),
     );
@@ -11430,6 +11441,319 @@ class _UnitRosterDetail extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+class _ExpansionPlannerDetail extends StatelessWidget {
+  const _ExpansionPlannerDetail({
+    Key? key,
+    required this.game,
+    required this.units,
+    required this.selectedUnitId,
+    required this.onSelectUnit,
+    required this.onSelectSector,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final List<Unit> units;
+  final String? selectedUnitId;
+  final void Function(Unit unit) onSelectUnit;
+  final void Function(int x, int y) onSelectSector;
+
+  @override
+  Widget build(BuildContext context) {
+    final scoutUnits =
+        units.where((unit) => unit.type == 'scout').toList(growable: false);
+    final readyScouts =
+        scoutUnits.where((unit) => _canFoundFrom(unit)).toList(growable: false);
+    final candidateSites = _candidateSites().take(3).toList(growable: false);
+
+    return Container(
+      key: const ValueKey<String>('expansion-planner'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.explore, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Expansion Planner',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                _stateLabel(readyScouts.length, candidateSites.length),
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(label: 'Scouts', value: _scoutLabel(scoutUnits.length)),
+          _DetailRow(
+            label: 'Ready Sites',
+            value: candidateSites.isEmpty
+                ? 'No owned empty sectors'
+                : '${candidateSites.length} best sectors listed',
+          ),
+          if (readyScouts.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Ready to Found',
+              style: TextStyle(
+                color: Color(0xFFF4F7FA),
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...readyScouts.map(
+              (unit) => _ExpansionUnitRow(
+                unit: unit,
+                selected: unit.id == selectedUnitId,
+                onSelect: () => onSelectUnit(unit),
+              ),
+            ),
+          ],
+          if (candidateSites.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Best Sites',
+              style: TextStyle(
+                color: Color(0xFFF4F7FA),
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...candidateSites.map(
+              (site) => _ExpansionSiteRow(
+                site: site,
+                onSelect: () => onSelectSector(site.tile.x, site.tile.y),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Scout into owned empty ground before founding a new outpost.',
+              style: TextStyle(color: Color(0xFFE9EEF2)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  bool _canFoundFrom(Unit unit) {
+    if (!game.activeFactionCanIssueLocalOrders ||
+        unit.ownerId != game.activeFactionId ||
+        unit.type != 'scout') {
+      return false;
+    }
+    final tile = game.tileAt(unit.x, unit.y);
+    return _isCandidateTile(tile);
+  }
+
+  List<_ExpansionSite> _candidateSites() {
+    final sites = <_ExpansionSite>[];
+    for (final tile in game.tiles) {
+      if (!_isCandidateTile(tile)) {
+        continue;
+      }
+      sites.add(
+        _ExpansionSite(
+          tile: tile,
+          score: _siteScore(tile),
+          nearestColonyDistance: _nearestOwnedColonyDistance(tile),
+        ),
+      );
+    }
+    sites.sort((a, b) {
+      final scoreComparison = b.score.compareTo(a.score);
+      if (scoreComparison != 0) {
+        return scoreComparison;
+      }
+      final distanceComparison =
+          b.nearestColonyDistance.compareTo(a.nearestColonyDistance);
+      if (distanceComparison != 0) {
+        return distanceComparison;
+      }
+      final yComparison = a.tile.y.compareTo(b.tile.y);
+      if (yComparison != 0) {
+        return yComparison;
+      }
+      return a.tile.x.compareTo(b.tile.x);
+    });
+    return sites;
+  }
+
+  bool _isCandidateTile(PlanetTile tile) {
+    final occupyingUnit = game.unitAt(tile.x, tile.y);
+    return tile.ownerId == game.activeFactionId &&
+        tile.isExploredBy(game.activeFactionId) &&
+        OpenDeadlockGame.isTerrainPassable(tile.terrain) &&
+        tile.colonyId == null &&
+        game.colonyAt(tile.x, tile.y) == null &&
+        (occupyingUnit == null ||
+            occupyingUnit.ownerId == game.activeFactionId);
+  }
+
+  int _siteScore(PlanetTile tile) {
+    final yields = tile.yields;
+    final balancedYield = yields.food + yields.industry + yields.research;
+    return (balancedYield * 10) + _nearestOwnedColonyDistance(tile);
+  }
+
+  int _nearestOwnedColonyDistance(PlanetTile tile) {
+    final ownedColonies = game.colonies
+        .where((colony) => colony.ownerId == game.activeFactionId)
+        .toList(growable: false);
+    if (ownedColonies.isEmpty) {
+      return 0;
+    }
+    var bestDistance = 999;
+    for (final colony in ownedColonies) {
+      final distance = (colony.x - tile.x).abs() + (colony.y - tile.y).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+      }
+    }
+    return bestDistance;
+  }
+
+  String _stateLabel(int readyScoutCount, int siteCount) {
+    if (readyScoutCount > 0) {
+      return '$readyScoutCount ready';
+    }
+    if (siteCount > 0) {
+      return '$siteCount sites';
+    }
+    return 'Scout';
+  }
+
+  String _scoutLabel(int scoutCount) {
+    if (scoutCount == 0) {
+      return 'No active scouts';
+    }
+    final readyCount = units.where(_canFoundFrom).length;
+    if (readyCount == 0) {
+      return '$scoutCount scouting / none ready';
+    }
+    return '$readyCount ready / $scoutCount scouting';
+  }
+}
+
+class _ExpansionSite {
+  const _ExpansionSite({
+    required this.tile,
+    required this.score,
+    required this.nearestColonyDistance,
+  });
+
+  final PlanetTile tile;
+  final int score;
+  final int nearestColonyDistance;
+}
+
+class _ExpansionUnitRow extends StatelessWidget {
+  const _ExpansionUnitRow({
+    Key? key,
+    required this.unit,
+    required this.selected,
+    required this.onSelect,
+  }) : super(key: key);
+
+  final Unit unit;
+  final bool selected;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton.icon(
+          icon: Icon(selected ? Icons.radio_button_checked : Icons.flag),
+          label: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${unit.name} ready at ${unit.x + 1}, ${unit.y + 1}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          onPressed: onSelect,
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFE9EEF2),
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpansionSiteRow extends StatelessWidget {
+  const _ExpansionSiteRow({
+    Key? key,
+    required this.site,
+    required this.onSelect,
+  }) : super(key: key);
+
+  final _ExpansionSite site;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = site.tile;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton.icon(
+          icon: const Icon(Icons.add_location_alt),
+          label: Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Sector ${tile.x + 1}, ${tile.y + 1}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${OpenDeadlockGame.terrainLabelFor(tile.terrain)} | '
+                  '${tile.yields.food} food / ${tile.yields.industry} ind / '
+                  '${tile.yields.research} res | '
+                  '${site.nearestColonyDistance} from colony',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          onPressed: onSelect,
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFE9EEF2),
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+      ),
+    );
   }
 }
 
