@@ -263,14 +263,67 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Menu Slot'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('load-save-slot-menu-slot')),
+        findsOneWidget);
 
-    await tester.tap(find.text('Menu Slot'));
+    await tester
+        .tap(find.byKey(const ValueKey<String>('load-save-slot-menu-slot')));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.byTooltip('Sync'), findsOneWidget);
     expect(find.text('Turn 2'), findsWidgets);
     expect(find.textContaining('Human Assembly'), findsWidgets);
+  });
+
+  testWidgets('main menu can delete a chosen local save slot', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+    final store = GameSaveStore(preferences);
+    final firstGame = OpenDeadlockGame.sample(sessionId: 'menu-delete-first');
+    final secondGame = OpenDeadlockGame.sample(sessionId: 'menu-delete-second')
+        .applyCommand(const EndTurnCommand(factionId: 'humans'));
+
+    await store.saveGame(
+      firstGame,
+      slotId: 'delete-first',
+      name: 'Delete First',
+      updatedAt: DateTime.utc(2026, 6, 28, 4, 10),
+    );
+    await store.saveGame(
+      secondGame,
+      slotId: 'delete-second',
+      name: 'Keep Second',
+      updatedAt: DateTime.utc(2026, 6, 28, 4, 20),
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Load Game'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey<String>('load-save-slot-delete-first')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('load-save-slot-delete-second')),
+        findsOneWidget);
+
+    await tester.tap(
+        find.byKey(const ValueKey<String>('delete-save-slot-delete-first')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey<String>('load-save-slot-delete-first')),
+        findsNothing);
+    expect(find.text('Delete First'), findsNothing);
+    expect(find.byKey(const ValueKey<String>('load-save-slot-delete-second')),
+        findsOneWidget);
+    expect(find.text('Keep Second'), findsOneWidget);
+    expect(await store.loadGame('delete-first'), isNull);
+    expect(await store.loadGame('delete-second'), isNotNull);
   });
 
   testWidgets('main menu copies the local review command', (tester) async {

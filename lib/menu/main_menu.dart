@@ -607,6 +607,7 @@ class _MenuSaveSlotTile extends StatelessWidget {
     final isAutosave = slot.slotId == GameSaveStore.autosaveSlotId;
 
     return ListTile(
+      key: ValueKey<String>('load-save-slot-${slot.slotId}'),
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       leading: Icon(
         isAutosave ? Icons.history : Icons.save,
@@ -628,6 +629,7 @@ class _MenuSaveSlotTile extends StatelessWidget {
       ),
       onTap: onLoad,
       trailing: IconButton(
+        key: ValueKey<String>('delete-save-slot-${slot.slotId}'),
         tooltip: 'Delete Save',
         icon: const Icon(Icons.delete_outline),
         color: const Color(0xFFE9A6A6),
