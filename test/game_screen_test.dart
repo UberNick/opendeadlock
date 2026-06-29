@@ -3856,13 +3856,12 @@ void main() {
     expect(find.text('1 pop / 45 morale'), findsWidgets);
     expect(find.text('Survey Team captured Redoubt'), findsWidgets);
 
-    await tester.scrollUntilVisible(
-      find.text('Tactical Log'),
-      420,
-      scrollable: find.byType(Scrollable).last,
-      maxScrolls: 24,
-    );
-    await tester.pumpAndSettle();
+    for (var scroll = 0;
+        scroll < 80 && find.text('Tactical Log').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(ListView).last, const Offset(0, -720));
+      await tester.pumpAndSettle();
+    }
 
     expect(tester.takeException(), isNull);
     expect(find.text('Tactical Log'), findsOneWidget);
@@ -4885,7 +4884,22 @@ void main() {
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
     });
+    final clipboardWrites = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final arguments = call.arguments as Map<dynamic, dynamic>;
+          clipboardWrites.add(arguments['text'] as String);
+        }
+        return null;
+      },
+    );
     final sample = OpenDeadlockGame.sample(sessionId: 'connectivity-panel');
     const traders = Faction(
       id: 'traders',
@@ -4935,6 +4949,12 @@ void main() {
     expect(find.text('Tarth Legion, Trade Compact'), findsOneWidget);
     expect(find.text('Package Flow'), findsOneWidget);
     expect(find.text('Share invites or import remote orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-copy-snapshot')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-save-snapshot-file')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-import-snapshot-file')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-handoff-checklist')),
         findsOneWidget);
     expect(find.text('Handoff Checklist'), findsOneWidget);
@@ -4950,6 +4970,23 @@ void main() {
     expect(find.text('Issue local orders or end the turn.'), findsOneWidget);
     expect(find.text('Verify the state hash after each imported package.'),
         findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('sync-copy-snapshot')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 6,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('sync-copy-snapshot')));
+    await tester.pumpAndSettle();
+
+    expect(clipboardWrites, hasLength(1));
+    final copiedSnapshot = GameCodec.decodeGame(clipboardWrites.single);
+    expect(copiedSnapshot.sessionId, 'connectivity-panel');
+    expect(copiedSnapshot.factions.where((faction) => faction.isRemote),
+        hasLength(2));
+    expect(find.text('Game snapshot code copied'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

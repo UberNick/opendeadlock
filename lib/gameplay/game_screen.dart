@@ -170,6 +170,7 @@ class _GameScreenState extends State<GameScreen> {
               orderExportBaseCommandCount: orderExportBaseCommandCount,
               onSaveGame: _saveGameLocally,
               onLoadSavedGame: _loadSavedGame,
+              onCopySnapshot: _copySnapshotToClipboard,
               onLoadSnapshot: _loadSnapshotFromClipboard,
               onExportSnapshotFile: _exportSnapshotToFile,
               onImportSnapshotFile: _importSnapshotFromFile,
@@ -428,6 +429,9 @@ class _GameScreenState extends State<GameScreen> {
                         undoable: true,
                       );
                     },
+                    onCopySnapshot: _copySnapshotToClipboard,
+                    onExportSnapshotFile: _exportSnapshotToFile,
+                    onImportSnapshotFile: _importSnapshotFromFile,
                     onCopyInvite: _copyInviteForFaction,
                     onExportInvite: _exportInviteForFaction,
                     onCopyOrders: _copyOrdersToClipboard,
@@ -889,6 +893,21 @@ class _GameScreenState extends State<GameScreen> {
       emptyMessage: 'No game snapshot code was provided',
       errorPrefix: 'Could not load snapshot',
       successMessage: 'Game snapshot loaded',
+    );
+  }
+
+  Future<void> _copySnapshotToClipboard() async {
+    await Clipboard.setData(
+      ClipboardData(
+        text: GameCodec.encodeShareCode(GameCodec.encodeGame(game)),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Game snapshot code copied')),
     );
   }
 
@@ -2398,6 +2417,7 @@ class _CommandBar extends StatelessWidget {
     required this.orderExportBaseCommandCount,
     required this.onSaveGame,
     required this.onLoadSavedGame,
+    required this.onCopySnapshot,
     required this.onLoadSnapshot,
     required this.onExportSnapshotFile,
     required this.onImportSnapshotFile,
@@ -2426,6 +2446,7 @@ class _CommandBar extends StatelessWidget {
   final int orderExportBaseCommandCount;
   final Future<void> Function() onSaveGame;
   final Future<void> Function() onLoadSavedGame;
+  final Future<void> Function() onCopySnapshot;
   final Future<void> Function() onLoadSnapshot;
   final Future<void> Function() onExportSnapshotFile;
   final Future<void> Function() onImportSnapshotFile;
@@ -2731,14 +2752,7 @@ class _CommandBar extends StatelessWidget {
       return;
     }
     if (action == _CommandBarAction.copySnapshot) {
-      Clipboard.setData(
-        ClipboardData(
-          text: GameCodec.encodeShareCode(GameCodec.encodeGame(game)),
-        ),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Game snapshot code copied')),
-      );
+      onCopySnapshot();
       return;
     }
     if (action == _CommandBarAction.exportSnapshotFile) {
@@ -4295,6 +4309,9 @@ class _SelectionPanel extends StatelessWidget {
     required this.onDiplomacyChanged,
     required this.onIntelScan,
     required this.onSabotage,
+    required this.onCopySnapshot,
+    required this.onExportSnapshotFile,
+    required this.onImportSnapshotFile,
     required this.onCopyInvite,
     required this.onExportInvite,
     required this.onCopyOrders,
@@ -4342,6 +4359,9 @@ class _SelectionPanel extends StatelessWidget {
   final void Function(String targetFactionId, String status) onDiplomacyChanged;
   final void Function(String targetFactionId) onIntelScan;
   final void Function(String targetFactionId) onSabotage;
+  final Future<void> Function() onCopySnapshot;
+  final Future<void> Function() onExportSnapshotFile;
+  final Future<void> Function() onImportSnapshotFile;
   final Future<void> Function(String factionId) onCopyInvite;
   final Future<void> Function(String factionId) onExportInvite;
   final Future<void> Function() onCopyOrders;
@@ -4578,6 +4598,9 @@ class _SelectionPanel extends StatelessWidget {
             orderExportBaseCommandCount: orderExportBaseCommandCount,
             lastSyncStatus: lastSyncStatus,
             syncLedgerEntries: syncLedgerEntries,
+            onCopySnapshot: onCopySnapshot,
+            onExportSnapshotFile: onExportSnapshotFile,
+            onImportSnapshotFile: onImportSnapshotFile,
             onCopyInvite: onCopyInvite,
             onExportInvite: onExportInvite,
             onApplyOrders: onApplyOrders,
@@ -10340,6 +10363,9 @@ class _SyncStatusDetail extends StatelessWidget {
     required this.orderExportBaseCommandCount,
     required this.lastSyncStatus,
     required this.syncLedgerEntries,
+    required this.onCopySnapshot,
+    required this.onExportSnapshotFile,
+    required this.onImportSnapshotFile,
     required this.onCopyInvite,
     required this.onExportInvite,
     required this.onApplyOrders,
@@ -10351,6 +10377,9 @@ class _SyncStatusDetail extends StatelessWidget {
   final int orderExportBaseCommandCount;
   final String? lastSyncStatus;
   final List<_SyncLedgerEntry> syncLedgerEntries;
+  final Future<void> Function() onCopySnapshot;
+  final Future<void> Function() onExportSnapshotFile;
+  final Future<void> Function() onImportSnapshotFile;
   final Future<void> Function(String factionId) onCopyInvite;
   final Future<void> Function(String factionId) onExportInvite;
   final Future<void> Function() onApplyOrders;
@@ -10487,6 +10516,49 @@ class _SyncStatusDetail extends StatelessWidget {
                 label: const Text('Import Orders File'),
                 onPressed: () {
                   onImportOrdersFile();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-copy-snapshot'),
+                icon: const Icon(Icons.content_copy, size: 18),
+                label: const Text('Copy Snapshot'),
+                onPressed: () {
+                  onCopySnapshot();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-save-snapshot-file'),
+                icon: const Icon(Icons.save_alt, size: 18),
+                label: const Text('Save Snapshot File'),
+                onPressed: () {
+                  onExportSnapshotFile();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-import-snapshot-file'),
+                icon: const Icon(Icons.drive_folder_upload, size: 18),
+                label: const Text('Import Snapshot File'),
+                onPressed: () {
+                  onImportSnapshotFile();
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFE9EEF2),
