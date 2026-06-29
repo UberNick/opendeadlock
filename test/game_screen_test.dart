@@ -4981,6 +4981,8 @@ void main() {
         find.byKey(const ValueKey<String>('sync-save-local')), findsOneWidget);
     expect(
         find.byKey(const ValueKey<String>('sync-load-local')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-toggle-hotseat')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-apply-orders')),
         findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sync-import-orders-file')),
@@ -5029,6 +5031,46 @@ void main() {
     expect(copiedSnapshot.factions.where((faction) => faction.isRemote),
         hasLength(2));
     expect(find.text('Game snapshot code copied'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sync panel can toggle hotseat and AI opponents', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(520, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'sync-mode-toggle'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final toggle = find.byKey(const ValueKey<String>('sync-toggle-hotseat'));
+    await _scrollSidePanelUntilVisible(tester, toggle);
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    expect(toggle, findsOneWidget);
+    expect(find.text('Enable Hotseat'), findsOneWidget);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enable AI Opponents'), findsOneWidget);
+    expect(find.text('Hotseat'), findsOneWidget);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enable Hotseat'), findsOneWidget);
+    expect(find.text('AI assisted'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

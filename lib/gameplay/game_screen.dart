@@ -431,6 +431,7 @@ class _GameScreenState extends State<GameScreen> {
                     },
                     onSaveGame: _saveGameLocally,
                     onLoadSavedGame: _loadSavedGame,
+                    onToggleHotseat: _toggleHotseatMode,
                     onCopySnapshot: _copySnapshotToClipboard,
                     onLoadSnapshot: _loadSnapshotFromClipboard,
                     onExportSnapshotFile: _exportSnapshotToFile,
@@ -4316,6 +4317,7 @@ class _SelectionPanel extends StatelessWidget {
     required this.onSabotage,
     required this.onSaveGame,
     required this.onLoadSavedGame,
+    required this.onToggleHotseat,
     required this.onCopySnapshot,
     required this.onLoadSnapshot,
     required this.onExportSnapshotFile,
@@ -4371,6 +4373,7 @@ class _SelectionPanel extends StatelessWidget {
   final void Function(String targetFactionId) onSabotage;
   final Future<void> Function() onSaveGame;
   final Future<void> Function() onLoadSavedGame;
+  final VoidCallback onToggleHotseat;
   final Future<void> Function() onCopySnapshot;
   final Future<void> Function() onLoadSnapshot;
   final Future<void> Function() onExportSnapshotFile;
@@ -4615,6 +4618,7 @@ class _SelectionPanel extends StatelessWidget {
             syncLedgerEntries: syncLedgerEntries,
             onSaveGame: onSaveGame,
             onLoadSavedGame: onLoadSavedGame,
+            onToggleHotseat: onToggleHotseat,
             onCopySnapshot: onCopySnapshot,
             onLoadSnapshot: onLoadSnapshot,
             onExportSnapshotFile: onExportSnapshotFile,
@@ -10385,6 +10389,7 @@ class _SyncStatusDetail extends StatelessWidget {
     required this.syncLedgerEntries,
     required this.onSaveGame,
     required this.onLoadSavedGame,
+    required this.onToggleHotseat,
     required this.onCopySnapshot,
     required this.onLoadSnapshot,
     required this.onExportSnapshotFile,
@@ -10404,6 +10409,7 @@ class _SyncStatusDetail extends StatelessWidget {
   final List<_SyncLedgerEntry> syncLedgerEntries;
   final Future<void> Function() onSaveGame;
   final Future<void> Function() onLoadSavedGame;
+  final VoidCallback onToggleHotseat;
   final Future<void> Function() onCopySnapshot;
   final Future<void> Function() onLoadSnapshot;
   final Future<void> Function() onExportSnapshotFile;
@@ -10431,6 +10437,10 @@ class _SyncStatusDetail extends StatelessWidget {
             ? 'AI assisted'
             : 'Hotseat';
     final syncAction = _syncActionLabelFor(game, pendingOrderCount);
+    final toggleHotseatLabel =
+        hasComputerFactions ? 'Enable Hotseat' : 'Enable AI Opponents';
+    final toggleHotseatIcon =
+        hasComputerFactions ? Icons.groups : Icons.smart_toy;
     final turnState = game.activeFaction.isRemote
         ? 'Waiting for ${game.activeFaction.name} orders'
         : game.activeFactionCanIssueLocalOrders
@@ -10551,6 +10561,17 @@ class _SyncStatusDetail extends StatelessWidget {
                     : () {
                         onLoadSavedGame();
                       },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE9EEF2),
+                  disabledForegroundColor: const Color(0xFF7B8792),
+                  side: const BorderSide(color: Color(0xFF55616C)),
+                ),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey<String>('sync-toggle-hotseat'),
+                icon: Icon(toggleHotseatIcon, size: 18),
+                label: Text(toggleHotseatLabel),
+                onPressed: game.isGameOver ? null : onToggleHotseat,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFE9EEF2),
                   disabledForegroundColor: const Color(0xFF7B8792),
