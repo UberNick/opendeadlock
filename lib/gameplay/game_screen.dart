@@ -4653,7 +4653,10 @@ class _SelectionPanel extends StatelessWidget {
             onDiplomacyChanged: onDiplomacyChanged,
           ),
           const SizedBox(height: 18),
-          _VictoryPathsDetail(game: game),
+          _VictoryPathsDetail(
+            game: game,
+            onSelectSector: onSelectSector,
+          ),
           if (activeUnits.isNotEmpty) ...[
             const SizedBox(height: 18),
             _ExpansionPlannerDetail(
@@ -7563,9 +7566,11 @@ class _VictoryPathsDetail extends StatelessWidget {
   const _VictoryPathsDetail({
     Key? key,
     required this.game,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -7625,6 +7630,8 @@ class _VictoryPathsDetail extends StatelessWidget {
               showConquest: _isConquestEnabled,
               showScience: _isScienceEnabled,
               showScoreDeadline: game.scoreTurnLimit > 0,
+              reviewColony: _reviewColonyFor(score.factionId),
+              onSelectSector: onSelectSector,
             ),
         ],
       ),
@@ -7640,6 +7647,30 @@ class _VictoryPathsDetail extends StatelessWidget {
     return game.victoryCondition == OpenDeadlockGame.victoryConditionAny ||
         game.victoryCondition == OpenDeadlockGame.victoryConditionScience;
   }
+
+  Colony? _reviewColonyFor(String factionId) {
+    final candidates = game.colonies.where((colony) {
+      if (colony.ownerId != factionId) {
+        return false;
+      }
+      return game.tileAt(colony.x, colony.y).isExploredBy(game.activeFactionId);
+    }).toList(growable: false);
+    if (candidates.isEmpty) {
+      return null;
+    }
+    candidates.sort((a, b) {
+      final populationComparison = b.population.compareTo(a.population);
+      if (populationComparison != 0) {
+        return populationComparison;
+      }
+      final industryComparison = b.storedIndustry.compareTo(a.storedIndustry);
+      if (industryComparison != 0) {
+        return industryComparison;
+      }
+      return a.name.compareTo(b.name);
+    });
+    return candidates.first;
+  }
 }
 
 class _VictoryPathRow extends StatelessWidget {
@@ -7650,6 +7681,8 @@ class _VictoryPathRow extends StatelessWidget {
     required this.showConquest,
     required this.showScience,
     required this.showScoreDeadline,
+    required this.reviewColony,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final FactionScore score;
@@ -7657,6 +7690,8 @@ class _VictoryPathRow extends StatelessWidget {
   final bool showConquest;
   final bool showScience;
   final bool showScoreDeadline;
+  final Colony? reviewColony;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -7713,6 +7748,29 @@ class _VictoryPathRow extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
+                if (reviewColony != null) ...[
+                  const SizedBox(height: 2),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: ValueKey<String>(
+                        'victory-path-review-${score.factionId}',
+                      ),
+                      icon: const Icon(Icons.manage_search, size: 16),
+                      label: Text('Review ${reviewColony!.name}'),
+                      onPressed: () => onSelectSector(
+                        reviewColony!.x,
+                        reviewColony!.y,
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFFCCD6A6),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
