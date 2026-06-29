@@ -4598,6 +4598,14 @@ class _SelectionPanel extends StatelessWidget {
             activeColonies: activeColonies,
             orderExportBaseCommandCount: orderExportBaseCommandCount,
           ),
+          if (activeColonies.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            _TurnForecastDetail(
+              game: game,
+              colonies: activeColonies,
+              onSelectColony: onSelectColony,
+            ),
+          ],
           const SizedBox(height: 18),
           _VictoryPathsDetail(game: game),
           if (activeUnits.isNotEmpty) ...[
@@ -5300,6 +5308,286 @@ class _TurnChecklistDetail extends StatelessWidget {
       return '${faction.researchProject} ready';
     }
     return '${faction.researchProject} $stored/$cost, $remaining left';
+  }
+}
+
+class _TurnForecastDetail extends StatelessWidget {
+  const _TurnForecastDetail({
+    Key? key,
+    required this.game,
+    required this.colonies,
+    required this.onSelectColony,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final List<Colony> colonies;
+  final void Function(Colony colony) onSelectColony;
+
+  @override
+  Widget build(BuildContext context) {
+    final projections = <_TurnForecastItem>[
+      for (final colony in colonies)
+        _TurnForecastItem(
+          colony: colony,
+          projection: game.colonyProductionFor(colony),
+        ),
+    ];
+    final output = _totalOutputFor(projections);
+    final trade = game.tradeIncomeFor(game.activeFactionId);
+    final netOutput = output + trade;
+    final nextStores = game.activeFaction.resources + netOutput;
+    final completing = projections
+        .where((item) => item.projection.willCompleteConstruction)
+        .toList(growable: false);
+    final growth = projections
+        .where((item) => item.projection.populationChange != 0)
+        .toList(growable: false);
+    final morale = projections
+        .where((item) => item.projection.moraleChange != 0)
+        .toList(growable: false);
+    final warnings = projections
+        .where((item) => _hasForecastWarning(item.projection))
+        .toList(growable: false);
+    final highlights = _highlightsFor(
+      completing: completing,
+      growth: growth,
+      morale: morale,
+      warnings: warnings,
+    );
+
+    return Container(
+      key: const ValueKey<String>('turn-forecast'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.timeline, color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Turn Forecast',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                warnings.isEmpty ? 'Stable' : '${warnings.length} risks',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(label: 'Net Output', value: _resourceLine(netOutput)),
+          _DetailRow(label: 'After Turn', value: _resourceLine(nextStores)),
+          _DetailRow(
+            label: 'Builds',
+            value: completing.isEmpty
+                ? 'No builds complete'
+                : _countLabel(
+                    completing.length,
+                    'build completes',
+                    'builds complete',
+                  ),
+          ),
+          _DetailRow(
+            label: 'Population',
+            value: _populationForecastLabel(growth),
+          ),
+          _DetailRow(
+            label: 'Morale',
+            value: morale.isEmpty
+                ? 'No morale changes'
+                : _countLabel(
+                    morale.length,
+                    'colony changes',
+                    'colonies change',
+                  ),
+          ),
+          if (highlights.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...highlights.map(
+              (item) => _TurnForecastRow(
+                item: item,
+                onSelect: () => onSelectColony(item.colony),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  ResourceStockpile _totalOutputFor(List<_TurnForecastItem> items) {
+    var output = const ResourceStockpile(
+      food: 0,
+      industry: 0,
+      research: 0,
+      credits: 0,
+    );
+    for (final item in items) {
+      output = output + item.projection.output;
+    }
+    return output;
+  }
+
+  List<_TurnForecastItem> _highlightsFor({
+    required List<_TurnForecastItem> completing,
+    required List<_TurnForecastItem> growth,
+    required List<_TurnForecastItem> morale,
+    required List<_TurnForecastItem> warnings,
+  }) {
+    final highlights = <_TurnForecastItem>[];
+    void addItems(List<_TurnForecastItem> items) {
+      for (final item in items) {
+        if (!highlights.any((current) => current.colony.id == item.colony.id)) {
+          highlights.add(item);
+        }
+      }
+    }
+
+    addItems(warnings);
+    addItems(completing);
+    addItems(growth);
+    addItems(morale);
+    if (highlights.length > 4) {
+      return highlights.take(4).toList(growable: false);
+    }
+    return highlights;
+  }
+
+  bool _hasForecastWarning(ColonyProduction projection) {
+    return projection.isStarving ||
+        projection.isRioting ||
+        projection.hasMaintenanceShortfall ||
+        projection.isInUnrest;
+  }
+
+  String _resourceLine(ResourceStockpile stockpile) {
+    return '${stockpile.food} food / ${stockpile.industry} ind / '
+        '${stockpile.research} res / ${stockpile.credits} cred';
+  }
+
+  String _populationForecastLabel(List<_TurnForecastItem> growth) {
+    if (growth.isEmpty) {
+      return 'No population changes';
+    }
+    var delta = 0;
+    for (final item in growth) {
+      delta += item.projection.populationChange;
+    }
+    return '${_signedInt(delta)} across ${_countLabel(growth.length, 'colony', 'colonies')}';
+  }
+}
+
+class _TurnForecastItem {
+  const _TurnForecastItem({
+    required this.colony,
+    required this.projection,
+  });
+
+  final Colony colony;
+  final ColonyProduction projection;
+}
+
+class _TurnForecastRow extends StatelessWidget {
+  const _TurnForecastRow({
+    Key? key,
+    required this.item,
+    required this.onSelect,
+  }) : super(key: key);
+
+  final _TurnForecastItem item;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton.icon(
+          icon: Icon(_iconFor(item.projection)),
+          label: Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.colony.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  _summaryFor(item),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          onPressed: onSelect,
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFE9EEF2),
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _iconFor(ColonyProduction projection) {
+    if (projection.isRioting ||
+        projection.isStarving ||
+        projection.hasMaintenanceShortfall ||
+        projection.isInUnrest) {
+      return Icons.warning_amber;
+    }
+    if (projection.willCompleteConstruction) {
+      return Icons.construction;
+    }
+    if (projection.populationChange != 0) {
+      return Icons.groups;
+    }
+    return Icons.timeline;
+  }
+
+  String _summaryFor(_TurnForecastItem item) {
+    final projection = item.projection;
+    final parts = <String>[];
+    if (projection.isStarving) {
+      parts.add('food ${_signedInt(projection.foodBalance)}');
+    }
+    if (projection.isRioting) {
+      parts.add('riot -${projection.riotIndustryLoss} industry');
+    }
+    if (projection.hasMaintenanceShortfall) {
+      parts.add('upkeep -${projection.maintenanceShortfall} credits');
+    }
+    if (projection.willCompleteConstruction) {
+      parts.add('${item.colony.construction} completes');
+    }
+    if (projection.populationChange != 0) {
+      parts.add('pop ${_signedInt(projection.populationChange)}');
+    }
+    if (projection.moraleChange != 0) {
+      parts.add('morale ${_signedInt(projection.moraleChange)}');
+    }
+    if (parts.isEmpty) {
+      parts.add('stable');
+    }
+    return parts.join(' | ');
   }
 }
 

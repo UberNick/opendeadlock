@@ -1093,6 +1093,76 @@ void main() {
     );
   });
 
+  testWidgets('game screen summarizes next turn forecast', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final game = OpenDeadlockGame.sample(sessionId: 'turn-forecast-ui');
+    final colony = game.colonyById('new-haven');
+    final projection = game.colonyProductionFor(colony);
+    final output = projection.output + game.tradeIncomeFor('humans');
+    final nextStores = game.activeFaction.resources + output;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('turn-forecast')),
+      maxScrolls: 40,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('turn-forecast')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Turn Forecast'), findsOneWidget);
+    expect(
+      find.text(
+        '${output.food} food / ${output.industry} ind / ${output.research} res / ${output.credits} cred',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        '${nextStores.food} food / ${nextStores.industry} ind / ${nextStores.research} res / ${nextStores.credits} cred',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('No builds complete'), findsOneWidget);
+    expect(find.textContaining('New Haven'), findsWidgets);
+    expect(
+      find.textContaining(
+          'pop ${projection.populationChange > 0 ? '+' : ''}${projection.populationChange}'),
+      findsWidgets,
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, 'New Haven').last);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Population'),
+      delta: const Offset(0, 420),
+      maxScrolls: 40,
+    );
+    expect(find.text('Population'), findsOneWidget);
+    expect(find.text('Morale'), findsOneWidget);
+  });
+
   testWidgets('game screen shows a multi-colony overview and jumps to colonies',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
