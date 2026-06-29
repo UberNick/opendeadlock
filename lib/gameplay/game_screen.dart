@@ -14342,7 +14342,6 @@ class _ColonyDetail extends StatelessWidget {
                   colony: colony,
                   onFocusChanged: onFocusChanged,
                 ),
-                _FocusCatalogDetail(activeFocus: colony.focus),
                 if (hasOtherOwnedColonies)
                   _BulkColonyActionButton(
                     icon: Icons.tune,
@@ -14358,7 +14357,12 @@ class _ColonyDetail extends StatelessWidget {
               label: 'Focus',
               value: OpenDeadlockGame.colonyFocusLabelFor(colony.focus),
             ),
-          _FocusCatalogDetail(activeFocus: colony.focus),
+          _FocusCatalogDetail(
+            colonyId: colony.id,
+            activeFocus: colony.focus,
+            canEdit: canEdit,
+            onFocusChanged: onFocusChanged,
+          ),
           _DetailRow(
             label: 'Output',
             value:
@@ -14659,10 +14663,16 @@ class _ColonyDetail extends StatelessWidget {
 class _FocusCatalogDetail extends StatelessWidget {
   const _FocusCatalogDetail({
     Key? key,
+    required this.colonyId,
     required this.activeFocus,
+    required this.canEdit,
+    required this.onFocusChanged,
   }) : super(key: key);
 
+  final String colonyId;
   final String activeFocus;
+  final bool canEdit;
+  final void Function(String colonyId, String focus) onFocusChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -14713,8 +14723,11 @@ class _FocusCatalogDetail extends StatelessWidget {
               children: [
                 ...OpenDeadlockGame.colonyFocuses.map(
                   (focus) => _FocusCatalogRow(
+                    colonyId: colonyId,
                     focus: focus,
                     isActive: focus == activeFocus,
+                    canEdit: canEdit,
+                    onFocusChanged: onFocusChanged,
                   ),
                 ),
               ],
@@ -14729,18 +14742,25 @@ class _FocusCatalogDetail extends StatelessWidget {
 class _FocusCatalogRow extends StatelessWidget {
   const _FocusCatalogRow({
     Key? key,
+    required this.colonyId,
     required this.focus,
     required this.isActive,
+    required this.canEdit,
+    required this.onFocusChanged,
   }) : super(key: key);
 
+  final String colonyId;
   final String focus;
   final bool isActive;
+  final bool canEdit;
+  final void Function(String colonyId, String focus) onFocusChanged;
 
   @override
   Widget build(BuildContext context) {
     final color = isActive ? const Color(0xFFCCD6A6) : const Color(0xFFE9EEF2);
     final label = OpenDeadlockGame.colonyFocusLabelFor(focus);
     final description = OpenDeadlockGame.colonyFocusDescriptionFor(focus);
+    final canSelect = canEdit && !isActive;
 
     return Padding(
       padding: const EdgeInsets.only(top: 7),
@@ -14780,6 +14800,15 @@ class _FocusCatalogRow extends StatelessWidget {
               ],
             ),
           ),
+          if (canSelect) ...[
+            const SizedBox(width: 8),
+            TextButton.icon(
+              key: ValueKey<String>('focus-catalog-select-$focus'),
+              icon: const Icon(Icons.tune, size: 15),
+              label: const Text('Focus'),
+              onPressed: () => onFocusChanged(colonyId, focus),
+            ),
+          ],
         ],
       ),
     );

@@ -1460,8 +1460,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Focus Catalog'), findsWidgets);
-    expect(find.text('5 options / Industry active'), findsWidgets);
+    expect(find.text('Focus Catalog'), findsOneWidget);
+    expect(find.text('5 options / Industry active'), findsOneWidget);
 
     await tester.tap(focusCatalog);
     await tester.pumpAndSettle();
@@ -1471,11 +1471,30 @@ void main() {
     expect(find.text('Growth - Available'), findsOneWidget);
     expect(find.text('Research - Available'), findsOneWidget);
     expect(find.text('Revenue - Available'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('focus-catalog-select-research'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('No production bias.'), findsWidgets);
     expect(find.text('+2 food, -1 industry.'), findsWidgets);
     expect(find.text('+2 industry, -1 food.'), findsWidgets);
     expect(find.text('+2 research, -1 industry.'), findsWidgets);
     expect(find.text('+3 credits, -1 research.'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('focus-catalog-select-research'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Research - Active'), findsOneWidget);
+    expect(find.text('Industry - Available'), findsOneWidget);
+    expect(find.text('5 options / Research active'), findsOneWidget);
+    expect(find.text('7 food / 6 ind / 5 res / 9 cred'), findsOneWidget);
   });
 
   testWidgets('game screen shows colony income and morale forecasts',
