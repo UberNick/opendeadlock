@@ -1327,27 +1327,44 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Session Audit'), findsOneWidget);
     expect(find.text('session-audit-ui'), findsWidgets);
+    expect(find.text('${game.commandHistory.length} commands'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('session-audit-turn')),
+        findsOneWidget);
     expect(find.text('Turn ${game.turn} | ${game.activeFaction.name}'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('session-audit-seat')),
         findsOneWidget);
     expect(
       find.text(Faction.controlModeLabelFor(game.activeFaction.controlMode)),
       findsWidgets,
     );
+    expect(find.byKey(const ValueKey<String>('session-audit-roster')),
+        findsOneWidget);
     expect(
       find.text('$localSeats local / $computerSeats AI / $remoteSeats remote'),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey<String>('session-audit-victory')),
+        findsOneWidget);
     expect(
       find.text(OpenDeadlockGame.victoryConditionLabelFor(
         game.victoryCondition,
       )),
       findsWidgets,
     );
+    expect(find.byKey(const ValueKey<String>('session-audit-commands')),
+        findsOneWidget);
     expect(find.text('${game.commandHistory.length} recorded'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('session-audit-command-hash')),
+        findsOneWidget);
     expect(find.text(_shortFingerprintForTest(commandFingerprint)),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('session-audit-state-hash')),
         findsOneWidget);
     expect(
         find.text(_shortFingerprintForTest(stateFingerprint)), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('session-audit-handoff')),
+        findsOneWidget);
     expect(
       find.text(GameCodec.turnHandoffLabelFor(
         turn: game.turn,

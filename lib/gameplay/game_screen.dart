@@ -8790,6 +8790,9 @@ class _SessionAuditDetail extends StatelessWidget {
     final computerSeats =
         game.factions.where((faction) => faction.isComputer).length;
     final localSeats = game.factions.where((faction) => faction.isLocal).length;
+    final commandLabel = game.commandHistory.length == 1
+        ? '1 command'
+        : '${game.commandHistory.length} commands';
 
     return Container(
       key: const ValueKey<String>('session-audit'),
@@ -8815,50 +8818,78 @@ class _SessionAuditDetail extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                _shortSessionId(game.sessionId),
-                style: const TextStyle(
-                  color: Color(0xFF9FB0BE),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _shortSessionId(game.sessionId),
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF9FB0BE),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      commandLabel,
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFFD9B66F),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-turn'),
             label: 'Turn',
             value: 'Turn ${game.turn} | ${game.activeFaction.name}',
           ),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-seat'),
             label: 'Seat',
             value: Faction.controlModeLabelFor(game.activeFaction.controlMode),
           ),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-roster'),
             label: 'Roster',
             value:
                 '$localSeats local / $computerSeats AI / $remoteSeats remote',
           ),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-victory'),
             label: 'Victory',
             value: OpenDeadlockGame.victoryConditionLabelFor(
                 game.victoryCondition),
           ),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-commands'),
             label: 'Commands',
             value: game.commandHistory.length == 1
                 ? '1 recorded'
                 : '${game.commandHistory.length} recorded',
           ),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-command-hash'),
             label: 'Command Hash',
             value: _shortFingerprint(commandFingerprint),
           ),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-state-hash'),
             label: 'State Hash',
             value: _shortFingerprint(stateFingerprint),
           ),
           _DetailRow(
+            key: const ValueKey<String>('session-audit-handoff'),
             label: 'Handoff',
             value: GameCodec.turnHandoffLabelFor(
               turn: game.turn,
