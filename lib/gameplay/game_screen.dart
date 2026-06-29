@@ -4607,6 +4607,14 @@ class _SelectionPanel extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 18),
+          _StrategicAdvisorDetail(
+            game: game,
+            colonies: activeColonies,
+            units: activeUnits,
+            onSelectColony: onSelectColony,
+            onSelectUnit: onSelectUnit,
+          ),
+          const SizedBox(height: 18),
           _VictoryPathsDetail(game: game),
           if (activeUnits.isNotEmpty) ...[
             const SizedBox(height: 18),
@@ -5588,6 +5596,344 @@ class _TurnForecastRow extends StatelessWidget {
       parts.add('stable');
     }
     return parts.join(' | ');
+  }
+}
+
+class _StrategicAdvisorDetail extends StatelessWidget {
+  const _StrategicAdvisorDetail({
+    Key? key,
+    required this.game,
+    required this.colonies,
+    required this.units,
+    required this.onSelectColony,
+    required this.onSelectUnit,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final List<Colony> colonies;
+  final List<Unit> units;
+  final void Function(Colony colony) onSelectColony;
+  final void Function(Unit unit) onSelectUnit;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _advisorItems().take(5).toList(growable: false);
+    final colonyRiskCount = _colonyRiskCount();
+    final readyUnits =
+        units.where((unit) => unit.movesRemaining > 0).toList(growable: false);
+    final woundedUnits = units
+        .where((unit) => unit.health < OpenDeadlockGame.maxHealthFor(unit.type))
+        .toList(growable: false);
+    final warCount = game.factions
+        .where((faction) =>
+            faction.id != game.activeFactionId &&
+            game.areAtWar(game.activeFactionId, faction.id))
+        .length;
+
+    return Container(
+      key: const ValueKey<String>('strategic-advisor'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.assistant_direction,
+                  color: Color(0xFFE9EEF2), size: 19),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Strategic Advisor',
+                  style: TextStyle(
+                    color: Color(0xFFF4F7FA),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                items.isEmpty ? 'Ready' : '${items.length} actions',
+                style: const TextStyle(
+                  color: Color(0xFF9FB0BE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Top Action',
+            value: items.isEmpty ? 'No urgent actions' : items.first.title,
+          ),
+          _DetailRow(
+            label: 'Colonies',
+            value: colonyRiskCount == 0
+                ? _countLabel(
+                    colonies.length, 'stable colony', 'stable colonies')
+                : _countLabel(
+                    colonyRiskCount,
+                    'colony risk',
+                    'colony risks',
+                  ),
+          ),
+          _DetailRow(
+            label: 'Units',
+            value:
+                '${readyUnits.length} ready / ${woundedUnits.length} wounded',
+          ),
+          _DetailRow(
+            label: 'Diplomacy',
+            value: warCount == 0
+                ? 'No active wars'
+                : _countLabel(warCount, 'active war', 'active wars'),
+          ),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...items.map(
+              (item) => _StrategicAdvisorRow(
+                item: item,
+                onPressed: _onPressedFor(item),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<_StrategicAdvisorItem> _advisorItems() {
+    final items = <_StrategicAdvisorItem>[];
+    for (final colony in colonies) {
+      final projection = game.colonyProductionFor(colony);
+      if (projection.isStarving) {
+        items.add(
+          _StrategicAdvisorItem(
+            priority: 100,
+            icon: Icons.restaurant,
+            title: 'Fix food at ${colony.name}',
+            detail: 'Food ${_signedInt(projection.foodBalance)} next turn',
+            colony: colony,
+          ),
+        );
+      } else if (projection.isRioting) {
+        items.add(
+          _StrategicAdvisorItem(
+            priority: 95,
+            icon: Icons.warning_amber,
+            title: 'Stabilize ${colony.name}',
+            detail: 'Riots destroy ${projection.riotIndustryLoss} industry',
+            colony: colony,
+          ),
+        );
+      } else if (projection.hasMaintenanceShortfall) {
+        items.add(
+          _StrategicAdvisorItem(
+            priority: 90,
+            icon: Icons.account_balance_wallet,
+            title: 'Cover upkeep at ${colony.name}',
+            detail: '${projection.maintenanceShortfall} credits short',
+            colony: colony,
+          ),
+        );
+      } else if (projection.isInUnrest || projection.moraleChange < 0) {
+        items.add(
+          _StrategicAdvisorItem(
+            priority: 80,
+            icon: Icons.mood_bad,
+            title: 'Ease morale at ${colony.name}',
+            detail: 'Morale ${_signedInt(projection.moraleChange)} next turn',
+            colony: colony,
+          ),
+        );
+      } else if (projection.willCompleteConstruction) {
+        items.add(
+          _StrategicAdvisorItem(
+            priority: 55,
+            icon: Icons.construction,
+            title: '${colony.construction} finishes at ${colony.name}',
+            detail: 'Plan the next build order',
+            colony: colony,
+          ),
+        );
+      }
+    }
+
+    for (final unit in units) {
+      final maxHealth = OpenDeadlockGame.maxHealthFor(unit.type);
+      if (unit.health < maxHealth && unit.movesRemaining > 0) {
+        items.add(
+          _StrategicAdvisorItem(
+            priority: 70,
+            icon: Icons.healing,
+            title: 'Recover ${unit.name}',
+            detail:
+                '${unit.health}/$maxHealth HP, ${unit.movesRemaining} moves',
+            unit: unit,
+          ),
+        );
+      } else if (unit.movesRemaining > 0) {
+        items.add(
+          _StrategicAdvisorItem(
+            priority: 45,
+            icon: Icons.near_me,
+            title: 'Move ${unit.name}',
+            detail:
+                '${unit.movesRemaining}/${OpenDeadlockGame.maxMovesFor(unit.type)} moves at ${unit.x + 1}, ${unit.y + 1}',
+            unit: unit,
+          ),
+        );
+      }
+    }
+
+    final researchItem = _researchAdvisorItem();
+    if (researchItem != null) {
+      items.add(researchItem);
+    }
+    items.addAll(_diplomacyAdvisorItems());
+
+    items.sort((a, b) {
+      final priorityComparison = b.priority.compareTo(a.priority);
+      if (priorityComparison != 0) {
+        return priorityComparison;
+      }
+      return a.title.compareTo(b.title);
+    });
+    return items;
+  }
+
+  int _colonyRiskCount() {
+    var count = 0;
+    for (final colony in colonies) {
+      final projection = game.colonyProductionFor(colony);
+      if (projection.isStarving ||
+          projection.isRioting ||
+          projection.hasMaintenanceShortfall ||
+          projection.isInUnrest ||
+          projection.moraleChange < 0) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  _StrategicAdvisorItem? _researchAdvisorItem() {
+    final faction = game.activeFaction;
+    if (!OpenDeadlockGame.researchOptions.contains(faction.researchProject)) {
+      return null;
+    }
+    final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
+    final remaining = cost - faction.resources.research;
+    if (remaining <= 0 || faction.resources.credits <= 0) {
+      return null;
+    }
+    return _StrategicAdvisorItem(
+      priority: 35,
+      icon: Icons.science,
+      title: 'Fund ${faction.researchProject}',
+      detail:
+          '$remaining research left, ${faction.resources.credits} credits available',
+    );
+  }
+
+  List<_StrategicAdvisorItem> _diplomacyAdvisorItems() {
+    final items = <_StrategicAdvisorItem>[];
+    for (final faction in game.factions) {
+      if (faction.id == game.activeFactionId ||
+          !game.areAtWar(game.activeFactionId, faction.id)) {
+        continue;
+      }
+      items.add(
+        _StrategicAdvisorItem(
+          priority: 25,
+          icon: Icons.handshake,
+          title: 'Review war with ${faction.name}',
+          detail: 'Peace or alliance can reopen treaty trade',
+        ),
+      );
+    }
+    return items;
+  }
+
+  VoidCallback? _onPressedFor(_StrategicAdvisorItem item) {
+    final colony = item.colony;
+    if (colony != null) {
+      return () => onSelectColony(colony);
+    }
+    final unit = item.unit;
+    if (unit != null) {
+      return () => onSelectUnit(unit);
+    }
+    return null;
+  }
+}
+
+class _StrategicAdvisorItem {
+  const _StrategicAdvisorItem({
+    required this.priority,
+    required this.icon,
+    required this.title,
+    required this.detail,
+    this.colony,
+    this.unit,
+  });
+
+  final int priority;
+  final IconData icon;
+  final String title;
+  final String detail;
+  final Colony? colony;
+  final Unit? unit;
+}
+
+class _StrategicAdvisorRow extends StatelessWidget {
+  const _StrategicAdvisorRow({
+    Key? key,
+    required this.item,
+    required this.onPressed,
+  }) : super(key: key);
+
+  final _StrategicAdvisorItem item;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton.icon(
+          icon: Icon(item.icon),
+          label: Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.title,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  item.detail,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFE9EEF2),
+            disabledForegroundColor: const Color(0xFF9FB0BE),
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+      ),
+    );
   }
 }
 

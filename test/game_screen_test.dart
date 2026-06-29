@@ -1163,6 +1163,69 @@ void main() {
     expect(find.text('Morale'), findsOneWidget);
   });
 
+  testWidgets('game screen prioritizes strategic advisor actions',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final sample = OpenDeadlockGame.sample(sessionId: 'strategic-advisor-ui');
+    final woundedScout = sample.unitById('human-scout').copyWith(health: 2);
+    final game = sample.copyWith(
+      units: sample.units
+          .map((unit) => unit.id == woundedScout.id ? woundedScout : unit)
+          .toList(growable: false),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: game,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.byKey(const ValueKey<String>('strategic-advisor')),
+      maxScrolls: 45,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('strategic-advisor')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Strategic Advisor'), findsOneWidget);
+    expect(find.text('Recover Survey Team'), findsWidgets);
+    expect(
+      find.text(
+        '2/${OpenDeadlockGame.maxHealthFor(woundedScout.type)} HP, 2 moves',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('1 ready / 1 wounded'), findsOneWidget);
+    expect(find.text('1 active war'), findsOneWidget);
+    expect(find.text('Fund Hydroponics'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Recover Survey Team'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.widgetWithText(OutlinedButton, 'Recover Unit'),
+      delta: const Offset(0, 420),
+      maxScrolls: 40,
+    );
+    expect(find.widgetWithText(OutlinedButton, 'Recover Unit'), findsOneWidget);
+  });
+
   testWidgets('game screen shows a multi-colony overview and jumps to colonies',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
