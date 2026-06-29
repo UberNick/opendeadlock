@@ -4629,6 +4629,7 @@ class _SelectionPanel extends StatelessWidget {
             units: activeUnits,
             onSelectColony: onSelectColony,
             onSelectUnit: onSelectUnit,
+            onFundResearch: onFundResearch,
             onDiplomacyChanged: onDiplomacyChanged,
           ),
           const SizedBox(height: 18),
@@ -5636,6 +5637,7 @@ class _StrategicAdvisorDetail extends StatelessWidget {
     required this.units,
     required this.onSelectColony,
     required this.onSelectUnit,
+    required this.onFundResearch,
     required this.onDiplomacyChanged,
   }) : super(key: key);
 
@@ -5644,6 +5646,7 @@ class _StrategicAdvisorDetail extends StatelessWidget {
   final List<Unit> units;
   final void Function(Colony colony) onSelectColony;
   final void Function(Unit unit) onSelectUnit;
+  final void Function(int research) onFundResearch;
   final void Function(String targetFactionId, String status) onDiplomacyChanged;
 
   @override
@@ -5858,7 +5861,13 @@ class _StrategicAdvisorDetail extends StatelessWidget {
     }
     final cost = OpenDeadlockGame.researchCostFor(faction.researchProject);
     final remaining = cost - faction.resources.research;
-    if (remaining <= 0 || faction.resources.credits <= 0) {
+    final affordableResearch = faction.resources.credits ~/
+        OpenDeadlockGame.researchCreditCostPerPoint;
+    final fundedResearch = _advisorFundedResearchFor(
+      remainingResearch: remaining,
+      affordableResearch: affordableResearch,
+    );
+    if (fundedResearch <= 0) {
       return null;
     }
     return _StrategicAdvisorItem(
@@ -5866,7 +5875,8 @@ class _StrategicAdvisorDetail extends StatelessWidget {
       icon: Icons.science,
       title: 'Fund ${faction.researchProject}',
       detail:
-          '$remaining research left, ${faction.resources.credits} credits available',
+          'Buy $fundedResearch research with ${OpenDeadlockGame.fundResearchCostFor(fundedResearch)} credits',
+      researchFunding: fundedResearch,
     );
   }
 
@@ -5900,6 +5910,10 @@ class _StrategicAdvisorDetail extends StatelessWidget {
     if (unit != null) {
       return () => onSelectUnit(unit);
     }
+    final researchFunding = item.researchFunding;
+    if (researchFunding != null && researchFunding > 0) {
+      return () => onFundResearch(researchFunding);
+    }
     final diplomacyTargetId = item.diplomacyTargetId;
     final diplomacyStatus = item.diplomacyStatus;
     if (diplomacyTargetId != null && diplomacyStatus != null) {
@@ -5917,6 +5931,7 @@ class _StrategicAdvisorItem {
     required this.detail,
     this.colony,
     this.unit,
+    this.researchFunding,
     this.diplomacyTargetId,
     this.diplomacyStatus,
   });
@@ -5927,8 +5942,22 @@ class _StrategicAdvisorItem {
   final String detail;
   final Colony? colony;
   final Unit? unit;
+  final int? researchFunding;
   final String? diplomacyTargetId;
   final String? diplomacyStatus;
+}
+
+int _advisorFundedResearchFor({
+  required int remainingResearch,
+  required int affordableResearch,
+}) {
+  final availableResearch = remainingResearch < affordableResearch
+      ? remainingResearch
+      : affordableResearch;
+  if (availableResearch < 0) {
+    return 0;
+  }
+  return availableResearch;
 }
 
 class _StrategicAdvisorRow extends StatelessWidget {

@@ -1579,6 +1579,16 @@ void main() {
     });
     final sample = OpenDeadlockGame.sample(sessionId: 'strategic-advisor-ui');
     final woundedScout = sample.unitById('human-scout').copyWith(health: 2);
+    final remainingResearch = OpenDeadlockGame.researchCostFor(
+          sample.activeFaction.researchProject,
+        ) -
+        sample.activeFaction.resources.research;
+    final affordableResearch = sample.activeFaction.resources.credits ~/
+        OpenDeadlockGame.researchCreditCostPerPoint;
+    final fundedResearch = remainingResearch < affordableResearch
+        ? remainingResearch
+        : affordableResearch;
+    final fundCost = OpenDeadlockGame.fundResearchCostFor(fundedResearch);
     final game = sample.copyWith(
       units: sample.units
           .map((unit) => unit.id == woundedScout.id ? woundedScout : unit)
@@ -1617,11 +1627,21 @@ void main() {
     expect(find.text('1 ready / 1 wounded'), findsOneWidget);
     expect(find.text('1 active war'), findsOneWidget);
     expect(find.text('Fund Hydroponics'), findsOneWidget);
+    expect(find.text('Buy $fundedResearch research with $fundCost credits'),
+        findsOneWidget);
     expect(find.text('Offer peace to Tarth Legion'), findsOneWidget);
     expect(
       find.text('Reopen treaty trade before ending the turn'),
       findsOneWidget,
     );
+
+    await tester.tap(find.widgetWithText(TextButton, 'Fund Hydroponics'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Fund Hydroponics'), findsNothing);
+    expect(find.text('Buy $fundedResearch research with $fundCost credits'),
+        findsNothing);
 
     await tester
         .tap(find.widgetWithText(TextButton, 'Offer peace to Tarth Legion'));
