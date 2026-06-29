@@ -1291,7 +1291,22 @@ void main() {
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
     });
+    final clipboardWrites = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final arguments = call.arguments as Map<dynamic, dynamic>;
+          clipboardWrites.add(arguments['text'] as String);
+        }
+        return null;
+      },
+    );
 
     final game = OpenDeadlockGame.sample(sessionId: 'session-audit-ui');
     final commandFingerprint = GameCodec.fingerprintCommands(
@@ -1373,6 +1388,40 @@ void main() {
       )),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey<String>('session-audit-copy-summary')),
+        findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('session-audit-copy-summary')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(clipboardWrites, hasLength(1));
+    expect(clipboardWrites.single, contains('OpenDeadlock Session Audit'));
+    expect(clipboardWrites.single, contains('Session: session-audit-ui'));
+    expect(
+      clipboardWrites.single,
+      contains('Turn: ${game.turn} | ${game.activeFaction.name}'),
+    );
+    expect(
+      clipboardWrites.single,
+      contains(
+          'Seat: ${Faction.controlModeLabelFor(game.activeFaction.controlMode)}'),
+    );
+    expect(
+      clipboardWrites.single,
+      contains(
+          'Roster: $localSeats local / $computerSeats AI / $remoteSeats remote'),
+    );
+    expect(
+      clipboardWrites.single,
+      contains('Command Hash: ${_shortFingerprintForTest(commandFingerprint)}'),
+    );
+    expect(
+      clipboardWrites.single,
+      contains('State Hash: ${_shortFingerprintForTest(stateFingerprint)}'),
+    );
+    expect(find.text('Session audit copied'), findsOneWidget);
   });
 
   testWidgets('game screen can assign a sector to colony production',

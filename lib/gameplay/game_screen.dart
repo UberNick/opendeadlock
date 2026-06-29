@@ -8779,6 +8779,42 @@ class _SessionAuditDetail extends StatelessWidget {
 
   final OpenDeadlockGame game;
 
+  Future<void> _copyAuditSummary(
+    BuildContext context, {
+    required String commandFingerprint,
+    required String stateFingerprint,
+    required int localSeats,
+    required int computerSeats,
+    required int remoteSeats,
+  }) async {
+    final handoff = GameCodec.turnHandoffLabelFor(
+      turn: game.turn,
+      activeFactionName: game.activeFaction.name,
+      controlMode: game.activeFaction.controlMode,
+    );
+    final summary = <String>[
+      'OpenDeadlock Session Audit',
+      'Session: ${game.sessionId}',
+      'Turn: ${game.turn} | ${game.activeFaction.name}',
+      'Seat: ${Faction.controlModeLabelFor(game.activeFaction.controlMode)}',
+      'Roster: $localSeats local / $computerSeats AI / $remoteSeats remote',
+      'Victory: ${OpenDeadlockGame.victoryConditionLabelFor(game.victoryCondition)}',
+      'Commands: ${game.commandHistory.length} recorded',
+      'Command Hash: ${_shortFingerprint(commandFingerprint)}',
+      'State Hash: ${_shortFingerprint(stateFingerprint)}',
+      'Handoff: $handoff',
+    ].join('\n');
+
+    await Clipboard.setData(ClipboardData(text: summary));
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Session audit copied')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final commandFingerprint = GameCodec.fingerprintCommands(
@@ -8895,6 +8931,31 @@ class _SessionAuditDetail extends StatelessWidget {
               turn: game.turn,
               activeFactionName: game.activeFaction.name,
               controlMode: game.activeFaction.controlMode,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              key: const ValueKey<String>('session-audit-copy-summary'),
+              onPressed: () => _copyAuditSummary(
+                context,
+                commandFingerprint: commandFingerprint,
+                stateFingerprint: stateFingerprint,
+                localSeats: localSeats,
+                computerSeats: computerSeats,
+                remoteSeats: remoteSeats,
+              ),
+              icon: const Icon(Icons.content_copy, size: 16),
+              label: const Text('Copy Audit'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFE9EEF2),
+                side: const BorderSide(color: Color(0xFF43515B)),
+                visualDensity: VisualDensity.compact,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
           ),
         ],
