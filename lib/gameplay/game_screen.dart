@@ -14810,6 +14810,7 @@ class _ColonyOrdersDetail extends StatelessWidget {
         assignedSectorCount > 0 ||
         focusTargetCount > 0 ||
         buildTargetCount > 0;
+    final topOrder = _topOrder();
 
     return Container(
       key: const ValueKey<String>('colony-orders'),
@@ -14844,7 +14845,19 @@ class _ColonyOrdersDetail extends StatelessWidget {
               style: TextStyle(color: Color(0xFFE9EEF2)),
             )
           else ...[
+            if (topOrder != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  key: const ValueKey<String>('colony-orders-open-top'),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: Text('Open ${topOrder.label}'),
+                  onPressed: topOrder.onPressed,
+                ),
+              ),
+            ],
             _ColonyOrderButton(
+              key: const ValueKey<String>('colony-orders-rush'),
               icon: Icons.flash_on,
               label: canRush
                   ? 'Rush Construction +$rushIndustry'
@@ -14856,6 +14869,7 @@ class _ColonyOrdersDetail extends StatelessWidget {
               onPressed: onRushConstruction,
             ),
             _ColonyOrderButton(
+              key: const ValueKey<String>('colony-orders-assign-best'),
               icon: Icons.grid_view,
               label: bestSectorCount == 0
                   ? 'Assign Best Work'
@@ -14867,6 +14881,7 @@ class _ColonyOrdersDetail extends StatelessWidget {
               onPressed: onAssignBestSectors,
             ),
             _ColonyOrderButton(
+              key: const ValueKey<String>('colony-orders-release-work'),
               icon: Icons.grid_off,
               label: assignedSectorCount == 0
                   ? 'Release Worked Sectors'
@@ -14878,6 +14893,7 @@ class _ColonyOrdersDetail extends StatelessWidget {
               onPressed: onReleaseAllSectors,
             ),
             _ColonyOrderButton(
+              key: const ValueKey<String>('colony-orders-copy-focus'),
               icon: Icons.tune,
               label:
                   'Copy ${OpenDeadlockGame.colonyFocusLabelFor(colony.focus)} Focus',
@@ -14888,6 +14904,7 @@ class _ColonyOrdersDetail extends StatelessWidget {
               onPressed: onApplyFocusToAll,
             ),
             _ColonyOrderButton(
+              key: const ValueKey<String>('colony-orders-copy-build'),
               icon: Icons.playlist_add_check,
               label: 'Copy ${colony.construction} Build',
               detail: buildTargetCount == 0
@@ -14905,6 +14922,51 @@ class _ColonyOrdersDetail extends StatelessWidget {
   String _colonyCountLabel(int count) {
     return count == 1 ? 'colony' : 'colonies';
   }
+
+  _ColonyTopOrder? _topOrder() {
+    if (canRush) {
+      return _ColonyTopOrder(
+        label: 'Rush Construction +$rushIndustry',
+        onPressed: onRushConstruction,
+      );
+    }
+    if (bestSectorCount > 0) {
+      return _ColonyTopOrder(
+        label: 'Assign Best Work x$bestSectorCount',
+        onPressed: onAssignBestSectors,
+      );
+    }
+    if (assignedSectorCount > 0) {
+      return _ColonyTopOrder(
+        label: 'Release Worked Sectors x$assignedSectorCount',
+        onPressed: onReleaseAllSectors,
+      );
+    }
+    if (focusTargetCount > 0) {
+      return _ColonyTopOrder(
+        label:
+            'Copy ${OpenDeadlockGame.colonyFocusLabelFor(colony.focus)} Focus',
+        onPressed: onApplyFocusToAll,
+      );
+    }
+    if (buildTargetCount > 0) {
+      return _ColonyTopOrder(
+        label: 'Copy ${colony.construction} Build',
+        onPressed: onApplyConstructionToAll,
+      );
+    }
+    return null;
+  }
+}
+
+class _ColonyTopOrder {
+  const _ColonyTopOrder({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
 }
 
 class _ColonyOrderButton extends StatelessWidget {

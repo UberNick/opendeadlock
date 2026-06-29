@@ -4014,9 +4014,21 @@ void main() {
     expect(find.textContaining('Assign Best Work'), findsOneWidget);
     expect(find.text('Copy Balanced Focus'), findsOneWidget);
     expect(find.text('Copy Colony Hub Build'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('colony-orders-open-top')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('colony-orders-rush')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('colony-orders-assign-best')),
+      findsOneWidget,
+    );
 
     await tester.tap(
-      find.widgetWithText(OutlinedButton, 'Rush Construction +12'),
+      find.byKey(const ValueKey<String>('colony-orders-open-top')),
     );
     await tester.pumpAndSettle();
 
