@@ -4401,6 +4401,34 @@ void main() {
     expect(find.text('Movement'), findsWidgets);
     expect(find.text('AI Plan | Tarth Legion'), findsWidgets);
 
+    final aiOrderButton = find.byKey(
+      const ValueKey<String>('ai-order-review-2'),
+    );
+    expect(aiOrderButton, findsOneWidget);
+
+    await tester.ensureVisible(aiOrderButton);
+    await tester.pumpAndSettle();
+    await tester.tap(aiOrderButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Population'),
+      delta: const Offset(0, 420),
+      maxScrolls: 40,
+    );
+    expect(find.text('Redoubt'), findsWidgets);
+    expect(find.text('Population'), findsOneWidget);
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.widgetWithText(ElevatedButton, 'Run AI'),
+      delta: const Offset(0, 420),
+      maxScrolls: 40,
+    );
+    await tester.pumpAndSettle();
+
     await tester.tap(find.widgetWithText(ElevatedButton, 'Run AI'));
     await tester.pumpAndSettle();
 

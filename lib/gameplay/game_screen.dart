@@ -4585,7 +4585,10 @@ class _SelectionPanel extends StatelessWidget {
           ),
           if (game.activeFaction.isComputer && !game.isGameOver) ...[
             const SizedBox(height: 18),
-            _ComputerOrdersDetail(game: game),
+            _ComputerOrdersDetail(
+              game: game,
+              onSelectSector: onSelectSector,
+            ),
           ],
           const SizedBox(height: 18),
           _PendingOrdersDetail(
@@ -10676,9 +10679,11 @@ class _ComputerOrdersDetail extends StatelessWidget {
   const _ComputerOrdersDetail({
     Key? key,
     required this.game,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -10750,6 +10755,8 @@ class _ComputerOrdersDetail extends StatelessWidget {
                 category: _aiPlanCategoryFor(game, entry.value),
                 summary: _commandSummaryFor(game, entry.value),
                 reason: _aiPlanReasonFor(game, entry.value),
+                target: _replayTargetFor(game, entry.value),
+                onSelectSector: onSelectSector,
               );
             }),
           if (plannedCommands.length > 6)
@@ -11143,6 +11150,8 @@ class _ComputerOrderLine extends StatelessWidget {
     required this.category,
     required this.summary,
     required this.reason,
+    required this.target,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final int index;
@@ -11150,6 +11159,8 @@ class _ComputerOrderLine extends StatelessWidget {
   final String category;
   final String summary;
   final String reason;
+  final _ReplayTarget? target;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -11180,10 +11191,30 @@ class _ComputerOrderLine extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  summary,
-                  style: const TextStyle(color: Color(0xFFE9EEF2)),
-                ),
+                if (target == null)
+                  Text(
+                    summary,
+                    style: const TextStyle(color: Color(0xFFE9EEF2)),
+                  )
+                else
+                  TextButton(
+                    key: ValueKey<String>('ai-order-review-$index'),
+                    onPressed: () => onSelectSector(target!.x, target!.y),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFE9EEF2),
+                      visualDensity: VisualDensity.compact,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        summary,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 if (reason.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
@@ -11202,7 +11233,9 @@ class _ComputerOrderLine extends StatelessWidget {
                   children: [
                     _PlanCategoryChip(label: category),
                     Text(
-                      'AI Plan | $factionName',
+                      target == null
+                          ? 'AI Plan | $factionName'
+                          : 'AI Plan | $factionName | Review ${target!.label}',
                       style: const TextStyle(
                         color: Color(0xFF9FB0BE),
                         fontSize: 12,
