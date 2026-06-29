@@ -5311,6 +5311,30 @@ void main() {
     expect(find.text('New Haven: build Factory'), findsWidgets);
     expect(find.text('New Haven: focus Research'), findsWidgets);
     expect(find.text('Turn 1 | Human Assembly'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey<String>('replay-timeline-review-latest')),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('replay-timeline-review-latest')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('replay-timeline-review-latest')),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Population'),
+      delta: const Offset(0, 420),
+      maxScrolls: 56,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('New Haven'), findsWidgets);
+    expect(find.text('Population'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

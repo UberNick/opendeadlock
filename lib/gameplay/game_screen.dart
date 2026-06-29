@@ -4592,7 +4592,10 @@ class _SelectionPanel extends StatelessWidget {
             onUndoLastOrder: onUndoLastOrder,
           ),
           const SizedBox(height: 18),
-          _ReplayTimelineDetail(game: game),
+          _ReplayTimelineDetail(
+            game: game,
+            onSelectSector: onSelectSector,
+          ),
           const SizedBox(height: 18),
           _CombatReadinessDetail(
             game: game,
@@ -10667,9 +10670,11 @@ class _ReplayTimelineDetail extends StatelessWidget {
   const _ReplayTimelineDetail({
     Key? key,
     required this.game,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final OpenDeadlockGame game;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -10684,6 +10689,8 @@ class _ReplayTimelineDetail extends StatelessWidget {
     final replayWindow = records.isEmpty
         ? 'No commands'
         : 'Commands ${recentStart + 1}-${records.length}';
+    final latestTarget =
+        lastRecord == null ? null : _replayTargetFor(game, lastRecord.command);
 
     return Container(
       key: const ValueKey<String>('replay-timeline'),
@@ -10742,6 +10749,21 @@ class _ReplayTimelineDetail extends StatelessWidget {
             label: 'Audit',
             value: 'Snapshot + command log',
           ),
+          if (latestTarget != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const ValueKey<String>('replay-timeline-review-latest'),
+                icon: const Icon(Icons.manage_search, size: 16),
+                label: Text('Review ${latestTarget.label}'),
+                onPressed: () => onSelectSector(
+                  latestTarget.x,
+                  latestTarget.y,
+                ),
+              ),
+            ),
+          ],
           if (records.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 6),
@@ -10778,6 +10800,73 @@ class _ReplayTimelineDetail extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ReplayTarget {
+  const _ReplayTarget({
+    required this.label,
+    required this.x,
+    required this.y,
+  });
+
+  final String label;
+  final int x;
+  final int y;
+}
+
+_ReplayTarget? _replayTargetFor(OpenDeadlockGame game, GameCommand command) {
+  if (command is MoveUnitCommand) {
+    return _ReplayTarget(
+      label: 'Sector ${command.x + 1}, ${command.y + 1}',
+      x: command.x,
+      y: command.y,
+    );
+  }
+  if (command is SetColonySectorAssignmentCommand) {
+    return _ReplayTarget(
+      label: 'Sector ${command.x + 1}, ${command.y + 1}',
+      x: command.x,
+      y: command.y,
+    );
+  }
+  if (command is SetColonyConstructionCommand) {
+    return _replayTargetForColony(game, command.colonyId);
+  }
+  if (command is RushConstructionCommand) {
+    return _replayTargetForColony(game, command.colonyId);
+  }
+  if (command is SetColonyFocusCommand) {
+    return _replayTargetForColony(game, command.colonyId);
+  }
+  if (command is RecoverUnitCommand) {
+    return _replayTargetForUnit(game, command.unitId);
+  }
+  if (command is FoundColonyCommand) {
+    return _replayTargetForColony(game, command.colonyId) ??
+        _replayTargetForUnit(game, command.unitId);
+  }
+  return null;
+}
+
+_ReplayTarget? _replayTargetForColony(
+  OpenDeadlockGame game,
+  String colonyId,
+) {
+  for (final colony in game.colonies) {
+    if (colony.id == colonyId) {
+      return _ReplayTarget(label: colony.name, x: colony.x, y: colony.y);
+    }
+  }
+  return null;
+}
+
+_ReplayTarget? _replayTargetForUnit(OpenDeadlockGame game, String unitId) {
+  for (final unit in game.units) {
+    if (unit.id == unitId) {
+      return _ReplayTarget(label: unit.name, x: unit.x, y: unit.y);
+    }
+  }
+  return null;
 }
 
 class _ReplayTimelineLine extends StatelessWidget {
