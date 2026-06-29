@@ -326,6 +326,45 @@ void main() {
     expect(await store.loadGame('delete-second'), isNotNull);
   });
 
+  testWidgets('main menu shows empty load state after deleting last save',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+    final store = GameSaveStore(preferences);
+    final savedGame = OpenDeadlockGame.sample(sessionId: 'menu-delete-last');
+
+    await store.saveGame(
+      savedGame,
+      slotId: 'delete-last',
+      name: 'Delete Last',
+      updatedAt: DateTime.utc(2026, 6, 28, 4, 30),
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MainMenu(title: 'OpenDeadlock'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Load Game'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey<String>('load-save-slot-delete-last')),
+        findsOneWidget);
+
+    await tester.tap(
+        find.byKey(const ValueKey<String>('delete-save-slot-delete-last')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey<String>('load-save-slot-delete-last')),
+        findsNothing);
+    expect(
+        find.byKey(const ValueKey<String>('load-save-empty')), findsOneWidget);
+    expect(find.text('No local saves remain.'), findsOneWidget);
+    expect(await store.loadGame('delete-last'), isNull);
+  });
+
   testWidgets('main menu copies the local review command', (tester) async {
     final clipboardWrites = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

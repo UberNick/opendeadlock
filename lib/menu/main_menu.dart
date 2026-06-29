@@ -363,6 +363,7 @@ class _MainMenuState extends State<MainMenu> {
                   constraints: const BoxConstraints(maxHeight: 360),
                   child: slots.isEmpty
                       ? const Padding(
+                          key: ValueKey<String>('load-save-empty'),
                           padding: EdgeInsets.all(12),
                           child: Text(
                             'No local saves remain.',
