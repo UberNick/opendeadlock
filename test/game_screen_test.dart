@@ -931,7 +931,7 @@ void main() {
   testWidgets('game screen shows a multi-colony overview and jumps to colonies',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    tester.view.physicalSize = const Size(960, 1600);
+    tester.view.physicalSize = const Size(960, 2200);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -1500,12 +1500,12 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('No visible project to sabotage'), findsOneWidget);
 
-    await tester.dragUntilVisible(
-      find.text('Tactical Log'),
-      find.byType(ListView),
-      const Offset(0, -320),
-      maxIteration: 8,
-    );
+    for (var scroll = 0;
+        scroll < 16 && find.text('Tactical Log').evaluate().isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(ListView).last, const Offset(0, -320));
+      await tester.pumpAndSettle();
+    }
     await tester.pumpAndSettle();
 
     expect(find.text('Sabotage complete'), findsWidgets);
@@ -2113,6 +2113,89 @@ void main() {
       find.textContaining('unit lost, lethal risk'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('game screen summarizes combat readiness', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final sample = OpenDeadlockGame.sample(sessionId: 'combat-readiness-ui');
+    final readinessGame = sample.copyWith(
+      tiles: sample.tiles.map((tile) {
+        if (tile.colonyId != 'redoubt') {
+          return tile;
+        }
+        return tile.copyWith(
+          exploredBy: <String>{...tile.exploredBy, 'humans'}.toList(),
+        );
+      }).toList(),
+      units: <Unit>[
+        sample.unitById('human-scout').copyWith(health: 3),
+        const Unit(
+          id: 'human-infantry',
+          name: 'Assembly Infantry',
+          ownerId: 'humans',
+          type: 'infantry',
+          x: 2,
+          y: 2,
+          movesRemaining: 1,
+          health: 8,
+        ),
+        sample.unitById('rebel-scout').copyWith(x: 4, y: 1),
+      ],
+      reports: const <TurnReport>[
+        TurnReport(
+          title: 'Pact Recon attacked Survey Team',
+          message: 'Pact Recon dealt 2 damage.',
+          category: TurnReport.categoryBattle,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: readinessGame,
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (var scroll = 0;
+        scroll < 18 &&
+            find
+                .byKey(const ValueKey<String>('combat-readiness'))
+                .evaluate()
+                .isEmpty;
+        scroll += 1) {
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -480));
+      await tester.pumpAndSettle();
+    }
+
+    expect(tester.takeException(), isNull);
+    expect(
+        find.byKey(const ValueKey<String>('combat-readiness')), findsOneWidget);
+    expect(find.text('Combat Readiness'), findsOneWidget);
+    expect(find.text('Posture'), findsOneWidget);
+    expect(find.text('Enemy contact'), findsOneWidget);
+    expect(find.text('Strength'), findsOneWidget);
+    expect(find.textContaining('power'), findsWidgets);
+    expect(find.text('Units'), findsOneWidget);
+    expect(find.text('2 total / 1 combat / 2 ready'), findsOneWidget);
+    expect(find.text('Wounded'), findsOneWidget);
+    expect(find.text('Survey Team 3/5'), findsOneWidget);
+    expect(find.text('Visible Enemies'), findsOneWidget);
+    expect(find.text('Pact Recon at 5, 2'), findsOneWidget);
+    expect(find.text('Known Enemy Colonies'), findsOneWidget);
+    expect(find.text('Redoubt at 7, 4'), findsOneWidget);
+    expect(find.text('Recent Battles'), findsOneWidget);
+    expect(find.text('1 logged'), findsOneWidget);
   });
 
   testWidgets('game screen shows recent battle log details', (tester) async {

@@ -4449,6 +4449,8 @@ class _SelectionPanel extends StatelessWidget {
             canUndoLastOrder: canUndoLastOrder,
             onUndoLastOrder: onUndoLastOrder,
           ),
+          const SizedBox(height: 18),
+          _CombatReadinessDetail(game: game),
           if (newsGroups.isNotEmpty) ...[
             const SizedBox(height: 18),
             _NewsSummaryDetail(groups: newsGroups),
@@ -9767,6 +9769,125 @@ String _colonyAssaultAftermathLabel(
     maxHealth: OpenDeadlockGame.maxHealthFor(attacker.type),
     counterDamage: preview.counterDamage,
   )} risk';
+}
+
+class _CombatReadinessDetail extends StatelessWidget {
+  const _CombatReadinessDetail({
+    Key? key,
+    required this.game,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final factionId = game.activeFactionId;
+    final faction = game.activeFaction;
+    final ownedUnits =
+        game.units.where((unit) => unit.ownerId == factionId).toList();
+    final combatUnits =
+        ownedUnits.where((unit) => unit.type != 'scout').toList();
+    final readyUnits =
+        ownedUnits.where((unit) => unit.movesRemaining > 0).toList();
+    final woundedUnits = ownedUnits
+        .where((unit) => unit.health < OpenDeadlockGame.maxHealthFor(unit.type))
+        .toList();
+    final visibleEnemyUnits = game.units
+        .where(
+          (unit) =>
+              game.areAtWar(factionId, unit.ownerId) &&
+              game.isUnitVisibleTo(factionId, unit),
+        )
+        .toList();
+    final knownEnemyColonies = game.colonies
+        .where(
+          (colony) =>
+              game.areAtWar(factionId, colony.ownerId) &&
+              game.tileAt(colony.x, colony.y).isExploredBy(factionId),
+        )
+        .toList();
+    final recentBattles =
+        game.reports.where((report) => report.isBattle).length;
+    final posture = visibleEnemyUnits.isNotEmpty
+        ? 'Enemy contact'
+        : knownEnemyColonies.isNotEmpty
+            ? 'Known targets'
+            : 'No visible battles';
+
+    return Container(
+      key: const ValueKey<String>('combat-readiness'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.shield, color: Color(faction.colorValue), size: 19),
+              const SizedBox(width: 8),
+              const Text(
+                'Combat Readiness',
+                style: TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(label: 'Posture', value: posture),
+          _DetailRow(
+            label: 'Strength',
+            value: '${game.militaryStrengthFor(factionId)} power',
+          ),
+          _DetailRow(
+            label: 'Units',
+            value:
+                '${ownedUnits.length} total / ${combatUnits.length} combat / ${readyUnits.length} ready',
+          ),
+          _DetailRow(
+            label: 'Wounded',
+            value: woundedUnits.isEmpty
+                ? 'None'
+                : woundedUnits
+                    .map(
+                      (unit) =>
+                          '${unit.name} ${unit.health}/${OpenDeadlockGame.maxHealthFor(unit.type)}',
+                    )
+                    .join(', '),
+          ),
+          _DetailRow(
+            label: 'Visible Enemies',
+            value: visibleEnemyUnits.isEmpty
+                ? 'None'
+                : visibleEnemyUnits
+                    .map(
+                      (unit) => '${unit.name} at ${unit.x + 1}, ${unit.y + 1}',
+                    )
+                    .join(', '),
+          ),
+          _DetailRow(
+            label: 'Known Enemy Colonies',
+            value: knownEnemyColonies.isEmpty
+                ? 'None'
+                : knownEnemyColonies
+                    .map(
+                      (colony) =>
+                          '${colony.name} at ${colony.x + 1}, ${colony.y + 1}',
+                    )
+                    .join(', '),
+          ),
+          _DetailRow(
+            label: 'Recent Battles',
+            value: recentBattles == 1 ? '1 logged' : '$recentBattles logged',
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _CombatPreviewRow {
