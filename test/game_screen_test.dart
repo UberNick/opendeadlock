@@ -1426,6 +1426,12 @@ void main() {
     expect(find.text('Strength 14 vs 15'), findsOneWidget);
     expect(find.text('Intel scan: 5 sectors / 6 credits'), findsOneWidget);
     expect(find.text('No visible project to sabotage'), findsOneWidget);
+    expect(find.text('Trade Routes'), findsOneWidget);
+    expect(find.text('+0 credits / turn from 0 routes'), findsOneWidget);
+    expect(
+      find.text('Make peace or alliance treaties to open treaty trade.'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.widgetWithText(TextButton, 'Scan').last);
     await tester.pumpAndSettle();
@@ -1469,6 +1475,8 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Trade +2 credits / turn'), findsOneWidget);
+    expect(find.text('+2 credits / turn from 1 route'), findsOneWidget);
+    expect(find.text('Peace +2'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('Peace'),
@@ -1484,6 +1492,8 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Trade +4 credits / turn'), findsOneWidget);
+    expect(find.text('+4 credits / turn from 1 route'), findsOneWidget);
+    expect(find.text('Alliance +4'), findsOneWidget);
     expect(find.text('Alliance intel shared'), findsOneWidget);
 
     await tester.scrollUntilVisible(
@@ -1568,11 +1578,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var scroll = 0; scroll < 14; scroll += 1) {
+    for (var scroll = 0; scroll < 20; scroll += 1) {
       if (find.text('Victory Paths').evaluate().isNotEmpty) {
         break;
       }
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -420));
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -480));
       await tester.pumpAndSettle();
     }
     await tester.pumpAndSettle();
@@ -2871,9 +2881,9 @@ void main() {
 
     await tester.dragUntilVisible(
       find.text('Last Sync'),
-      find.byType(ListView),
+      find.byType(Scrollable).last,
       const Offset(0, -420),
-      maxIteration: 12,
+      maxIteration: 18,
     );
     await tester.pumpAndSettle();
 
@@ -3097,9 +3107,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.dragUntilVisible(
       find.text('Pending Orders'),
-      find.byType(ListView),
+      find.byType(Scrollable).last,
       const Offset(0, -420),
-      maxIteration: 12,
+      maxIteration: 18,
     );
     await tester.pumpAndSettle();
 
@@ -3399,6 +3409,10 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'Export Orders File'),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, 'Export Orders File'));
     await tester.pumpAndSettle();
 
@@ -3433,6 +3447,13 @@ void main() {
     expect(command.focus, OpenDeadlockGame.colonyFocusIndustry);
     expect(find.text('Order file saved: 1 new order from Human Assembly'),
         findsOneWidget);
+    for (var i = 0; i < 8; i += 1) {
+      if (find.text('0 pending').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 320));
+      await tester.pumpAndSettle();
+    }
     expect(find.text('0 pending'), findsOneWidget);
   });
 

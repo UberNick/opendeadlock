@@ -4356,6 +4356,8 @@ class _SelectionPanel extends StatelessWidget {
             onSabotage: onSabotage,
           ),
           const SizedBox(height: 18),
+          _TradeRoutesDetail(game: game, faction: game.activeFaction),
+          const SizedBox(height: 18),
           _ResearchDetail(
             faction: game.activeFaction,
             canEdit: canIssueLocalOrders,
@@ -6435,6 +6437,105 @@ class _DiplomacyDetail extends StatelessWidget {
       return 'Sabotage needs ${OpenDeadlockGame.sabotageCreditCost} credits';
     }
     return 'Sabotage ${target.colonyName}: ${target.damage} industry / ${OpenDeadlockGame.sabotageCreditCost} credits';
+  }
+}
+
+class _TradeRoutesDetail extends StatelessWidget {
+  const _TradeRoutesDetail({
+    Key? key,
+    required this.game,
+    required this.faction,
+  }) : super(key: key);
+
+  final OpenDeadlockGame game;
+  final Faction faction;
+
+  @override
+  Widget build(BuildContext context) {
+    final routes = game.factions.where((otherFaction) {
+      if (otherFaction.id == faction.id) {
+        return false;
+      }
+      return game.treatyTradeCreditsFor(faction.id, otherFaction.id) > 0;
+    }).toList(growable: false);
+    final totalTrade = game.tradeIncomeFor(faction.id).credits;
+    final routeLabel = routes.length == 1 ? 'route' : 'routes';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B34),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.local_shipping, color: Color(0xFFE9EEF2), size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Trade Routes',
+                style: TextStyle(
+                  color: Color(0xFFF4F7FA),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _DetailRow(
+            label: 'Income',
+            value:
+                '+$totalTrade credits / turn from ${routes.length} $routeLabel',
+          ),
+          if (routes.isEmpty)
+            const Text(
+              'Make peace or alliance treaties to open treaty trade.',
+              style: TextStyle(color: Color(0xFFB9C5CE), fontSize: 12),
+            )
+          else
+            ...routes.map(
+              (otherFaction) {
+                final status =
+                    game.diplomacyStatusBetween(faction.id, otherFaction.id);
+                final tradeCredits =
+                    game.treatyTradeCreditsFor(faction.id, otherFaction.id);
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        color: Color(otherFaction.colorValue),
+                        size: 10,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          otherFaction.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Color(0xFFE9EEF2)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${OpenDeadlockGame.diplomacyStatusLabelFor(status)} +$tradeCredits',
+                        style: const TextStyle(
+                          color: Color(0xFFCCD6A6),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
   }
 }
 
