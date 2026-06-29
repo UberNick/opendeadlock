@@ -11191,9 +11191,23 @@ class _UnitRosterDetail extends StatelessWidget {
               onSelect: () => onSelectUnit(unit),
             ),
           ),
+          const SizedBox(height: 8),
+          _UnitCatalogDetail(activeUnitType: _activeUnitType),
         ],
       ),
     );
+  }
+
+  String? get _activeUnitType {
+    if (selectedUnitId == null) {
+      return null;
+    }
+    for (final unit in units) {
+      if (unit.id == selectedUnitId) {
+        return unit.type;
+      }
+    }
+    return null;
   }
 }
 
@@ -11263,7 +11277,7 @@ class _UnitRosterRow extends StatelessWidget {
             ],
           ),
           Text(
-            '${_unitTypeLabel(unit.type)} | HP ${unit.health}/$maxHealth | Moves ${unit.movesRemaining}/$maxMoves',
+            '${OpenDeadlockGame.unitTypeLabelFor(unit.type)} | HP ${unit.health}/$maxHealth | Moves ${unit.movesRemaining}/$maxMoves',
             style: TextStyle(
               color:
                   wounded ? const Color(0xFFF2C38B) : const Color(0xFFB9C5CE),
@@ -11275,12 +11289,144 @@ class _UnitRosterRow extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _unitTypeLabel(String value) {
-    if (value.isEmpty) {
-      return value;
-    }
-    return value.substring(0, 1).toUpperCase() + value.substring(1);
+class _UnitCatalogDetail extends StatelessWidget {
+  const _UnitCatalogDetail({
+    Key? key,
+    required this.activeUnitType,
+  }) : super(key: key);
+
+  final String? activeUnitType;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeLabel = activeUnitType == null
+        ? 'none selected'
+        : '${OpenDeadlockGame.unitTypeLabelFor(activeUnitType!)} selected';
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0xFF31404C)),
+        ),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: Material(
+          type: MaterialType.transparency,
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: 2),
+            collapsedIconColor: const Color(0xFFE9EEF2),
+            iconColor: const Color(0xFFE9EEF2),
+            title: const Row(
+              children: [
+                Icon(Icons.shield, color: Color(0xFFE9EEF2), size: 17),
+                SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Unit Catalog',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFFF4F7FA),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Text(
+              '${OpenDeadlockGame.unitTypes.length} unit types / $activeLabel',
+              style: const TextStyle(
+                color: Color(0xFFB9C5CE),
+                fontSize: 12,
+              ),
+            ),
+            children: [
+              ...OpenDeadlockGame.unitTypes.map(
+                (unitType) => _UnitCatalogRow(
+                  unitType: unitType,
+                  isActive: unitType == activeUnitType,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnitCatalogRow extends StatelessWidget {
+  const _UnitCatalogRow({
+    Key? key,
+    required this.unitType,
+    required this.isActive,
+  }) : super(key: key);
+
+  final String unitType;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? const Color(0xFFCCD6A6) : const Color(0xFFE9EEF2);
+    final label = OpenDeadlockGame.unitTypeLabelFor(unitType);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              isActive ? Icons.play_circle : Icons.radio_button_unchecked,
+              color: color,
+              size: 14,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$label - ${isActive ? 'Selected' : 'Available'}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${OpenDeadlockGame.maxHealthFor(unitType)} HP / '
+                  '${OpenDeadlockGame.attackFor(unitType)} attack / '
+                  '${OpenDeadlockGame.defenseFor(unitType)} defense / '
+                  '${OpenDeadlockGame.maxMovesFor(unitType)} moves / '
+                  '${OpenDeadlockGame.visionRadiusForUnit(unitType)} vision',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFB9C5CE),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  OpenDeadlockGame.unitTypeDescriptionFor(unitType),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF9FB0BE),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -11316,7 +11462,10 @@ class _UnitDetail extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _DetailRow(label: 'Unit', value: unit.name),
-          _DetailRow(label: 'Type', value: _titleCase(unit.type)),
+          _DetailRow(
+            label: 'Type',
+            value: OpenDeadlockGame.unitTypeLabelFor(unit.type),
+          ),
           _DetailRow(
             label: 'Health',
             value: '${unit.health}/${OpenDeadlockGame.maxHealthFor(unit.type)}',
@@ -11454,13 +11603,6 @@ class _UnitDetail extends StatelessWidget {
 
   String _colonyAssaultPreviewValue(ColonyAssaultPreview preview) {
     return _colonyAssaultPreviewValueFor(unit, preview);
-  }
-
-  String _titleCase(String value) {
-    if (value.isEmpty) {
-      return value;
-    }
-    return value.substring(0, 1).toUpperCase() + value.substring(1);
   }
 }
 

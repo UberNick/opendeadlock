@@ -2064,6 +2064,11 @@ class OpenDeadlockGame {
   }
 
   static const int unitRecoveryAmount = 1;
+  static const List<String> unitTypes = <String>[
+    'scout',
+    'infantry',
+    'armor',
+  ];
   static const int colonyVisionRadius = 1;
   static const Map<String, int> unitVisionRadii = <String, int>{
     'scout': 2,
@@ -2544,6 +2549,35 @@ class OpenDeadlockGame {
 
   static int maxMovesFor(String unitType) {
     return _maxMovesForUnitType(unitType);
+  }
+
+  static String unitTypeLabelFor(String unitType) {
+    if (unitType == 'scout') {
+      return 'Scout';
+    }
+    if (unitType == 'infantry') {
+      return 'Infantry';
+    }
+    if (unitType == 'armor') {
+      return 'Armor';
+    }
+    if (unitType.isEmpty) {
+      return unitType;
+    }
+    return '${unitType[0].toUpperCase()}${unitType.substring(1)}';
+  }
+
+  static String unitTypeDescriptionFor(String unitType) {
+    if (unitType == 'scout') {
+      return 'Fast recon unit that can found colonies and reveal more map.';
+    }
+    if (unitType == 'infantry') {
+      return 'Reliable ground troops for colony defense and assaults.';
+    }
+    if (unitType == 'armor') {
+      return 'Heavy assault unit with the strongest attack and durability.';
+    }
+    return 'Unknown unit type.';
   }
 
   static bool isTerrainPassable(String terrain) {

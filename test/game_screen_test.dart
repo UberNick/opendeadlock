@@ -2550,6 +2550,60 @@ void main() {
     expect(find.text('8/8'), findsOneWidget);
   });
 
+  testWidgets('game screen shows unit catalog', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(960, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          initialGame: OpenDeadlockGame.sample(sessionId: 'unit-catalog-ui'),
+          resumeLatestSave: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey<String>('terrain-3-1'))),
+    );
+    await tester.pumpAndSettle();
+
+    await _scrollSidePanelUntilVisible(tester, find.text('Unit Catalog'));
+    await tester.ensureVisible(find.text('Unit Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Unit Catalog'), findsOneWidget);
+    expect(find.text('3 unit types / Scout selected'), findsOneWidget);
+
+    await tester.tap(find.text('Unit Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scout - Selected'), findsOneWidget);
+    expect(find.text('Infantry - Available'), findsOneWidget);
+    expect(find.text('Armor - Available'), findsOneWidget);
+    expect(find.text('5 HP / 3 attack / 1 defense / 2 moves / 2 vision'),
+        findsOneWidget);
+    expect(find.text('8 HP / 4 attack / 2 defense / 1 moves / 1 vision'),
+        findsOneWidget);
+    expect(find.text('10 HP / 6 attack / 3 defense / 1 moves / 1 vision'),
+        findsOneWidget);
+    expect(
+      find.text('Fast recon unit that can found colonies and reveal more map.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Heavy assault unit with the strongest attack and durability.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('game screen shows recent battle log details', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(960, 2200);
