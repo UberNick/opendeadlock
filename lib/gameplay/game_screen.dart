@@ -4614,7 +4614,10 @@ class _SelectionPanel extends StatelessWidget {
           ],
           if (game.reports.isNotEmpty) ...[
             const SizedBox(height: 18),
-            _StrategicArchiveDetail(reports: game.reports),
+            _StrategicArchiveDetail(
+              reports: game.reports,
+              onSelectSector: onSelectSector,
+            ),
           ],
           const SizedBox(height: 18),
           const Text(
@@ -12508,9 +12511,11 @@ class _StrategicArchiveDetail extends StatelessWidget {
   const _StrategicArchiveDetail({
     Key? key,
     required this.reports,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final List<TurnReport> reports;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
@@ -12593,13 +12598,19 @@ class _StrategicArchiveDetail extends StatelessWidget {
           if (highlights.isNotEmpty) ...[
             const SizedBox(height: 8),
             ...highlights.map(
-              (highlight) => _ArchiveHighlightRow(highlight: highlight),
+              (highlight) => _ArchiveHighlightRow(
+                highlight: highlight,
+                onSelectSector: onSelectSector,
+              ),
             ),
           ],
           const SizedBox(height: 6),
-          ...recentReports.take(4).map(
-                (report) => _ArchiveReportLine(report: report),
-              ),
+          for (var index = 0; index < recentReports.take(4).length; index += 1)
+            _ArchiveReportLine(
+              report: recentReports[index],
+              index: index,
+              onSelectSector: onSelectSector,
+            ),
         ],
       ),
     );
@@ -12649,15 +12660,19 @@ class _ArchiveHighlightRow extends StatelessWidget {
   const _ArchiveHighlightRow({
     Key? key,
     required this.highlight,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final _ArchiveHighlight highlight;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
     final report = highlight.report!;
     final category = _newsCategoryLabelFor(report);
     final style = _newsCategoryStyleFor(category);
+    final target = _reportTargetFor(report);
+    final label = '${highlight.label}: ${report.title}';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 5),
@@ -12667,15 +12682,40 @@ class _ArchiveHighlightRow extends StatelessWidget {
           Icon(style.icon, color: style.color, size: 15),
           const SizedBox(width: 7),
           Expanded(
-            child: Text(
-              '${highlight.label}: ${report.title}',
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFFE9EEF2),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: target == null
+                ? Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFE9EEF2),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : TextButton(
+                    key: ValueKey<String>(
+                      'archive-highlight-review-${highlight.label}',
+                    ),
+                    onPressed: () => onSelectSector(target.x, target.y),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFE9EEF2),
+                      visualDensity: VisualDensity.compact,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -12687,14 +12727,20 @@ class _ArchiveReportLine extends StatelessWidget {
   const _ArchiveReportLine({
     Key? key,
     required this.report,
+    required this.index,
+    required this.onSelectSector,
   }) : super(key: key);
 
   final TurnReport report;
+  final int index;
+  final void Function(int x, int y) onSelectSector;
 
   @override
   Widget build(BuildContext context) {
     final category = _newsCategoryLabelFor(report);
     final style = _newsCategoryStyleFor(category);
+    final target = _reportTargetFor(report);
+    final label = '$category: ${report.title}';
 
     return Padding(
       padding: const EdgeInsets.only(top: 5),
@@ -12712,19 +12758,61 @@ class _ArchiveReportLine extends StatelessWidget {
           ),
           const SizedBox(width: 7),
           Expanded(
-            child: Text(
-              '$category: ${report.title}',
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFFB9C5CE),
-                fontSize: 12,
-              ),
-            ),
+            child: target == null
+                ? Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFB9C5CE),
+                      fontSize: 12,
+                    ),
+                  )
+                : TextButton(
+                    key: ValueKey<String>('archive-report-review-$index'),
+                    onPressed: () => onSelectSector(target.x, target.y),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFB9C5CE),
+                      visualDensity: VisualDensity.compact,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
     );
   }
+}
+
+class _ReportTarget {
+  const _ReportTarget({
+    required this.x,
+    required this.y,
+  });
+
+  final int x;
+  final int y;
+}
+
+_ReportTarget? _reportTargetFor(TurnReport report) {
+  if (!report.details.containsKey('x') || !report.details.containsKey('y')) {
+    return null;
+  }
+  final x = int.tryParse(report.details['x'] ?? '');
+  final y = int.tryParse(report.details['y'] ?? '');
+  if (x == null || y == null) {
+    return null;
+  }
+  return _ReportTarget(x: x, y: y);
 }
 
 class _BattleLogEntry extends StatelessWidget {

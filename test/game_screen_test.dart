@@ -3761,6 +3761,8 @@ void main() {
           category: TurnReport.categoryBattle,
           details: <String, String>{
             'kind': 'unit',
+            'x': '6',
+            'y': '3',
           },
         ),
         TurnReport(
@@ -3829,6 +3831,25 @@ void main() {
     expect(find.text('Economy: Tax policy changed'), findsOneWidget);
     expect(find.text('Research: Human Assembly: Hydroponics researched'),
         findsWidgets);
+
+    final combatButton = find.byKey(
+      const ValueKey<String>('archive-highlight-review-Combat'),
+    );
+    expect(combatButton, findsOneWidget);
+
+    await tester.ensureVisible(combatButton);
+    await tester.pumpAndSettle();
+    await tester.tap(combatButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _scrollSidePanelUntilVisible(
+      tester,
+      find.text('Sector 7, 4'),
+      delta: const Offset(0, 420),
+      maxScrolls: 40,
+    );
+    expect(find.text('Sector 7, 4'), findsOneWidget);
   });
 
   testWidgets('game screen can recover a damaged unit', (tester) async {
