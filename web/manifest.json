@@ -1,23 +1,29 @@
 {
-    "name": "opendeadlock",
-    "short_name": "opendeadlock",
+    "name": "OpenDeadlock",
+    "short_name": "OpenDeadlock",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#101418",
+    "theme_color": "#182027",
+    "description": "A playable Flutter strategy remake prototype inspired by Deadlock: Planetary Conquest.",
+    "orientation": "any",
+    "categories": [
+        "games",
+        "strategy"
+    ],
     "prefer_related_applications": false,
     "icons": [
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         }
     ]
 }
